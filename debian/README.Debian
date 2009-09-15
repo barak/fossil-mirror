@@ -1,0 +1,15 @@
+Version taken as date in VERSION.h, created during the build process.
+
+Man page created by manually editing output of this:
+
+	help2man ./fossil \
+	 --help-option=help --version-option=version \
+	 --no-info \
+	 --name='Distributed Version Control System' \
+	 --source=http://fossil-scm.org \
+	  | egrep -v '^This is fossil version' \
+	  | sed s'/^This \\-/Fossil \\-/' \
+	  | sed s'/ THIS / FOSSIL /' \
+	  > debian/fossil.1
+
+ -- Barak A. Pearlmutter <bap@debian.org>, Tue, 15 Sep 2009 11:24:50 -0400

@@ -1,8 +1,8 @@
 -----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA1
 
-C Add\sa\sscreen\sto\sprompt\sthe\suser\sfor\sthe\sname\sof\sa\snew\swiki\spage.
-D 2009-09-15T12:04:31
+C debianize
+D 2009-09-15T17:26:38
 F BUILD.txt 334b80c5755c91dfe56874bfe07ec5d0fe276f4c
 F COPYRIGHT-GPL2.txt 06877624ea5c77efe3b7e39b0f909eda6e25a4ec
 F Makefile c357142045efc3e63f16b51c724a50ef411a08a0
@@ -33,7 +33,14 @@ F art/encode9.tex 84df5abf42b007748ec0ea1e3bd4ad2628502335
 F ci_cvs.txt 837df67f243330f601ed14e51761bc1528536dc1
 F ci_fossil.txt cf2b7a00fb594aa486f2bf953409d0d0429fd515
 F cvs2fossil.txt 3bce849e6e4a81eefd08fc28b6bbe806d2494b1a
-F debian/makedeb.sh 24a2f28c3bac4af8171d9fe20c337494f121455c
+F debian/README.Debian 9adbcc55e890d7cf14c985fedefe103bfbf37700
+F debian/changelog c87550c4232c2f9c6658e72cfa690d3b4a257875
+F debian/compat d3964f9dad9f60363c81b688324d95b4ec7c8038
+F debian/control b108c13426ce5c25d0c5301b771922e2915e86c8
+F debian/copyright dcaf12f235b015b09397fd5c1836c85a01b6afee
+F debian/fossil.1 98d11bb94fe75586757c9c3f51914aaf9e976fbe
+F debian/fossil.manpages a54d8f1ffdace2473552a7903f51d059edc38a07
+F debian/rules 6133e8ed5adaa425fec2817ec1b9c96488e03bcf x
 F fossil.nsi b8accfec94b426e04f5aa11ed250e4e6723f5235
 F kktodo.wiki 9fccabf05735653d8937ba9c635e1341b3a2a311
 F rse-notes.txt 743e75d49ad2679e6546579c0c63bf71db40f5e7
@@ -250,15 +257,18 @@ F www/stats.wiki f1a2de8646f0885d29534168d30d72096cdaba7e
 F www/sync.wiki e571cf1d8533431f4b9e33c6295c834829a2b81f
 F www/webui.wiki 6e2aa8a4b9359338019782e27269723ff89ad7ac
 F www/wikitheory.wiki 7cce5ff73627c7e28cbb38ba0abf5dc7aee674d1
-P dec4685720199ad6eb20f4824d8ae9452be10aa4
-R 99692e1660a64da92ff149ecc8906284
-U drh
-Z 8bf0815ee0bf0fa9414d19527ea4c51d
+P aa573547364950615afd709d834882c5ee558adc
+R 0d0a2ee0b8b31e0ba1c5cd925c1e6587
+T *branch * debian
+T *sym-debian *
+T -sym-trunk *
+U barak
+Z 592f47d779f06e14db540b322e2b67d2
 # Remove this line to create a well-formed Fossil manifest.
 -----BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.6 (GNU/Linux)
+Version: GnuPG v1.4.9 (GNU/Linux)
 
-iD8DBQFKr4LSoxKgR168RlERAt8kAJ9y/fgI9XcRO2FM4ZJ2nkNDWZod7wCgg1ru
-2R9JDox5O3TJinTHHAR11/g=
-=7lI0
+iEYEARECAAYFAkqvzk4ACgkQLz4Gnv7CP7KvfQCgp3y6hSJBlgnlXCKYNxN9dagb
+cRYAn0gRGgj3iOvY9nhuP09CKIVWURSK
+=eGfs
 -----END PGP SIGNATURE-----

@@ -1,0 +1,16 @@
+This package was created by Barak A. Pearlmutter <bap@debian.org>
+on Tue Sep 15 07:08:30 EDT 2009, reusing some material of
+Stephan Beal <stephan@s11n.net> in debian/makedeb.sh
+
+Fossil itself is
+Copyright (c) 2007 D. Richard Hipp
+
+The cvs2fossil utility, in tools/cvs2fossil/ is
+Copyright (c) 2007 Andreas Kupries.
+
+The original sources for fossil can be downloaded for free from:
+
+http://www.fossil-scm.org/
+
+Released under the terms of the GNU GPL v2 or later (see
+/usr/share/common-licenses/GPL)
