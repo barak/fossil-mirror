@@ -1,8 +1,8 @@
 -----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA1
 
-C debianize
-D 2009-09-15T17:26:38
+C merge\strunk
+D 2009-09-16T13:01:16
 F BUILD.txt 334b80c5755c91dfe56874bfe07ec5d0fe276f4c
 F COPYRIGHT-GPL2.txt 06877624ea5c77efe3b7e39b0f909eda6e25a4ec
 F Makefile c357142045efc3e63f16b51c724a50ef411a08a0
@@ -61,7 +61,7 @@ F src/config.h b4a2d638880a5ed7a1908c9ad2d4cb99ec758c00
 F src/configure.c d749a9aa698761537457f567224cace5da42ef33
 F src/construct.c 763e35ebbe736af438869e370ba05f5e8a7d4db9
 F src/content.c 79f280c4e28eeaf2c88a87b6bc25eed1fcce7a30
-F src/db.c 6b2ea977190eb460f2ffb9947295b36d7be3d927
+F src/db.c cb27c960703bf9fd8e6ba9f98d9cca74d5740282
 F src/delta.c 1af641b4b641fe5cddcf7180b5cf6f15b1e80e7a
 F src/deltacmd.c e730b77c18f05c0c72e8c5d9825a31eae58a0fc2
 F src/descendants.c 21679d5ff485c21fff8d060c9b371f817efa56e8
@@ -74,7 +74,7 @@ F src/http.c 2787a16cdc1e35ed6f36dfc8bf4fb42f2964daa4
 F src/http_socket.c b09f0278f6954e46cd6c491eb3653031c14db2a2
 F src/http_transport.c bc6bc305c4bad460995ca124180a89427ed3d538
 F src/info.c bdf1a77d153c91bec14d423db2ebe1ca91c9e383
-F src/login.c 1773187215c7dfa4bbb173b962b0d7b95b3d93fb
+F src/login.c 24e3ed3b1319b2d3687510dbd022ab9dba51356a
 F src/main.c e990b4f28da6affcea8649f95887d17e2fa5bbda
 F src/main.mk 1c7633a14e94f41a1d362ce3e17f608125ac3bdc
 F src/makeheaders.c b7bbc46f28d9e4396b772a389103158e1eff05d3
@@ -120,7 +120,7 @@ F src/vfile.c eb6d72e4f49995eda3502a6334dba21d4f2a8552
 F src/wiki.c c28c68f6a88996bbf49745d7dfb4906f7d39a00f
 F src/wikiformat.c fc0e3fb84eb0d25c83c381c9800bd55557454532
 F src/winhttp.c f308305b21096eedd6b2877c6d26553d8d4d9e41
-F src/xfer.c 5bb8ce2dae17a0525006942ac3841a13fc3dd637
+F src/xfer.c d0ba2feaa9baad6532f065a591feb22972764121
 F src/zip.c 8c1776ca5d0addc13d2f9a926d55310bed59cafb
 F test/delta1.test b0dba644d205733e27ebb9206d9ed3136ac79b74
 F test/merge1.test 310813fc4c32766f376ef7a676f5a3d3b8cf8d9b
@@ -257,18 +257,15 @@ F www/stats.wiki f1a2de8646f0885d29534168d30d72096cdaba7e
 F www/sync.wiki e571cf1d8533431f4b9e33c6295c834829a2b81f
 F www/webui.wiki 6e2aa8a4b9359338019782e27269723ff89ad7ac
 F www/wikitheory.wiki 7cce5ff73627c7e28cbb38ba0abf5dc7aee674d1
-P aa573547364950615afd709d834882c5ee558adc
-R 0d0a2ee0b8b31e0ba1c5cd925c1e6587
-T *branch * debian
-T *sym-debian *
-T -sym-trunk *
+P da1f16db210cd18d755dd0306a074753a954a259 bbb8ae7ebf745fa28b7a280e70bc60e2c2670cab
+R b0a09fc3a5c51fa88633e0f794bc1324
 U barak
-Z 592f47d779f06e14db540b322e2b67d2
+Z 8ac8641d4deaee77ecef5af0aa1644a8
 # Remove this line to create a well-formed Fossil manifest.
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.9 (GNU/Linux)
 
-iEYEARECAAYFAkqvzk4ACgkQLz4Gnv7CP7KvfQCgp3y6hSJBlgnlXCKYNxN9dagb
-cRYAn0gRGgj3iOvY9nhuP09CKIVWURSK
-=eGfs
+iEYEARECAAYFAkqw4ZwACgkQLz4Gnv7CP7I9wQCfby+g3bC6G6AOuNle5PUNu0du
+2AcAoKqlEds1+pFOL+exvQG/sQ74ht43
+=i4T2
 -----END PGP SIGNATURE-----
