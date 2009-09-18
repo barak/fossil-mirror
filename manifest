@@ -2,7 +2,7 @@
 Hash: SHA1
 
 C merge\strunk
-D 2009-09-18T18:14:32
+D 2009-09-18T23:51:04
 F BUILD.txt 334b80c5755c91dfe56874bfe07ec5d0fe276f4c
 F COPYRIGHT-GPL2.txt 06877624ea5c77efe3b7e39b0f909eda6e25a4ec
 F Makefile c357142045efc3e63f16b51c724a50ef411a08a0
@@ -53,7 +53,7 @@ F src/browse.c b26f9d5a293ec713a4a5065528cfe31ff50e2b82
 F src/captcha.c d47d9e715339586541480f79e7e8e7a26d0d2dee
 F src/cgi.c 0a66f5aa4afb08bc140be9dd1816afa09c648874
 F src/checkin.c 6bbed2063dd84bfc064d3d51d73fa6d5ffda65c4
-F src/checkout.c 9058612e329c957ba94ff93ccbae31acf6008597
+F src/checkout.c 975bc66779641337e39f284e171b9410b2bc21e4
 F src/clearsign.c 4431c80a36ba40f8704a6b994c7248aab9292625
 F src/clone.c 70ab216ac262485d0dd5c9c1299100cb40f0ea80
 F src/comformat.c 26c0414fd89346d1d1cfda0762fd8fddbca144b1
@@ -257,15 +257,15 @@ F www/stats.wiki f1a2de8646f0885d29534168d30d72096cdaba7e
 F www/sync.wiki e571cf1d8533431f4b9e33c6295c834829a2b81f
 F www/webui.wiki 6e2aa8a4b9359338019782e27269723ff89ad7ac
 F www/wikitheory.wiki 7cce5ff73627c7e28cbb38ba0abf5dc7aee674d1
-P 161a65d09f3fea8785c0488ba4b4ac241e1851af 0eb08b860c5b851c074113fd459d1cd0671f4805
-R d7436af757bbb51df97570c5dd8f9dcb
+P 0cea816911dcfcafa5af38248ce280c11d6938a1 c774e298c3f213f7487fb0ba638edfa3f1b89edf
+R 9cecc74aefaaa8137f22fc12b1b8d561
 U barak
-Z 402ac2292dac7e2afc5223cb7aa00e74
+Z eb1a9d066883aa1b022d255c478e3aa6
 # Remove this line to create a well-formed Fossil manifest.
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.9 (GNU/Linux)
 
-iEYEARECAAYFAkqzzggACgkQLz4Gnv7CP7LPKACgued4rD+m/76F9FwY6PAzm38u
-ILsAoNsefPknoCmhlts7mzqlfgrXBBKC
-=43AV
+iEYEARECAAYFAkq0HOgACgkQLz4Gnv7CP7KxNgCgpl1Owls9ciBsFhg/FyF8ayA5
+NfQAoKp66nsIAt7A/c23kbL76dpXZkNJ
+=7dWU
 -----END PGP SIGNATURE-----
