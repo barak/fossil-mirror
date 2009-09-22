@@ -1,4 +1,7 @@
-Version taken as date in VERSION.h, created during the build process.
+Version taken either as
+
+ - date in VERSION.h, created during the build process.
+ - long number in upstream tarball, via uscan/watch
 
 Man page created by manually editing output of this:
 
@@ -12,4 +15,49 @@ Man page created by manually editing output of this:
 	  | sed s'/ THIS / FOSSIL /' \
 	  > debian/fossil.1
 
- -- Barak A. Pearlmutter <bap@debian.org>, Tue, 15 Sep 2009 11:24:50 -0400
+Debianized sources tracked in fossil, of course.
+Brief "cheat sheet" of relevant commands.
+
+ # create local repo
+ fossil clone http://www.fossil-scm.org/ fossil.fossil
+ mkdir src
+ cd src
+ fossil open ../fossil.fossil
+ fossil co debian
+ fossil user password ${USER} ${PWD}
+
+ # sync to your own remote repo
+ ssh ${HOST}
+    cd ${PATH}/src
+    fossil server
+ fossil sync http://${USER}:${PWD}@${HOST}:8080
+
+ # fetch & merge upstream changes
+ fossil pull http://www.fossil-scm.org/
+ fossil merge trunk
+ fossil commit -m 'merge trunk'
+ <update debian/changelog according to uscan or make VERSION.h>
+ fossil commit -m 'log merge trunk'
+
+ # figure out upstream version number, either
+ uscan
+ # or
+ make VERSION.h
+ cat VERSION.h
+
+ # create upstream tarball from trunk
+ mkdir src; cd src
+ fossil open ../fossil.fossil
+ fossil co trunk
+ rm manifest _FOSSIL_
+ cd ..
+ tar cf fossil-ORIG-XXX.tar.gz src
+
+ # build local version
+ mkdir deb; cd deb
+ fossil open ../fossil.fossil
+ fossil co debian
+ rm manifest _FOSSIL_
+ dpkg-buildpackage
+
+ -- Barak A. Pearlmutter <bap@debian.org>, Tue, 22 Sep 2009 16:47:53 -0400
