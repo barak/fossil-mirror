@@ -49,7 +49,7 @@ Brief "cheat sheet" of relevant commands.
  mkdir src; cd src
  fossil open ../fossil.fossil
  fossil co trunk
- rm manifest _FOSSIL_
+ rm _FOSSIL_
  cd ..
  tar cf fossil-ORIG-XXX.tar.gz src
 
@@ -60,4 +60,4 @@ Brief "cheat sheet" of relevant commands.
  rm manifest _FOSSIL_
  dpkg-buildpackage
 
- -- Barak A. Pearlmutter <bap@debian.org>, Tue, 22 Sep 2009 16:47:53 -0400
+ -- Barak A. Pearlmutter <bap@debian.org>, Tue, 22 Sep 2009 16:51:51 -0400
