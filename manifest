@@ -1,8 +1,8 @@
 -----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA1
 
-C correct\ssyntax\sfor\supstream\starball\sin\sREADME.Debian
-D 2009-09-23T12:50:15
+C add\sother\slisted\sauthors\sto\sdebian/copyright
+D 2009-09-23T18:29:07
 F BUILD.txt 334b80c5755c91dfe56874bfe07ec5d0fe276f4c
 F COPYRIGHT-GPL2.txt 06877624ea5c77efe3b7e39b0f909eda6e25a4ec
 F Makefile c357142045efc3e63f16b51c724a50ef411a08a0
@@ -34,10 +34,10 @@ F ci_cvs.txt 837df67f243330f601ed14e51761bc1528536dc1
 F ci_fossil.txt cf2b7a00fb594aa486f2bf953409d0d0429fd515
 F cvs2fossil.txt 3bce849e6e4a81eefd08fc28b6bbe806d2494b1a
 F debian/README.Debian 4cb116688049788b4db55f9319fd303cc24703d2
-F debian/changelog 9f43c021d85c791a6df089a396dbe08aeea1aa43
+F debian/changelog 70f45dbf57d584afda98d175fd51b6f364fedce0
 F debian/compat d3964f9dad9f60363c81b688324d95b4ec7c8038
 F debian/control b108c13426ce5c25d0c5301b771922e2915e86c8
-F debian/copyright 54d0530baa8ef828ffd8c4730a245ce1620b52ed
+F debian/copyright 3589ddfb2c582715472209baaac7e5da9af680b1
 F debian/fossil.1 98d11bb94fe75586757c9c3f51914aaf9e976fbe
 F debian/fossil.manpages a54d8f1ffdace2473552a7903f51d059edc38a07
 F debian/rules 6133e8ed5adaa425fec2817ec1b9c96488e03bcf x
@@ -258,15 +258,15 @@ F www/stats.wiki f1a2de8646f0885d29534168d30d72096cdaba7e
 F www/sync.wiki e571cf1d8533431f4b9e33c6295c834829a2b81f
 F www/webui.wiki 6e2aa8a4b9359338019782e27269723ff89ad7ac
 F www/wikitheory.wiki 7cce5ff73627c7e28cbb38ba0abf5dc7aee674d1
-P d2fea29140c4ffba048154461efd841bbd80d720
-R 0101dc413a5ac73c50ef4333cbaa7128
+P d72c436ae07f1a832a36d58974a660581dc97c10
+R 8cfb6c59b8aa9db95921c2c507952405
 U barak
-Z b69d35309cb9de79c9d29948d44b6a24
+Z 8db576c9f92f08051afc38e1cdd3d80e
 # Remove this line to create a well-formed Fossil manifest.
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.9 (GNU/Linux)
 
-iEYEARECAAYFAkq6GYcACgkQLz4Gnv7CP7LXNwCfWoyd6jlAo89j79lJ03K3+Qwa
-ZV8Anit6bPzPBlfcyMQAPQs3dm2EdMiF
-=orGN
+iEYEARECAAYFAkq6aPMACgkQLz4Gnv7CP7LrLACdFxqQjPONMBc3GUaqTLF0ZmeM
+8qYAnRnDCX9Nd1xceZx9NchSxJ5pN4eX
+=pzY1
 -----END PGP SIGNATURE-----

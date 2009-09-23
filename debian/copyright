@@ -8,6 +8,12 @@ Copyright (c) 2007 D. Richard Hipp
 The cvs2fossil utility, in tools/cvs2fossil/ is
 Copyright (c) 2007 Andreas Kupries.
 
+The file src/rstats.c is also
+Copyright (C) Kevin Kinnell
+
+The file src/wiki.c is also
+Copyright (C) 2008 Stephan Beal
+
 The original sources for fossil can be downloaded for free from:
 
 http://www.fossil-scm.org/
@@ -16,4 +22,4 @@ The "upstrema tarball" for the first upload to debian was
 http://www.fossil-scm.org/download/fossil-src-20090921191920.tar.gz
 
 Released under the terms of the GNU GPL v2 or later (see
-/usr/share/common-licenses/GPL)
+/usr/share/common-licenses/GPL-2)
