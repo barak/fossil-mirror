@@ -1,8 +1,9 @@
 fossil (2009.09.21.191920-2) unstable; urgency=low
 
   * Add other authors listed in Copyright lines to debian/copyright
+  * Merge evolutionary upstream changes
 
- -- Barak A. Pearlmutter <bap@debian.org>  Wed, 23 Sep 2009 14:25:45 -0400
+ -- Barak A. Pearlmutter <bap@debian.org>  Wed, 23 Sep 2009 14:32:25 -0400
 
 fossil (2009.09.21.191920-1) unstable; urgency=low
 
