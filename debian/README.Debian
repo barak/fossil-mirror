@@ -36,7 +36,7 @@ Brief "cheat sheet" of relevant commands.
  fossil pull http://www.fossil-scm.org/
  fossil merge trunk
  fossil commit -m 'merge trunk'
- <update debian/changelog according to uscan or make VERSION.h>
+ <update debian/changelog>
  fossil commit -m 'log merge trunk'
 
  # figure out upstream version number, either
@@ -51,7 +51,7 @@ Brief "cheat sheet" of relevant commands.
  fossil co trunk
  rm _FOSSIL_
  cd ..
- tar cf fossil-ORIG-XXX.tar.gz src
+ tar cf fossil_${VERSION}.orig.tar.gz src
 
  # build local version
  mkdir deb; cd deb
@@ -60,4 +60,4 @@ Brief "cheat sheet" of relevant commands.
  rm _FOSSIL_
  dpkg-buildpackage
 
- -- Barak A. Pearlmutter <bap@debian.org>, Tue, 22 Sep 2009 16:53:12 -0400
+ -- Barak A. Pearlmutter <bap@debian.org>, Wed, 23 Sep 2009 08:41:44 -0400
