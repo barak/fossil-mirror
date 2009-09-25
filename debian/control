@@ -10,6 +10,7 @@ Homepage: http://fossil-scm.org
 Package: fossil
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
+Suggests: gnupg | gnupg2
 Description: DSCM with built-in wiki, http interface and server, tickets database
  Fossil is an easy-to-use Distributed Source Control Management system
  (DSCM) which supports access and administration over HTTP CGI or via

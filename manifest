@@ -1,8 +1,8 @@
 -----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA1
 
-C debian/control\sbuild-depend\slibz-dev
-D 2009-09-25T13:03:35
+C suggest\sGPG
+D 2009-09-25T14:59:49
 F BUILD.txt 334b80c5755c91dfe56874bfe07ec5d0fe276f4c
 F COPYRIGHT-GPL2.txt 06877624ea5c77efe3b7e39b0f909eda6e25a4ec
 F Makefile c357142045efc3e63f16b51c724a50ef411a08a0
@@ -34,9 +34,9 @@ F ci_cvs.txt 837df67f243330f601ed14e51761bc1528536dc1
 F ci_fossil.txt cf2b7a00fb594aa486f2bf953409d0d0429fd515
 F cvs2fossil.txt 3bce849e6e4a81eefd08fc28b6bbe806d2494b1a
 F debian/README.Debian 4cb116688049788b4db55f9319fd303cc24703d2
-F debian/changelog c9f2e7d4c1e81d718fd5256f89a8cea669f93731
+F debian/changelog 5bf6bd7152d7d2495413fe5f5f14e658e80dc2aa
 F debian/compat d3964f9dad9f60363c81b688324d95b4ec7c8038
-F debian/control e5759ce1a72cd5960d584f321d357c4bc270816b
+F debian/control bf144d3d09d335c4af502c7027807b893048b80b
 F debian/copyright 3589ddfb2c582715472209baaac7e5da9af680b1
 F debian/fossil.1 98d11bb94fe75586757c9c3f51914aaf9e976fbe
 F debian/fossil.manpages a54d8f1ffdace2473552a7903f51d059edc38a07
@@ -258,15 +258,15 @@ F www/stats.wiki f1a2de8646f0885d29534168d30d72096cdaba7e
 F www/sync.wiki e571cf1d8533431f4b9e33c6295c834829a2b81f
 F www/webui.wiki 6e2aa8a4b9359338019782e27269723ff89ad7ac
 F www/wikitheory.wiki 7cce5ff73627c7e28cbb38ba0abf5dc7aee674d1
-P 0ebb99180bc765bd2519b748e39fc7d68ad4c564
-R bbffe90c8395a0e4e48dfeebd9d4b21a
+P 809722622a5e11217ac72570003ecc30f7886758
+R 550927f4a40a52ea365e363c11a99707
 U barak
-Z 920a10b4a5f99b4edb5820de2ac7b399
+Z 4b57836b3cd6d997f7cf07e53afde99b
 # Remove this line to create a well-formed Fossil manifest.
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.9 (GNU/Linux)
 
-iEYEARECAAYFAkq8v6cACgkQLz4Gnv7CP7IuLwCgoUf4DaS0AWlOIpcR34FA7zNy
-+4sAn1pWzkDb/Ui0KcAioMNA5ss5LLEo
-=LFpP
+iEYEARECAAYFAkq82uUACgkQLz4Gnv7CP7JqiQCfaydXFwZlmvTHO5iXk4djox4X
+aqsAn2sxChFHXGaBW0U2mB9sc4dNq7JS
+=9liQ
 -----END PGP SIGNATURE-----

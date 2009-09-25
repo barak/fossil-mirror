@@ -1,3 +1,9 @@
+fossil (2009.09.21.191920-4) unstable; urgency=low
+
+  * Have binary package suggest GPG aka gnupg
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Fri, 25 Sep 2009 10:59:15 -0400
+
 fossil (2009.09.21.191920-3) unstable; urgency=low
 
   * Add build dependency to get zlib.h and -lz (closes: #548265)
