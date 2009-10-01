@@ -1,5 +1,5 @@
 Source: fossil
-Section: devel
+Section: vcs
 Priority: optional
 Maintainer: Barak A. Pearlmutter <bap@debian.org>
 Standards-Version: 3.8.3
