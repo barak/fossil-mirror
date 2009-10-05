@@ -1,11 +1,11 @@
 -----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA1
 
-C close\ssection:\sbug
-D 2009-10-01T11:12:53
+C flush\slocal\s&\suse\ssystem\slibsqlite3
+D 2009-10-05T05:17:36
 F BUILD.txt 334b80c5755c91dfe56874bfe07ec5d0fe276f4c
 F COPYRIGHT-GPL2.txt 06877624ea5c77efe3b7e39b0f909eda6e25a4ec
-F Makefile c357142045efc3e63f16b51c724a50ef411a08a0
+F Makefile 690c4cd4f0c051005efd7ccd443bf2f44b67654a x
 F Makefile.w32 8092d934098833d3b9c63653e47e72e7e1aa5844
 F art/CollRev1.dia 186c7bb7a88c533ab226431bbd7c4835bb6ac2a0
 F art/CollRev2.dia 59b1c331a52e19f44f2dcf7c744dd5aaabd2b5cf
@@ -34,9 +34,9 @@ F ci_cvs.txt 837df67f243330f601ed14e51761bc1528536dc1
 F ci_fossil.txt cf2b7a00fb594aa486f2bf953409d0d0429fd515
 F cvs2fossil.txt 3bce849e6e4a81eefd08fc28b6bbe806d2494b1a
 F debian/README.Debian 4cb116688049788b4db55f9319fd303cc24703d2
-F debian/changelog f48293f2ac7591a1952240d9b92e27f3b439e51c
+F debian/changelog 09d935dada0cb91b7cc64220a9505b892b3e4919
 F debian/compat d3964f9dad9f60363c81b688324d95b4ec7c8038
-F debian/control 80f75f44e64469452a4b3258cdc370f7b19ecf3d
+F debian/control 41352c6a19fca09d0cb8b11ee6f3928c7e642090
 F debian/copyright 3589ddfb2c582715472209baaac7e5da9af680b1
 F debian/fossil.1 98d11bb94fe75586757c9c3f51914aaf9e976fbe
 F debian/fossil.manpages a54d8f1ffdace2473552a7903f51d059edc38a07
@@ -77,10 +77,10 @@ F src/http_transport.c a410394220316684dd02ae97f16539e07fbd875d
 F src/info.c bdf1a77d153c91bec14d423db2ebe1ca91c9e383
 F src/login.c 3b52c138dbc74bbc46d0d023b58241865cd2d06c
 F src/main.c e990b4f28da6affcea8649f95887d17e2fa5bbda
-F src/main.mk 1c7633a14e94f41a1d362ce3e17f608125ac3bdc
+F src/main.mk 66d262aa2abaa0a91e1b7fbf61b4588193bc9369
 F src/makeheaders.c b7bbc46f28d9e4396b772a389103158e1eff05d3
 F src/makeheaders.html 0e4ade7e463ae2bf1595d615a949d2cc14a2a5b4
-F src/makemake.tcl 63b9b997e577ceb50b40b2e39548d87c70c13759
+F src/makemake.tcl f634f9aa4410c1c6bcea201e4f02d65e0a9947c7 x
 F src/manifest.c daaac5b0650723a2324a60d98dcb4cb9e4ce8d52
 F src/md5.c 15acdef8fff01aefa815ceaa392ea59185d47f3d
 F src/merge.c 5979683d08945c596e6cd81781ac8c39a0321000
@@ -98,8 +98,6 @@ F src/schema.c 6fd1e2b445e750d73d821a572d6cf1f3e9cb02af
 F src/setup.c 95f147ca17a4576fd83b7c3db78205b39bfdad22
 F src/sha1.c 7f2336da5a35db54553d39d532b8d44017c47820
 F src/shun.c 5eec8953fc0adc08cfa0cedd0910360c591615f3
-F src/sqlite3.c 6a71c71db87ffeeb93828591c7c1cc668af67096
-F src/sqlite3.h 67b66f4eca3e7f007a785b2f75fe8abcc2da4eb0
 F src/stat.c bc484277064e5bcf7c2dc0a2eb0329e543aec966
 F src/style.c 6ae8d6d4febdb09fc4062a629abf419e3c1eceeb
 F src/sync.c 312506edea616e84307a9372bda6db4132f21f5b
@@ -258,15 +256,15 @@ F www/stats.wiki f1a2de8646f0885d29534168d30d72096cdaba7e
 F www/sync.wiki e571cf1d8533431f4b9e33c6295c834829a2b81f
 F www/webui.wiki 6e2aa8a4b9359338019782e27269723ff89ad7ac
 F www/wikitheory.wiki 7cce5ff73627c7e28cbb38ba0abf5dc7aee674d1
-P bc43a30a31eb36c46cefea042bbaf377364a57fb
-R 38bb674c48f6a0afcafb57ed2aadd9d5
+P 332e820f9d70a4eb8c5f4fedd59395cfe41c44ba
+R 1c17565f149ca426059448b9533c6b8d
 U barak
-Z 09f1982de75096e7a7c496ef937151e6
+Z 799fa2600216bec896106c338f273664
 # Remove this line to create a well-formed Fossil manifest.
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.9 (GNU/Linux)
 
-iEYEARECAAYFAkrEjrUACgkQLz4Gnv7CP7J4ZwCghihouUQxP6N/K3maT0c2yLEz
-2ckAn0lwGRTHV3YqawKQPk7LT1rJDYl9
-=Yn2r
+iEYEARECAAYFAkrJgXAACgkQLz4Gnv7CP7L3IACeNjSCG364fjJxuI5SasbvNAxc
+gCEAoJElY4wP4wUGu3Illq6R4L0uDMv/
+=pMUo
 -----END PGP SIGNATURE-----

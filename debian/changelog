@@ -1,3 +1,9 @@
+fossil (2009.09.21.191920-6) unstable; urgency=low
+
+  * use system libsqlite (closes: #549473)
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Mon, 05 Oct 2009 00:52:26 -0400
+
 fossil (2009.09.21.191920-5) unstable; urgency=low
 
   * sed s'/^Section: devel/Section: vcs/' debian/control (closes: #549163)

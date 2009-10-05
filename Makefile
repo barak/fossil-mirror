@@ -34,7 +34,7 @@ TCC = gcc -g -Os -Wall
 #    so that we can build a static executable that will run in a
 #    chroot jail.
 #
-LIB = -lz $(LDFLAGS)
+LIB = -lz -lsqlite3 $(LDFLAGS)
 # If you're on OpenSolaris:
 # LIB += lsocket
 # Solaris 10 needs:

@@ -141,8 +141,8 @@ VERSION.h:	$(SRCDIR)/../manifest.uuid $(SRCDIR)/../manifest
 		substr($$2,1,10),substr($$2,12)}' \
 		$(SRCDIR)/../manifest >>VERSION.h
 
-$(APPNAME):	headers $(OBJ) sqlite3.o th.o th_lang.o
-	$(TCC) -o $(APPNAME) $(OBJ) sqlite3.o th.o th_lang.o $(LIB)
+$(APPNAME):	headers $(OBJ) th.o th_lang.o
+	$(TCC) -o $(APPNAME) $(OBJ) th.o th_lang.o $(LIB)
 
 # This rule prevents make from using its default rules to try build
 # an executable named "manifest" out of the file named "manifest.c"
@@ -163,7 +163,6 @@ foreach s [lsort $src] {
   append mhargs " ${s}_.c:$s.h"
   set extra_h($s) {}
 }
-append mhargs " \$(SRCDIR)/sqlite3.h"
 append mhargs " \$(SRCDIR)/th.h"
 append mhargs " VERSION.h"
 puts "page_index.h: \$(TRANS_SRC) mkindex"
@@ -186,12 +185,11 @@ foreach s [lsort $src] {
 }
 
 
-puts "sqlite3.o:\t\$(SRCDIR)/sqlite3.c"
-set opt {-DSQLITE_OMIT_LOAD_EXTENSION=1}
-append opt " -DSQLITE_THREADSAFE=0 -DSQLITE_DEFAULT_FILE_FORMAT=4"
+# set opt {-DSQLITE_OMIT_LOAD_EXTENSION=1}
+# append opt " -DSQLITE_THREADSAFE=0 -DSQLITE_DEFAULT_FILE_FORMAT=4"
 #append opt " -DSQLITE_ENABLE_FTS3=1"
 append opt " -Dlocaltime=fossil_localtime"
-puts "\t\$(XTCC) $opt -c \$(SRCDIR)/sqlite3.c -o sqlite3.o\n"
+# puts "\t\$(XTCC) $opt -c \$(SRCDIR)/sqlite3.c -o sqlite3.o\n"
 
 puts "th.o:\t\$(SRCDIR)/th.c"
 puts "\t\$(XTCC) -I\$(SRCDIR) -c \$(SRCDIR)/th.c -o th.o\n"
