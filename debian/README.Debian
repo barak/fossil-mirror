@@ -15,6 +15,11 @@ Man page created by manually editing output of this:
 	  | sed s'/ THIS / FOSSIL /' \
 	  > debian/fossil.1
 
+Only non-upstream patch outside of debian/ is removal of sqlite
+sources and replacement of references to them in makefile by -lXXX in
+order to use system dynamic sqlite library rather than a static
+private copy.
+
 Debianized sources tracked in fossil, of course.
 Brief "cheat sheet" of relevant commands.
 
@@ -60,4 +65,4 @@ Brief "cheat sheet" of relevant commands.
  rm _FOSSIL_
  dpkg-buildpackage
 
- -- Barak A. Pearlmutter <bap@debian.org>, Wed, 23 Sep 2009 08:41:44 -0400
+ -- Barak A. Pearlmutter <bap@debian.org>, Mon,  5 Oct 2009 09:24:49 -0400
