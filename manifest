@@ -1,8 +1,8 @@
 -----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA1
 
-C discuss\sdynamic\slibsqlite3\spatch\sin\sdebian/README.Debian
-D 2009-10-05T13:26:33
+C merge\strunk
+D 2009-10-06T19:03:10
 F BUILD.txt 334b80c5755c91dfe56874bfe07ec5d0fe276f4c
 F COPYRIGHT-GPL2.txt 06877624ea5c77efe3b7e39b0f909eda6e25a4ec
 F Makefile 690c4cd4f0c051005efd7ccd443bf2f44b67654a x
@@ -56,7 +56,7 @@ F src/cgi.c 0a66f5aa4afb08bc140be9dd1816afa09c648874
 F src/checkin.c 2e4a6e1c0f68fac6d8bc0ae4d6d170149a93ec6c
 F src/checkout.c 975bc66779641337e39f284e171b9410b2bc21e4
 F src/clearsign.c 4431c80a36ba40f8704a6b994c7248aab9292625
-F src/clone.c 70ab216ac262485d0dd5c9c1299100cb40f0ea80
+F src/clone.c 42fdc2e08e7b46c615816625dd5e0979a5db3b43
 F src/comformat.c 26c0414fd89346d1d1cfda0762fd8fddbca144b1
 F src/config.h b4a2d638880a5ed7a1908c9ad2d4cb99ec758c00
 F src/configure.c ac12a5f70a6c9dc3c1f2b0e1737a3c387304f885
@@ -67,11 +67,11 @@ F src/delta.c 1af641b4b641fe5cddcf7180b5cf6f15b1e80e7a
 F src/deltacmd.c e730b77c18f05c0c72e8c5d9825a31eae58a0fc2
 F src/descendants.c 21679d5ff485c21fff8d060c9b371f817efa56e8
 F src/diff.c 423e7bd7db1078eb33c89566182e93d6b589e342
-F src/diffcmd.c 4832395b8a7e7cad6e870423fa48013da2ce92a3
+F src/diffcmd.c a53a1db3ef20be5367d8b58f291cc2b73d8e7b67
 F src/doc.c cb0906ed170001259597044f771003759dcb0b3d
 F src/encode.c ffe3dddccba03523c55cd91f666ce7f5336b186c
 F src/file.c 146394c81abc2145edc8c2129f32df0de6f8454d
-F src/http.c 2787a16cdc1e35ed6f36dfc8bf4fb42f2964daa4
+F src/http.c 488f99c0c0b4ff9d546b69baef16b035bf9bf554
 F src/http_socket.c b09f0278f6954e46cd6c491eb3653031c14db2a2
 F src/http_transport.c a410394220316684dd02ae97f16539e07fbd875d
 F src/info.c bdf1a77d153c91bec14d423db2ebe1ca91c9e383
@@ -96,10 +96,10 @@ F src/rss.c 945efe289e6984e523a77bab956cdc6255af6487
 F src/rstats.c 6291df32f6b64752ce83d38da0eb9e961fea1c07
 F src/schema.c 6fd1e2b445e750d73d821a572d6cf1f3e9cb02af
 F src/setup.c 95f147ca17a4576fd83b7c3db78205b39bfdad22
-F src/sha1.c 7f2336da5a35db54553d39d532b8d44017c47820
+F src/sha1.c 30e74752c3184675c37cefd4fecaad2ab1e25642
 F src/shun.c 5eec8953fc0adc08cfa0cedd0910360c591615f3
 F src/stat.c bc484277064e5bcf7c2dc0a2eb0329e543aec966
-F src/style.c 6ae8d6d4febdb09fc4062a629abf419e3c1eceeb
+F src/style.c e4a69231c5c4ab874678c715623a9b4a92ac7034
 F src/sync.c 312506edea616e84307a9372bda6db4132f21f5b
 F src/tag.c bc765b3a20216ff9e9bb76218997e426e3ae1df7
 F src/th.c ca17d876879bf67d055bef3e773897712874be2b
@@ -119,7 +119,7 @@ F src/vfile.c 5504b327f7f2194c07bf850934e50aec1a24f229
 F src/wiki.c c28c68f6a88996bbf49745d7dfb4906f7d39a00f
 F src/wikiformat.c eea8f89fd5c63b9ba62c4efe9750e146479b4166
 F src/winhttp.c f308305b21096eedd6b2877c6d26553d8d4d9e41
-F src/xfer.c 2973354cfc4a3898d18bd725e8f819f5b241973c
+F src/xfer.c b02eb5519cbcdf339bf5058826b272506c1f575d
 F src/zip.c 8c1776ca5d0addc13d2f9a926d55310bed59cafb
 F test/delta1.test b0dba644d205733e27ebb9206d9ed3136ac79b74
 F test/merge1.test 310813fc4c32766f376ef7a676f5a3d3b8cf8d9b
@@ -256,15 +256,15 @@ F www/stats.wiki f1a2de8646f0885d29534168d30d72096cdaba7e
 F www/sync.wiki e571cf1d8533431f4b9e33c6295c834829a2b81f
 F www/webui.wiki 6e2aa8a4b9359338019782e27269723ff89ad7ac
 F www/wikitheory.wiki 7cce5ff73627c7e28cbb38ba0abf5dc7aee674d1
-P 1ba96e566a6db5e167fc932b2d096f85424b2f28
-R a48db5e6621f511460b25a53e236577e
+P c1531ee98de08d3f702ca0e865b72b8191f73aa3 6842999f824d0cd482a9e366dc544f58c41a81ac
+R a5127794f00901697f1ad87fe860ba74
 U barak
-Z af449110443ffacd2f4a809159fc81b6
+Z a63d617bb581486c75e3eb9a62b4612d
 # Remove this line to create a well-formed Fossil manifest.
 -----BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.9 (GNU/Linux)
+Version: GnuPG v1.4.10 (GNU/Linux)
 
-iEYEARECAAYFAkrJ9AkACgkQLz4Gnv7CP7KoyQCeKO8RHg4bmwpKDIjF3jLFTYVs
-teEAn39gjAKTS1TD3ZfXqbVaMNJlfZQV
-=/iti
+iEYEARECAAYFAkrLlG4ACgkQLz4Gnv7CP7I1EgCePk7GSfPvKHT8tNWed2XGKRVB
+OPYAnRLwkqNe3r3C9rsDEg8oON4mkGwQ
+=GS+A
 -----END PGP SIGNATURE-----
