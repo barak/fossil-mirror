@@ -4,8 +4,9 @@ fossil (2009.10.05-1) unstable; urgency=low
   * Ensure that sourceball copies src/sqlite3.{c,h} are gone before build.
     (Deleted in debian branch, but could reappear due to inadequacy of the
     patch format, which could cause version skew on #include <sqlite3.h>.)
+  * Patch for fossil clean --force (docs) vs --all (code) to favour docs
 
- -- Barak A. Pearlmutter <bap@debian.org>  Tue, 06 Oct 2009 15:56:23 -0400
+ -- Barak A. Pearlmutter <bap@debian.org>  Tue, 06 Oct 2009 16:15:01 -0400
 
 fossil (2009.09.21.191920-6) unstable; urgency=low
 
