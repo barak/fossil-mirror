@@ -1,8 +1,8 @@
 -----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA1
 
-C debian/changelog\snew\supstream\sversion,\sand\sprevent\ssqlite3\ssource\sreversion
-D 2009-10-06T19:57:18
+C fossil\sclean\s--force\s(docs)\svs\s--all\s(code)\sresolved\sin\sfavour\sof\sdocs
+D 2009-10-06T20:14:10
 F BUILD.txt 334b80c5755c91dfe56874bfe07ec5d0fe276f4c
 F COPYRIGHT-GPL2.txt 06877624ea5c77efe3b7e39b0f909eda6e25a4ec
 F Makefile 690c4cd4f0c051005efd7ccd443bf2f44b67654a x
@@ -53,7 +53,7 @@ F src/branch.c 3ef4b504fa9b065c58272e28b2fbbe153b1444f7
 F src/browse.c b26f9d5a293ec713a4a5065528cfe31ff50e2b82
 F src/captcha.c d47d9e715339586541480f79e7e8e7a26d0d2dee
 F src/cgi.c 0a66f5aa4afb08bc140be9dd1816afa09c648874
-F src/checkin.c 2e4a6e1c0f68fac6d8bc0ae4d6d170149a93ec6c
+F src/checkin.c b32786b578b66f59cbcdb75c45ddcac9c5b5bca9
 F src/checkout.c 975bc66779641337e39f284e171b9410b2bc21e4
 F src/clearsign.c 4431c80a36ba40f8704a6b994c7248aab9292625
 F src/clone.c 42fdc2e08e7b46c615816625dd5e0979a5db3b43
@@ -256,15 +256,15 @@ F www/stats.wiki f1a2de8646f0885d29534168d30d72096cdaba7e
 F www/sync.wiki e571cf1d8533431f4b9e33c6295c834829a2b81f
 F www/webui.wiki 6e2aa8a4b9359338019782e27269723ff89ad7ac
 F www/wikitheory.wiki 7cce5ff73627c7e28cbb38ba0abf5dc7aee674d1
-P e47f575b8d3f4e63a2c2c972cbf37d1ccdb51761
-R a2dd58543526eaaaa1553b9c797fd810
+P b5b8d1ce19b648ce51b4dc051a8c435ea2556c8d
+R 720ca747de94540b08829e3751f5b3a4
 U barak
-Z 63ee195a2ca8c4364f136bd2fa947a17
+Z 8f5cefa8fe402d8712b2969494043ef6
 # Remove this line to create a well-formed Fossil manifest.
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.10 (GNU/Linux)
 
-iEYEARECAAYFAkrLoR4ACgkQLz4Gnv7CP7KmhQCfbQLiswCeTC8j0DqO6azTJjPR
-BlEAoKUn6nh5uNlL0TD+TRI8vOP9Ehno
-=YOHZ
+iEYEARECAAYFAkrLpRIACgkQLz4Gnv7CP7I3ygCfVs6ZRkOrZQLKSMQraMG/WN1f
+KqcAmwftqsBkeqy0c1iX+nkdg3p3j6jQ
+=rhOD
 -----END PGP SIGNATURE-----
