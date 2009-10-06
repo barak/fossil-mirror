@@ -51,12 +51,12 @@ Brief "cheat sheet" of relevant commands.
  cat VERSION.h
 
  # create upstream tarball from trunk
- mkdir src; cd src
+ mkdir orig; cd orig
  fossil open ../fossil.fossil
  fossil co trunk
  rm _FOSSIL_
  cd ..
- tar cf fossil_${VERSION}.orig.tar.gz src
+ tar -zcf fossil_${VERSION}.orig.tar.gz orig
 
  # build local version
  mkdir deb; cd deb
@@ -65,4 +65,4 @@ Brief "cheat sheet" of relevant commands.
  rm _FOSSIL_
  dpkg-buildpackage
 
- -- Barak A. Pearlmutter <bap@debian.org>, Mon,  5 Oct 2009 09:24:49 -0400
+ -- Barak A. Pearlmutter <bap@debian.org>, Tue,  6 Oct 2009 16:30:53 -0400
