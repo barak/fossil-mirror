@@ -1,8 +1,8 @@
 -----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA1
 
-C debian/changelog\sfossil\sclean\s--force\s(docs)\svs\s--all\s(code)\sresolved\sin\sfavour\sof\sdocs
-D 2009-10-06T20:15:15
+C check\sfor\sfossil\sclean\s--unknownflag
+D 2009-10-06T20:26:42
 F BUILD.txt 334b80c5755c91dfe56874bfe07ec5d0fe276f4c
 F COPYRIGHT-GPL2.txt 06877624ea5c77efe3b7e39b0f909eda6e25a4ec
 F Makefile 690c4cd4f0c051005efd7ccd443bf2f44b67654a x
@@ -53,7 +53,7 @@ F src/branch.c 3ef4b504fa9b065c58272e28b2fbbe153b1444f7
 F src/browse.c b26f9d5a293ec713a4a5065528cfe31ff50e2b82
 F src/captcha.c d47d9e715339586541480f79e7e8e7a26d0d2dee
 F src/cgi.c 0a66f5aa4afb08bc140be9dd1816afa09c648874
-F src/checkin.c b32786b578b66f59cbcdb75c45ddcac9c5b5bca9
+F src/checkin.c 922898f98ab52f1534be903e9a1103e1a99a1225
 F src/checkout.c 975bc66779641337e39f284e171b9410b2bc21e4
 F src/clearsign.c 4431c80a36ba40f8704a6b994c7248aab9292625
 F src/clone.c 42fdc2e08e7b46c615816625dd5e0979a5db3b43
@@ -256,15 +256,15 @@ F www/stats.wiki f1a2de8646f0885d29534168d30d72096cdaba7e
 F www/sync.wiki e571cf1d8533431f4b9e33c6295c834829a2b81f
 F www/webui.wiki 6e2aa8a4b9359338019782e27269723ff89ad7ac
 F www/wikitheory.wiki 7cce5ff73627c7e28cbb38ba0abf5dc7aee674d1
-P de399a1043a5fdcde9d9f5c1890f169197aa380a
-R 22e30c3634ece71cd33cd00dda519b79
+P 69db15d2c9f0fdf5ca43e90211cd15586ba80f20
+R f95ec2d26a1ba39eab7ab77c249f27a3
 U barak
-Z 3c9843b40edcdf6203c63b2916836b0a
+Z d73b879fd055b2f22b7cf07a4616d3fa
 # Remove this line to create a well-formed Fossil manifest.
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.10 (GNU/Linux)
 
-iEYEARECAAYFAkrLpVMACgkQLz4Gnv7CP7LZPwCgol0yb2knnR33Zlw+O0NVJbCc
-LYEAoL1By65Qydr83Q0O4gpLoF6LSLpZ
-=Owzb
+iEYEARECAAYFAkrLqAIACgkQLz4Gnv7CP7JtkgCfc4zOugaZStcgjBMAT1InbYsw
+1coAoJE3Pg1L3Fy6+z6SgS5fXIOoyqrx
+=4Mww
 -----END PGP SIGNATURE-----

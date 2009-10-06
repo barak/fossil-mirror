@@ -222,6 +222,7 @@ void clean_cmd(void){
   int n;
   allFlag = find_option("force","f",0)!=0;
   dotfilesFlag = find_option("dotfiles",0,0)!=0;
+  verify_all_options();
   db_must_be_within_tree();
   db_multi_exec("CREATE TEMP TABLE sfile(x TEXT PRIMARY KEY)");
   n = strlen(g.zLocalRoot);
