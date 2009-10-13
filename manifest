@@ -1,8 +1,8 @@
 -----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA1
 
-C typo\sin\sdebian/README.Debian
-D 2009-10-06T20:44:16
+C fossil\smerge\strunk
+D 2009-10-13T01:12:18
 F BUILD.txt 334b80c5755c91dfe56874bfe07ec5d0fe276f4c
 F COPYRIGHT-GPL2.txt 06877624ea5c77efe3b7e39b0f909eda6e25a4ec
 F Makefile 690c4cd4f0c051005efd7ccd443bf2f44b67654a x
@@ -34,7 +34,7 @@ F ci_cvs.txt 837df67f243330f601ed14e51761bc1528536dc1
 F ci_fossil.txt cf2b7a00fb594aa486f2bf953409d0d0429fd515
 F cvs2fossil.txt 3bce849e6e4a81eefd08fc28b6bbe806d2494b1a
 F debian/README.Debian 3ef5583b1ff61a25c16442911a796e58fde1f5ec
-F debian/changelog 2a74b1b72334b69f5907c5c1ebc4605b14fb6194
+F debian/changelog 6d29db74a246dff1f5e50fbeb5b8afb4117869b7
 F debian/compat d3964f9dad9f60363c81b688324d95b4ec7c8038
 F debian/control 41352c6a19fca09d0cb8b11ee6f3928c7e642090
 F debian/copyright 3589ddfb2c582715472209baaac7e5da9af680b1
@@ -99,7 +99,7 @@ F src/setup.c 95f147ca17a4576fd83b7c3db78205b39bfdad22
 F src/sha1.c 30e74752c3184675c37cefd4fecaad2ab1e25642
 F src/shun.c 5eec8953fc0adc08cfa0cedd0910360c591615f3
 F src/stat.c bc484277064e5bcf7c2dc0a2eb0329e543aec966
-F src/style.c e4a69231c5c4ab874678c715623a9b4a92ac7034
+F src/style.c 3c29836aa304f1d8413a6a6614dea026c6c85706
 F src/sync.c 312506edea616e84307a9372bda6db4132f21f5b
 F src/tag.c bc765b3a20216ff9e9bb76218997e426e3ae1df7
 F src/th.c ca17d876879bf67d055bef3e773897712874be2b
@@ -256,15 +256,15 @@ F www/stats.wiki f1a2de8646f0885d29534168d30d72096cdaba7e
 F www/sync.wiki e571cf1d8533431f4b9e33c6295c834829a2b81f
 F www/webui.wiki 6e2aa8a4b9359338019782e27269723ff89ad7ac
 F www/wikitheory.wiki 7cce5ff73627c7e28cbb38ba0abf5dc7aee674d1
-P 339431d81c06d7b9220035c2e2d4a98789e44fe6
-R a4049f7349c76d7182c6345d7b3325df
+P a6a0ffe1d42d4c0acf98d71fff15a6b946c29ea0 5308e4681530d77a3d023183f3b90ed1a0eebf75
+R 49b57f5dfdd2ad2918a9bfb17d4f69d1
 U barak
-Z 1f2bf6241165a6b8eea91146c0a3eace
+Z 16ab06b51fea277cc944a5b1c055ef9e
 # Remove this line to create a well-formed Fossil manifest.
 -----BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.10 (GNU/Linux)
+Version: GnuPG v1.4.9 (GNU/Linux)
 
-iEYEARECAAYFAkrLrCAACgkQLz4Gnv7CP7IDtgCdHy+L8ql/ChkIZ29kPvhfrymz
-VKAAoKpySKG3CKoMJdMpO/oJKn0HqAiC
-=qA7c
+iEYEARECAAYFAkrT0/IACgkQLz4Gnv7CP7IXuQCfdhPsOEghkSRI/ikU1qxuw+/D
+QbwAoNPXvhLq7VlPHmQYfQi2h7tCd9fK
+=5UhE
 -----END PGP SIGNATURE-----
