@@ -66,6 +66,6 @@ Brief "cheat sheet" of relevant commands.
  dpkg-buildpackage
 
  # tag debian release
- fossil tag add --propagate debian_${VERSION}-${DEBIAN_VERSION} debian
+ fossil tag add debian_${VERSION}-${DEBIAN_VERSION} debian
 
- -- Barak A. Pearlmutter <bap@debian.org>, Fri, 13 Nov 2009 15:03:00 -0500
+ -- Barak A. Pearlmutter <bap@debian.org>, Fri, 13 Nov 2009 16:13:17 -0500
