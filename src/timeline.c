@@ -850,9 +850,21 @@ char * timeline_query_for_tty_m(void){
 }
 
 /*
+** Return true if the input string is a date in the ISO 8601 format:
+** YYYY-MM-DD.
+*/
+static int isIsoDate(const char *z){
+  return strlen(z)==10
+      && z[4]=='-'
+      && z[7]=='-'
+      && isdigit(z[0])
+      && isdigit(z[5]);
+}
+
+/*
 ** COMMAND: timeline
 **
-** Usage: %fossil timeline ?WHEN? ?BASELINE|DATETIME? ?-n|--count N? ?-t|--type TYPE?
+** Usage: %fossil timeline ?WHEN? ?BASELINE|DATETIME? ?-n N? ?-t TYPE?
 **
 ** Print a summary of activity going backwards in date and time
 ** specified or from the current date and time if no arguments
@@ -887,7 +899,7 @@ void timeline_cmd(void){
   char *zSQL;
   int objid = 0;
   Blob uuid;
-  int mode = 1 ;       /* 1: before  2:after  3:children  4:parents */
+  int mode = 0 ;       /* 0:none  1: before  2:after  3:children  4:parents */
   db_find_and_open_repository(1);
   zCount = find_option("count","n",1);
   zType = find_option("type","t",1);
@@ -941,11 +953,16 @@ void timeline_cmd(void){
     objid = db_int(0, "SELECT rid FROM blob WHERE uuid=%B", &uuid);
     zDate = mprintf("(SELECT mtime FROM plink WHERE cid=%d)", objid);
   }else{
+    const char *zShift = "";
     if( mode==3 || mode==4 ){
       fossil_fatal("cannot compute descendants or ancestors of a date");
     }
-    zDate = mprintf("(SELECT julianday(%Q, 'utc'))", zOrigin);
+    if( mode==0 ){
+      if( isIsoDate(zOrigin) ) zShift = ",'+1 day'";
+    }
+    zDate = mprintf("(SELECT julianday(%Q%s, 'utc'))", zOrigin, zShift);
   }
+  if( mode==0 ) mode = 1;
   zSQL = mprintf("%z AND event.mtime %s %s",
      timeline_query_for_tty_m(),
      (mode==1 || mode==4) ? "<=" : ">=",

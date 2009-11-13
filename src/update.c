@@ -80,16 +80,7 @@ void update_cmd(void){
       fossil_fatal("not a version: %s", g.argv[2]);
     }
   }
-
-  if( tid==0 ){
-    /* 
-    ** Do an autosync pull prior to the update, if autosync is on and they
-    ** did not want a specific version (i.e. another branch, a past revision).
-    ** By not giving a specific version, they are asking for the latest, thus
-    ** pull to get the latest, then update.
-    */
-    autosync(AUTOSYNC_PULL);
-  }
+  autosync(AUTOSYNC_PULL);
   
   if( tid==0 ){
     compute_leaves(vid, 1);
@@ -256,7 +247,14 @@ int historical_version_of_file(
   Manifest m;
   int i, rid=0;
   
-  rid = name_to_rid(revision);
+  if( revision ){
+    rid = name_to_rid(revision);
+  }else{
+    rid = db_lget_int("checkout", 0);
+  }
+  if( !is_a_version(rid) ){
+    fossil_fatal("no such check-out: %s", revision);
+  }
   content_get(rid, &mfile);
   
   if( manifest_parse(&m, &mfile) ){
@@ -296,7 +294,7 @@ void revert_cmd(void){
   zRevision = find_option("revision", "r", 1);
   verify_all_options();
   
-  if( g.argc<3 ){
+  if( g.argc!=3 ){
     usage("?OPTIONS FILE");
   }
   db_must_be_within_tree();

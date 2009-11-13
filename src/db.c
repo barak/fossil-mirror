@@ -65,6 +65,10 @@ struct Stmt {
 static void db_err(const char *zFormat, ...){
   va_list ap;
   char *z;
+  static const char zRebuildMsg[] = 
+      "If you have recently updated your fossil executable, you might\n"
+      "need to run \"fossil all rebuild\" to bring the repository\n"
+      "schemas up to date.\n";
   va_start(ap, zFormat);
   z = vmprintf(zFormat, ap);
   va_end(ap);
@@ -76,10 +80,10 @@ static void db_err(const char *zFormat, ...){
   if( g.cgiPanic ){
     g.cgiPanic = 0;
     cgi_printf("<h1>Database Error</h1>\n"
-               "<pre>%h</pre>", z);
+               "<pre>%h</pre><p>%s</p>", z, zRebuildMsg);
     cgi_reply();
   }else{
-    fprintf(stderr, "%s: %s\n", g.argv[0], z);
+    fprintf(stderr, "%s: %s\n\n%s", g.argv[0], z, zRebuildMsg);
   }
   db_force_rollback();
   exit(1);
@@ -699,6 +703,7 @@ void db_open_config(int useAttach){
            "please set the HOME environment variable");
   }
 #endif
+  g.zHome = mprintf("%/", zHome);
 #ifdef __MINGW32__
   /* . filenames give some window systems problems and many apps problems */
   zDbName = mprintf("%//_fossil", zHome);

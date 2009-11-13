@@ -32,6 +32,7 @@ set src {
   doc
   encode
   file
+  finfo
   http
   http_socket
   http_transport
@@ -51,6 +52,7 @@ set src {
   rss
   rstats
   schema
+  search
   setup
   sha1
   shun
