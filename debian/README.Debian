@@ -65,4 +65,7 @@ Brief "cheat sheet" of relevant commands.
  rm _FOSSIL_
  dpkg-buildpackage
 
- -- Barak A. Pearlmutter <bap@debian.org>, Tue,  6 Oct 2009 16:30:53 -0400
+ # tag debian release
+ fossil tag add --propagate debian_${VERSION}-${DEBIAN_VERSION} debian
+
+ -- Barak A. Pearlmutter <bap@debian.org>, Fri, 13 Nov 2009 15:03:00 -0500
