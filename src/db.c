@@ -1052,7 +1052,8 @@ static void db_sql_print(
   }
 }
 static void db_sql_trace(void *notUsed, const char *zSql){
-  printf("%s\n", zSql);
+  int n = strlen(zSql);
+  fprintf(stderr, "%s%s\n", zSql, (n>0 && zSql[n-1]==';') ? "" : ";");
 }
 
 /*
@@ -1433,9 +1434,18 @@ static void print_setting(const char *zName){
 **
 ** The "unset" command clears a property setting.
 **
+**
+**    auto-captcha     If enabled, the Login page will provide a button
+**                     which uses JavaScript to fill out the captcha for
+**                     the "anonymous" user. (Most bots cannot use JavaScript.)
+**
 **    autosync         If enabled, automatically pull prior to
 **                     commit or update and automatically push
 **                     after commit or tag or branch creation.
+**
+**    clearsign        When enabled (the default), fossil will attempt to
+**                     sign all commits with gpg.  When disabled, commits will
+**                     be unsigned.
 **
 **    diff-command     External command to run when performing a diff.
 **                     If undefined, the internal text diff will be used.
@@ -1445,26 +1455,22 @@ static void print_setting(const char *zName){
 **
 **    editor           Text editor command used for check-in comments.
 **
-**    http-port        The TCP/IP port number to use by the "server"
-**                     and "ui" commands.  Default: 8080
-**
 **    gdiff-command    External command to run when performing a graphical
 **                     diff. If undefined, text diff will be used.
+**
+**    http-port        The TCP/IP port number to use by the "server"
+**                     and "ui" commands.  Default: 8080
 **
 **    localauth        If enabled, require that HTTP connections from
 **                     127.0.0.1 be authenticated by password.  If
 **                     false, all HTTP requests from localhost have
 **                     unrestricted access to the repository.
 **
-**    clearsign        When enabled (the default), fossil will attempt to
-**                     sign all commits with gpg.  When disabled, commits will
-**                     be unsigned.
+**    mtime-changes    Use file modification times (mtimes) to detect when
+**                     files have been modified.  
 **
 **    pgp-command      Command used to clear-sign manifests at check-in.
 **                     The default is "gpg --clearsign -o ".
-**
-**    mtime-changes    Use file modification times (mtimes) to detect when
-**                     files have been modified.  
 **
 **    proxy            URL of the HTTP proxy.  If undefined or "off" then
 **                     the "http_proxy" environment variable is consulted.
@@ -1478,16 +1484,17 @@ static void print_setting(const char *zName){
 */
 void setting_cmd(void){
   static const char *azName[] = {
+    "auto-captcha",
     "autosync",
+    "clearsign",
     "diff-command",
     "dont-push",
     "editor",
     "gdiff-command",
     "http-port",
     "localauth",
-    "clearsign",
-    "pgp-command",
     "mtime-changes",
+    "pgp-command",
     "proxy",
     "web-browser",
   };

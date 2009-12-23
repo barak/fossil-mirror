@@ -1,12 +1,12 @@
 -----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA1
 
-C fix\serror\sin\stagging\sinstructions\sin\sREADME.Debian
-D 2009-11-13T21:14:17
-F BUILD.txt 334b80c5755c91dfe56874bfe07ec5d0fe276f4c
+C merge\supstream_2009.12.20.213451
+D 2009-12-23T20:23:53
+F BUILD.txt 4f7988767e4e48b29f7eddd0e2cdea4555b9161c
 F COPYRIGHT-GPL2.txt 06877624ea5c77efe3b7e39b0f909eda6e25a4ec
-F Makefile 690c4cd4f0c051005efd7ccd443bf2f44b67654a x
-F Makefile.w32 900e3545621d84facefdc62bc71ce38fcdabb8d7
+F Makefile c48df1e5dda76c9906b707b5964ded6a080ab258 x
+F Makefile.w32 a8929670d9adff8bbf1f789e3c5cd4f7b2d9c5bb
 F art/CollRev1.dia 186c7bb7a88c533ab226431bbd7c4835bb6ac2a0
 F art/CollRev2.dia 59b1c331a52e19f44f2dcf7c744dd5aaabd2b5cf
 F art/CollRev3.dia d14a7b35e0af533998e705e771b504f8aaaead96
@@ -45,16 +45,16 @@ F debian/watch ef89439bf0d6920682338c97e49e4199f9e0164b
 F fossil.nsi b8accfec94b426e04f5aa11ed250e4e6723f5235
 F kktodo.wiki 9fccabf05735653d8937ba9c635e1341b3a2a311
 F rse-notes.txt 743e75d49ad2679e6546579c0c63bf71db40f5e7
-F src/add.c c094792c50f04881b59aa5fa6bbe9c164a4b1f0e
+F src/add.c d5685d9fd3dffe6f26f6627951fff45573f5b9c5
 F src/allrepo.c eac34f25f894a84aa6427fafff11f148405485e9
 F src/bag.c 91c2be456cacb4b59774502b4301cbeeddf2fc94
 F src/blob.c 80cddafe2a13ae44bed095aeb87df87cc48d7fc8
-F src/branch.c 3ef4b504fa9b065c58272e28b2fbbe153b1444f7
+F src/branch.c 80adbdb5e4a2d63d150ba4a4f72a7397dc041267
 F src/browse.c ec45ae29e1ceb2123e30e4d3006591dd6c9753cb
 F src/captcha.c d47d9e715339586541480f79e7e8e7a26d0d2dee
 F src/cgi.c 0a66f5aa4afb08bc140be9dd1816afa09c648874
-F src/checkin.c 922898f98ab52f1534be903e9a1103e1a99a1225
-F src/checkout.c 093dea6b92965feb3abbbe902984eaec900a0a6b
+F src/checkin.c b1c3bb27bf3ed3e26dbff64a0a0a8c3c46838d68
+F src/checkout.c 93e8f5c3cb11bac6476ec5deff05e0247958d05d
 F src/clearsign.c 4431c80a36ba40f8704a6b994c7248aab9292625
 F src/clone.c 42fdc2e08e7b46c615816625dd5e0979a5db3b43
 F src/comformat.c 26c0414fd89346d1d1cfda0762fd8fddbca144b1
@@ -62,66 +62,67 @@ F src/config.h b4a2d638880a5ed7a1908c9ad2d4cb99ec758c00
 F src/configure.c ac12a5f70a6c9dc3c1f2b0e1737a3c387304f885
 F src/construct.c 763e35ebbe736af438869e370ba05f5e8a7d4db9
 F src/content.c 57def314ab8fba3757cbb7410ce793bd4a836606
-F src/db.c 39a38ca81b092aa8cf6003cd992cc7c73b30be61
+F src/db.c 2ee5db4d826e047ac6d2e61b1964027b9c411fc8
 F src/delta.c 1af641b4b641fe5cddcf7180b5cf6f15b1e80e7a
 F src/deltacmd.c e730b77c18f05c0c72e8c5d9825a31eae58a0fc2
 F src/descendants.c 21679d5ff485c21fff8d060c9b371f817efa56e8
-F src/diff.c 423e7bd7db1078eb33c89566182e93d6b589e342
-F src/diffcmd.c 20363d7b427f5bf53b08dcaa552ca255cddde101
+F src/diff.c 189451b157495f47a3cd16852abd778b56c9cfce
+F src/diffcmd.c 6b2be81037608261703d3f2e0314c6f638e344bd
 F src/doc.c cb0906ed170001259597044f771003759dcb0b3d
 F src/encode.c ffe3dddccba03523c55cd91f666ce7f5336b186c
-F src/file.c 7be765ce11a81a0e8f291aaa79101d4ee6467bc4
+F src/file.c 8138522279c00ab205b9c9a722f74283d421c437
 F src/finfo.c 8f0bef2b640a6ea0f4ee6eb83f0804da6c352d1c
 F src/http.c 2e97d8ac83c0f40d6545f56c80cc5405a157f25d
 F src/http_socket.c b09f0278f6954e46cd6c491eb3653031c14db2a2
 F src/http_transport.c a410394220316684dd02ae97f16539e07fbd875d
-F src/info.c dd6de258e10c1c22b175d2ee17ede01443f52e64
-F src/login.c 3b52c138dbc74bbc46d0d023b58241865cd2d06c
-F src/main.c 0e2e1d04fd07777bbb3f770478b4ddcf6f277f03
-F src/main.mk 3b8d489dd791baf280927ecb33baedd68308480b
+F src/info.c 806a78d8025cf297593147d108a4cc04980b50c0
+F src/login.c dc8655318bed86b8c4a3f934bc5c0f008a6c8a03
+F src/main.c 09a4698442b3d1228b405edcfc2f2da6995642b2
+F src/main.mk faaba80ab58bc8e6027f9736380abe9e0b9b1a71
 F src/makeheaders.c b7bbc46f28d9e4396b772a389103158e1eff05d3
 F src/makeheaders.html 0e4ade7e463ae2bf1595d615a949d2cc14a2a5b4
-F src/makemake.tcl bf69560975ab05a4c31ccf51cb88420c75aa3318 x
+F src/makemake.tcl c6bebba1d7f4beb3f72ed9084454f922c4fa23d7 x
 F src/manifest.c daaac5b0650723a2324a60d98dcb4cb9e4ce8d52
 F src/md5.c 15acdef8fff01aefa815ceaa392ea59185d47f3d
-F src/merge.c 5979683d08945c596e6cd81781ac8c39a0321000
-F src/merge3.c 61efa8a3332cc4df4b9fec485e9affc6b244f851
+F src/merge.c 1bca64b6422e18a2c23fdee2dfca49709eb65dc6
+F src/merge3.c bbe357cf65d55ce57dd4f2a95b2f80f6b64f34d6
 F src/mkindex.c 634272abcb7d96b8e82c2e91da6b18953c587d15
 F src/name.c 1511a64c2c509481d9f19ac6683fe6a28e6cb7ea
 F src/pivot.c 55723054d5570e55e0db81d551c963a4ecef2c6f
 F src/pqueue.c c849b6ba261f655c2a5840e14d0be53df1a523da
-F src/printf.c e955d821659b64aa3796339246f54e4544b2da0b
-F src/rebuild.c fa901199b74bdb505cb05c37d7f5c778c94d8587
-F src/report.c 911a1c587a23d93838fb5f36001561a4834a535e
-F src/rss.c 945efe289e6984e523a77bab956cdc6255af6487
+F src/printf.c 8a4feba8cf3d9bb251225fbbcda0f2c88a202dd2
+F src/rebuild.c 0c81bac41f49ececdd0b68676c501dc897128e9c
+F src/report.c e3258afe0691a01e77a5ec4b3997ca23a0a38a62
+F src/rss.c cc90868801fbbe6bf4e322ed77bdd190a0e60f88
 F src/rstats.c 6291df32f6b64752ce83d38da0eb9e961fea1c07
 F src/schema.c 6fd1e2b445e750d73d821a572d6cf1f3e9cb02af
 F src/search.c 669b17b1770de404dd1c67593e4a7fd1ba1980b6
-F src/setup.c 41b6907a338e5b25886459d75af705c7cce21041
+F src/setup.c e3fd99aa04a8eb30628c760e0c36b7e8d93bb8a2
 F src/sha1.c 30e74752c3184675c37cefd4fecaad2ab1e25642
 F src/shun.c 5eec8953fc0adc08cfa0cedd0910360c591615f3
+F src/skins.c 61096f713efa213373c4d8ae6544903cd6a7b670
 F src/stat.c bc484277064e5bcf7c2dc0a2eb0329e543aec966
-F src/style.c 3c29836aa304f1d8413a6a6614dea026c6c85706
+F src/style.c 3cc4be49bcbb0cb6b55c6415c014925a2b1f3458
 F src/sync.c ed149c3f445a9635997ceabf37a81a875bf28070
 F src/tag.c bc765b3a20216ff9e9bb76218997e426e3ae1df7
 F src/th.c b97a4128cb40db5b33dece58164cc1207929a6cc
 F src/th.h ab705d6d8d7add0c74599e236b33fc72c06c7e55
 F src/th_lang.c 2c954f31ba14cfa5b08378e223016c6de570a718
 F src/th_main.c 7b39ee91da48b1c623db86edc26b4d42053a6100
-F src/timeline.c f76d6fc0d68e7607e1b970b5b744a98daa4c6f64
+F src/timeline.c d9475b1de801ccc43e6ce3cc9bf794ba5a630f27
 F src/tkt.c 98960a5cdcbfe35e3a27719a526eeb6c61ac0d6f
 F src/tktsetup.c 57c97126a809055566669d9217f65d474297909f
 F src/translate.c f57afdee031ae5c34f2635010ac030d9c8502b16
-F src/undo.c e141d7b88ff12422152f9c45a12ab2216183e06a
-F src/update.c 807405a4a8187672c85487feba2b1b51624fdef1
+F src/undo.c 0d2cc71745fedc7c712d9c6ab313a020b59e8054
+F src/update.c eb5c093f17c0e402cd9750e409570b0e784fbd89
 F src/url.c 118ae7487caaf8c2423177eb745608d7613f6083
 F src/user.c 29b52a5fb93ed281efb2e41185f402c51f2b1d88
 F src/verify.c ea6146c40b9613f7437a061ddc67564e2932375d
-F src/vfile.c 5504b327f7f2194c07bf850934e50aec1a24f229
-F src/wiki.c c28c68f6a88996bbf49745d7dfb4906f7d39a00f
-F src/wikiformat.c 0e2f5af22bd5a0bee54129bdff9e58e4f763dc2f
+F src/vfile.c 882972137d800a25c13d2ba8488edd0bc9da3a1a
+F src/wiki.c 362c97b880e526d4749017134e7b01222186a197
+F src/wikiformat.c b1603948aafd9307e0d01afb9fe6e9daa4f9f865
 F src/winhttp.c f308305b21096eedd6b2877c6d26553d8d4d9e41
-F src/xfer.c 002c45119361f8a9007af5c52bc895083584386a
+F src/xfer.c d3ef278c076cf5d1f39d20fbfc5b4a485377b6a5
 F src/zip.c 43608365d59dc34c11cc6e2d6f36c36a88c32410
 F test/delta1.test b0dba644d205733e27ebb9206d9ed3136ac79b74
 F test/merge1.test 310813fc4c32766f376ef7a676f5a3d3b8cf8d9b
@@ -258,15 +259,15 @@ F www/stats.wiki f1a2de8646f0885d29534168d30d72096cdaba7e
 F www/sync.wiki e571cf1d8533431f4b9e33c6295c834829a2b81f
 F www/webui.wiki 6e2aa8a4b9359338019782e27269723ff89ad7ac
 F www/wikitheory.wiki 7cce5ff73627c7e28cbb38ba0abf5dc7aee674d1
-P 75f8622f99a93b10c528ccb384ac37703f0a8029
-R 90fb35a9451780ada6c3879dc104c83e
+P f2a73fca665259b7d041580d51fd9799dbbab9f4 4f24addea90ae08183c153b06f2fc72d4ebdd873
+R 97051a16913152ec3d23b1291892f317
 U barak
-Z 1248c81a76ccf659d7d7be8a510bebfb
+Z 61d47513b1bb497157975979a8cb6b3b
 # Remove this line to create a well-formed Fossil manifest.
 -----BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.10 (GNU/Linux)
+Version: GnuPG v1.4.9 (GNU/Linux)
 
-iEYEARECAAYFAkr9zCkACgkQLz4Gnv7CP7IJcgCfRtsOTGjlAKTWa/zth89DzPHI
-edgAn0C/+KuvWCsCFffk8ELopyFiPXIq
-=MRRJ
+iEYEARECAAYFAksyfFoACgkQLz4Gnv7CP7KKVwCfYS3m83D6rhVcQvGLpvS1F99I
+s+EAn0gWI1sTRC9NUgVj/5IXVubrDDW2
+=Sgoj
 -----END PGP SIGNATURE-----

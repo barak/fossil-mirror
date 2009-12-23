@@ -30,13 +30,33 @@
 #include "timeline.h"
 
 /*
+** Shorten a UUID so that is the minimum length needed to contain
+** at least one digit in the range 'a'..'f'.  The minimum length is 10.
+*/
+static void shorten_uuid(char *zDest, const char *zSrc){
+  int i;
+  for(i=0; i<10 && zSrc[i]<='9'; i++){}
+  memcpy(zDest, zSrc, 10);
+  if( i==10 ){
+    do{
+      zDest[i] = zSrc[i];
+      i++;
+    }while( zSrc[i-1]<='9' );
+  }else{
+    i = 10;
+  }
+  zDest[i] = 0;
+}
+
+
+/*
 ** Generate a hyperlink to a version.
 */
 void hyperlink_to_uuid(const char *zUuid){
   char zShortUuid[UUID_SIZE+1];
-  sprintf(zShortUuid, "%.10s", zUuid);
+  shorten_uuid(zShortUuid, zUuid);
   if( g.okHistory ){
-    @ <a href="%s(g.zBaseURL)/info/%s(zUuid)">[%s(zShortUuid)]</a>
+    @ <a href="%s(g.zBaseURL)/info/%s(zShortUuid)">[%s(zShortUuid)]</a>
   }else{
     @ <b>[%s(zShortUuid)]</b>
   }
@@ -53,10 +73,10 @@ void hyperlink_to_uuid_with_mouseover(
   int id               /* Argument to javascript procs */
 ){
   char zShortUuid[UUID_SIZE+1];
-  sprintf(zShortUuid, "%.10s", zUuid);
+  shorten_uuid(zShortUuid, zUuid);
   if( g.okHistory ){
     @ <a onmouseover='%s(zIn)("m%d(id)")' onmouseout='%s(zOut)("m%d(id)")'
-    @    href="%s(g.zBaseURL)/vinfo/%s(zUuid)">[%s(zShortUuid)]</a>
+    @    href="%s(g.zBaseURL)/vinfo/%s(zShortUuid)">[%s(zShortUuid)]</a>
   }else{
     @ <b onmouseover='%s(zIn)("m%d(id)")' onmouseout='%s(zOut)("m%d(id)")'>
     @ [%s(zShortUuid)]</b>
@@ -829,27 +849,6 @@ const char *timeline_query_for_tty(void){
 }
 
 /*
-** Equivalent to timeline_query_for_tty(), except that:
-**
-** a) accepts a the -type=XX flag to set the event type to filter on.
-**    The values of XX are the same as supported by the /timeline page.
-**
-** b) The returned string must be freed using free().
-*/
-char * timeline_query_for_tty_m(void){
-  Blob bl;
-  char const * zType = 0;
-  blob_zero(&bl);
-  blob_append( &bl, timeline_query_for_tty(), -1 );
-  zType = find_option( "type", "t", 1 );
-  if( zType && *zType )
-  {
-      blob_appendf( &bl, " AND event.type=%Q", zType );
-  }
-  return blob_buffer(&bl);
-}
-
-/*
 ** Return true if the input string is a date in the ISO 8601 format:
 ** YYYY-MM-DD.
 */
@@ -896,7 +895,7 @@ void timeline_cmd(void){
   const char *zType;
   char *zOrigin;
   char *zDate;
-  char *zSQL;
+  Blob sql;
   int objid = 0;
   Blob uuid;
   int mode = 0 ;       /* 0:none  1: before  2:after  3:children  4:parents */
@@ -963,11 +962,13 @@ void timeline_cmd(void){
     zDate = mprintf("(SELECT julianday(%Q%s, 'utc'))", zOrigin, zShift);
   }
   if( mode==0 ) mode = 1;
-  zSQL = mprintf("%z AND event.mtime %s %s",
-     timeline_query_for_tty_m(),
+  blob_zero(&sql);
+  blob_append(&sql, timeline_query_for_tty(), -1);
+  blob_appendf(&sql, "  AND event.mtime %s %s",
      (mode==1 || mode==4) ? "<=" : ">=",
      zDate
   );
+
   if( mode==3 || mode==4 ){
     db_multi_exec("CREATE TEMP TABLE ok(rid INTEGER PRIMARY KEY)");
     if( mode==3 ){
@@ -975,15 +976,15 @@ void timeline_cmd(void){
     }else{
       compute_ancestors(objid, n);
     }
-    zSQL = mprintf("%z AND blob.rid IN ok", zSQL);
+    blob_appendf(&sql, " AND blob.rid IN ok");
   }
   if( zType && (zType[0]!='a') ){
-      zSQL = mprintf( "%z AND event.type=%Q ", zSQL, zType);
+    blob_appendf(&sql, " AND event.type=%Q ", zType);
   }
 
-  zSQL = mprintf("%z ORDER BY event.mtime DESC", zSQL);
-  db_prepare(&q, zSQL);
-  free( zSQL );
+  blob_appendf(&sql, " ORDER BY event.mtime DESC");
+  db_prepare(&q, blob_str(&sql));
+  blob_reset(&sql);
   print_timeline(&q, n);
   db_finalize(&q);
 }

@@ -145,7 +145,7 @@ void style_footer(void){
 
   /* Put the footer at the bottom of the page.
   */
-  @ </div><br clear="both"></br>
+  @ </div><br clear="both"/>
   zFooter = db_get("footer", (char*)zDefaultFooter);
   if( g.thTrace ) Th_Trace("BEGIN_FOOTER<br />\n", -1);
   Th_Render(zFooter);
@@ -362,7 +362,7 @@ const char zDefaultCSS[] =
 @   color: white;
 @ }
 @
-@ /* Make the links in the footer less ugly... */
+@ /* Hyperlink colors in the footer */
 @ div.footer a { color: white; }
 @ div.footer a:link { color: white; }
 @ div.footer a:visited { color: white; }
@@ -380,21 +380,6 @@ const char zDefaultCSS[] =
 @   text-align: right;
 @   padding: 0.2ex 2ex;
 @ }
-@
-@ /* For marking important UI elements which shouldn't be
-@    lightly dismissed. I mainly use it to mark "not yet
-@    implemented" parts of a page. Whether or not to have
-@    a 'border' attribute set is arguable. */
-@ .achtung {
-@   color: #ff0000;
-@   background: #ffff00;
-@   border: 1px solid #ff0000;
-@ }
-@
-@ div.miniform {
-@     font-size: smaller;
-@     margin: 8px;
-@ } 
 ;
 
 /*
