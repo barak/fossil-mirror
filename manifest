@@ -1,8 +1,8 @@
 -----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA1
 
-C html\stypos\sin\swww/copyright-release.html
-D 2010-01-06T12:20:05
+C typos\sin\swww/theory1.wiki
+D 2010-01-06T12:43:49
 F BUILD.txt 4f7988767e4e48b29f7eddd0e2cdea4555b9161c
 F COPYRIGHT-GPL2.txt 06877624ea5c77efe3b7e39b0f909eda6e25a4ec
 F Makefile c48df1e5dda76c9906b707b5964ded6a080ab258 x
@@ -259,18 +259,18 @@ F www/selfhost.wiki 712cb7df6c2767e7c62e176c066c5ae144df3726
 F www/shunning.wiki 7b6d5703dc0d63a1ce7fc77c34985237c2d97f04
 F www/stats.wiki f1a2de8646f0885d29534168d30d72096cdaba7e
 F www/sync.wiki e571cf1d8533431f4b9e33c6295c834829a2b81f
-F www/theory1.wiki 583e7131b49f7bf77c9feccfd26b73a898f4aa9c
+F www/theory1.wiki d5c4ec3565e071a47a94bd498f80a5084c03d4fa
 F www/webui.wiki 6e2aa8a4b9359338019782e27269723ff89ad7ac
 F www/wikitheory.wiki 7cce5ff73627c7e28cbb38ba0abf5dc7aee674d1
-P ce52fd281197344f0af1828dbd5d9d4a257384a7
-R af713dd9c253506d1db94fac653d058a
+P 053624c3c55863f5f3e1e93b8bfac05bd3629604
+R 5353d46dc95a14243ffef3750a84e3f1
 U barak
-Z 2cbb1f853af1a3c640259ebdc16c7a5a
+Z ecbf4b23c0f2cfde04b14902b2d41f95
 # Remove this line to create a well-formed Fossil manifest.
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.9 (GNU/Linux)
 
-iEYEARECAAYFAktEf/UACgkQLz4Gnv7CP7J9pQCcCFv2PBL804xkAFnVRAiJaovK
-jngAn1vzLAZvidJGMcOvK6mkacKETe40
-=eqmU
+iEYEARECAAYFAktEhYUACgkQLz4Gnv7CP7KzQgCg0NegYgiNl9pcg7sB7UP00LiS
+9ooAoNMjdozMd8ysExiB/9u0iU9L6GI0
+=Kq8w
 -----END PGP SIGNATURE-----
