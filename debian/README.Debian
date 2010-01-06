@@ -44,13 +44,21 @@ Brief "cheat sheet" of relevant commands.
  <update debian/changelog>
  fossil commit -m 'log merge trunk'
 
- # figure out upstream version number, either
- uscan
+ # alternative fetch & merge
+ uscan --rename
+ (note version VER)
+ fossil tag add upstream_VER XXX (where XXX is the commit; see fossil timeline)
+ fossil merge upstream_VER
+ <update debian/changelog>
+ fossil commit -m 'log merge trunk'
+
+ # figure out upstream version number, either from
+ uscan --rename
  # or
  make VERSION.h
  cat VERSION.h
 
- # create upstream tarball from trunk
+ # create upstream tarball from trunk (NOT NEEDED if using upstream tarball)
  mkdir orig; cd orig
  fossil open ../fossil.fossil
  fossil co trunk
@@ -59,13 +67,9 @@ Brief "cheat sheet" of relevant commands.
  tar -zcf fossil_${VERSION}.orig.tar.gz orig
 
  # build local version
- mkdir deb; cd deb
- fossil open ../fossil.fossil
- fossil co debian
- rm _FOSSIL_
- dpkg-buildpackage
+ dpkg-buildpackage -i_FOSSIL_
 
  # tag debian release
  fossil tag add debian_${VERSION}-${DEBIAN_VERSION} debian
 
- -- Barak A. Pearlmutter <bap@debian.org>, Fri, 13 Nov 2009 16:13:17 -0500
+ -- Barak A. Pearlmutter <bap@debian.org>, Wed,  6 Jan 2010 12:59:26 +0100
