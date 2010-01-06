@@ -1,8 +1,8 @@
 -----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA1
 
-C update\sdebian/changelog
-D 2010-01-06T13:02:08
+C merge\strunk,\sminor\smanual\sconflict\sresolution
+D 2010-01-06T14:44:51
 F BUILD.txt 4f7988767e4e48b29f7eddd0e2cdea4555b9161c
 F COPYRIGHT-GPL2.txt 06877624ea5c77efe3b7e39b0f909eda6e25a4ec
 F Makefile c48df1e5dda76c9906b707b5964ded6a080ab258 x
@@ -54,7 +54,7 @@ F src/branch.c 80adbdb5e4a2d63d150ba4a4f72a7397dc041267
 F src/browse.c ec45ae29e1ceb2123e30e4d3006591dd6c9753cb
 F src/captcha.c d47d9e715339586541480f79e7e8e7a26d0d2dee
 F src/cgi.c 0a66f5aa4afb08bc140be9dd1816afa09c648874
-F src/checkin.c b1c3bb27bf3ed3e26dbff64a0a0a8c3c46838d68
+F src/checkin.c cb8a992c0f2b91d5a66a35580990a9c36586bce0
 F src/checkout.c 93e8f5c3cb11bac6476ec5deff05e0247958d05d
 F src/clearsign.c 4431c80a36ba40f8704a6b994c7248aab9292625
 F src/clone.c 42fdc2e08e7b46c615816625dd5e0979a5db3b43
@@ -76,7 +76,7 @@ F src/finfo.c 8f0bef2b640a6ea0f4ee6eb83f0804da6c352d1c
 F src/http.c 2e97d8ac83c0f40d6545f56c80cc5405a157f25d
 F src/http_socket.c b09f0278f6954e46cd6c491eb3653031c14db2a2
 F src/http_transport.c a410394220316684dd02ae97f16539e07fbd875d
-F src/info.c 461c233b78fba8ca76b1909ff1c730568c0a29f4
+F src/info.c 3aeb3e1befeb2d07874e685e4830fc73fe3d8064
 F src/login.c 5c9140260586e6fec0ad1b603f6e312e09a66a12
 F src/main.c f14e3f82036cb1d7f030ac9f85be348c06e145c5
 F src/main.mk faaba80ab58bc8e6027f9736380abe9e0b9b1a71
@@ -215,7 +215,7 @@ F www/cmd_version.wiki 6b980e208e7e48aa48104c497a898063bac68620
 F www/concept1.gif 6bb98f69a2cfe883ad6dbfbb70561b2282a563e1
 F www/concept2.gif ff6165d1e94186362309c951622c8dcee6edcf2c
 F www/concepts.wiki 846a2562a2be89af51f46216560092ceff6ed833
-F www/copyright-release.html 61309da616f8b6b825f9571391390a08d92d43cf
+F www/copyright-release.html 14100368011239bed3e6908f9f92e6ea3f712084
 F www/delta1.gif fc676aedbef6ec9670dca75fd815371f6fbd7143
 F www/delta2.gif 305bcc078165737af0fc8001c37b42fca568fa72
 F www/delta3.gif ecdccfa728b9e060d8d9541b7851818e4ff435a2
@@ -262,15 +262,15 @@ F www/sync.wiki e571cf1d8533431f4b9e33c6295c834829a2b81f
 F www/theory1.wiki d5c4ec3565e071a47a94bd498f80a5084c03d4fa
 F www/webui.wiki 6e2aa8a4b9359338019782e27269723ff89ad7ac
 F www/wikitheory.wiki 7cce5ff73627c7e28cbb38ba0abf5dc7aee674d1
-P 0506ef6fec218bf1a43dbc0b7e735d5add24b739
-R 250cf9276f189cad7a714e248180ca94
+P 11ebce374aa28fa8fb06cc044ff4beeddb47b768 cd2697835747837cd72ecae8b58b98306db5843d
+R 3c17dacb58f2990d4b2c6bc6644570f7
 U barak
-Z 8c35dd85bf04464e0bb0e651f9c781f6
+Z 683b66c2bd7ac1d0afd974b55799e058
 # Remove this line to create a well-formed Fossil manifest.
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.9 (GNU/Linux)
 
-iEYEARECAAYFAktEidAACgkQLz4Gnv7CP7JlJgCfWPZLTLvWtUfD2YYhF6InGvua
-JJkAn15oBAXnQ/mliQX5EhpqM4oYcANo
-=FUOf
+iEYEARECAAYFAktEoeMACgkQLz4Gnv7CP7IKsQCgrKxhainVs8DH4CNA4TIVHT7p
+05MAnj6W4bO3o4wSgDsJta0ML5x1P+fg
+=HIXj
 -----END PGP SIGNATURE-----
