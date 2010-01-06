@@ -37,7 +37,7 @@ static void shorten_uuid(char *zDest, const char *zSrc){
   int i;
   for(i=0; i<10 && zSrc[i]<='9'; i++){}
   memcpy(zDest, zSrc, 10);
-  if( i==10 ){
+  if( i==10 && zSrc[i] ){
     do{
       zDest[i] = zSrc[i];
       i++;
@@ -307,6 +307,12 @@ void www_print_timeline(
     }
     @ </td></tr>
   }
+  if( suppressCnt ){
+    @ <tr><td><td><td>
+    @ <small><i>... %d(suppressCnt) similar
+    @ event%s(suppressCnt>1?"s":"") omitted.</i></small></tr>
+    suppressCnt = 0;
+  }
   @ </table>
 }
 
@@ -419,6 +425,7 @@ static void timeline_add_dividers(const char *zDate){
 **    t=TAGID        show only check-ins with the given tagid
 **    u=USER         only if belonging to this user
 **    y=TYPE         'ci', 'w', 't'
+**    s=TEXT         string search (comment and brief)
 **
 ** p= and d= can appear individually or together.  If either p= or d=
 ** appear, then u=, y=, a=, and b= are ignored.
@@ -441,6 +448,7 @@ void page_timeline(void){
   const char *zBefore = P("b");      /* Events before this time */
   const char *zCirca = P("c");       /* Events near this time */
   const char *zTagName = P("t");     /* Show events with this tag */
+  const char *zSearch = P("s");      /* Search string */
   HQuery url;                        /* URL for various branch links */
   int tagid;                         /* Tag ID */
   int tmFlags;                       /* Timeline flags */
@@ -448,8 +456,8 @@ void page_timeline(void){
   /* To view the timeline, must have permission to read project data.
   */
   login_check_credentials();
-  if( !g.okRead ){ login_needed(); return; }
-  if( zTagName ){
+  if( !g.okRead && !g.okRdTkt && !g.okRdWiki ){ login_needed(); return; }
+  if( zTagName && g.okRead ){
     tagid = db_int(0, "SELECT tagid FROM tag WHERE tagname='sym-%q'", zTagName);
   }else{
     tagid = 0;
@@ -467,7 +475,7 @@ void page_timeline(void){
   blob_zero(&desc);
   blob_append(&sql, "INSERT OR IGNORE INTO timeline ", -1);
   blob_append(&sql, timeline_query_for_www(), -1);
-  if( p_rid || d_rid ){
+  if( (p_rid || d_rid) && g.okRead ){
     /* If p= or d= is present, ignore all other parameters other than n= */
     char *zUuid;
     int np, nd;
@@ -486,11 +494,11 @@ void page_timeline(void){
     if( d_rid ){
       compute_descendants(d_rid, nEntry+1);
       nd = db_int(0, "SELECT count(*)-1 FROM ok");
-      if( nd>0 ){
+      if( nd>=0 ){
         db_multi_exec("%s", blob_str(&sql));
-        blob_appendf(&desc, "%d descendants", nd);
+        blob_appendf(&desc, "%d descendant%s", nd,(1==nd)?"":"s");
       }
-      timeline_add_dividers(  
+      timeline_add_dividers(
         db_text("1","SELECT datetime(mtime,'localtime') FROM event"
                     " WHERE objid=%d", d_rid)
       );
@@ -530,8 +538,32 @@ void page_timeline(void){
       blob_appendf(&sql, " AND EXISTS (SELECT 1 FROM tagxref WHERE tagid=%d"
                                         " AND tagtype>0 AND rid=blob.rid)",
                    tagid);
-    }    
-    if( zType[0]!='a' ){
+    }
+    if( (zType[0]=='w' && !g.okRdWiki)
+     || (zType[0]=='t' && !g.okRdTkt)
+     || (zType[0]=='c' && !g.okRead)
+    ){
+      zType = "all";
+    }
+    if( zType[0]=='a' ){
+      if( !g.okRead || !g.okRdWiki || !g.okRdTkt ){
+        char cSep = '(';
+        blob_appendf(&sql, " AND event.type IN ");
+        if( g.okRead ){
+          blob_appendf(&sql, "%c'ci'", cSep);
+          cSep = ',';
+        }
+        if( g.okRdWiki ){
+          blob_appendf(&sql, "%c'w'", cSep);
+          cSep = ',';
+        }
+        if( g.okRdTkt ){
+          blob_appendf(&sql, "%c't'", cSep);
+          cSep = ',';
+        }
+        blob_appendf(&sql, ")");
+      }
+    }else{ /* zType!="all" */
       blob_appendf(&sql, " AND event.type=%Q", zType);
       url_add_parameter(&url, "y", zType);
       if( zType[0]=='c' ){
@@ -545,6 +577,12 @@ void page_timeline(void){
     if( zUser ){
       blob_appendf(&sql, " AND event.user=%Q", zUser);
       url_add_parameter(&url, "u", zUser);
+    }
+    if ( zSearch ){
+      blob_appendf(&sql,
+        " AND (event.comment LIKE '%%%q%%' OR event.brief LIKE '%%%q%%')",
+        zSearch, zSearch);
+      url_add_parameter(&url, "s", zSearch);
     }
     if( zAfter ){
       while( isspace(zAfter[0]) ){ zAfter++; }
@@ -631,13 +669,13 @@ void page_timeline(void){
         if( zType[0]!='a' ){
           timeline_submenu(&url, "All Types", "y", "all", 0);
         }
-        if( zType[0]!='w' ){
+        if( zType[0]!='w' && g.okRdWiki ){
           timeline_submenu(&url, "Wiki Only", "y", "w", 0);
         }
-        if( zType[0]!='c' ){
+        if( zType[0]!='c' && g.okRead ){
           timeline_submenu(&url, "Checkins Only", "y", "ci", 0);
         }
-        if( zType[0]!='t' ){
+        if( zType[0]!='t' && g.okRdTkt ){
           timeline_submenu(&url, "Tickets Only", "y", "t", 0);
         }
       }
