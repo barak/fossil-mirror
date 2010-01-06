@@ -1,8 +1,8 @@
 -----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA1
 
-C merge\strunk
-D 2010-01-06T12:18:58
+C html\stypos\sin\swww/copyright-release.html
+D 2010-01-06T12:20:05
 F BUILD.txt 4f7988767e4e48b29f7eddd0e2cdea4555b9161c
 F COPYRIGHT-GPL2.txt 06877624ea5c77efe3b7e39b0f909eda6e25a4ec
 F Makefile c48df1e5dda76c9906b707b5964ded6a080ab258 x
@@ -215,7 +215,7 @@ F www/cmd_version.wiki 6b980e208e7e48aa48104c497a898063bac68620
 F www/concept1.gif 6bb98f69a2cfe883ad6dbfbb70561b2282a563e1
 F www/concept2.gif ff6165d1e94186362309c951622c8dcee6edcf2c
 F www/concepts.wiki 846a2562a2be89af51f46216560092ceff6ed833
-F www/copyright-release.html c9aacab2be16008ecc98b6d489d9b252c1dcf715
+F www/copyright-release.html 61309da616f8b6b825f9571391390a08d92d43cf
 F www/delta1.gif fc676aedbef6ec9670dca75fd815371f6fbd7143
 F www/delta2.gif 305bcc078165737af0fc8001c37b42fca568fa72
 F www/delta3.gif ecdccfa728b9e060d8d9541b7851818e4ff435a2
@@ -262,15 +262,15 @@ F www/sync.wiki e571cf1d8533431f4b9e33c6295c834829a2b81f
 F www/theory1.wiki 583e7131b49f7bf77c9feccfd26b73a898f4aa9c
 F www/webui.wiki 6e2aa8a4b9359338019782e27269723ff89ad7ac
 F www/wikitheory.wiki 7cce5ff73627c7e28cbb38ba0abf5dc7aee674d1
-P 7c0e6af272c7a6cab69753b8bf39c8f785c1e7ad a6303982b01929b5c23b38379a7a156774a54ced
-R 858a241c421f1899dd6965dae5b06ec2
+P ce52fd281197344f0af1828dbd5d9d4a257384a7
+R af713dd9c253506d1db94fac653d058a
 U barak
-Z 81ad8d5615cbe6eb2c11b84a8726cae9
+Z 2cbb1f853af1a3c640259ebdc16c7a5a
 # Remove this line to create a well-formed Fossil manifest.
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.9 (GNU/Linux)
 
-iEYEARECAAYFAktEf7IACgkQLz4Gnv7CP7LnRQCfUtPBDXwjSfeQtvDU1CKghR2y
-89YAoMKAWkWRpqPBFbCF4X4WuE67UPOK
-=fx3p
+iEYEARECAAYFAktEf/UACgkQLz4Gnv7CP7J9pQCcCFv2PBL804xkAFnVRAiJaovK
+jngAn1vzLAZvidJGMcOvK6mkacKETe40
+=eqmU
 -----END PGP SIGNATURE-----
