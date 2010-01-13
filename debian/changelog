@@ -1,7 +1,7 @@
-fossil (2009.12.20.213451-2) unstable; urgency=low
+fossil (2010.01.12.141013-1) unstable; urgency=low
 
   * minor mods to debian/rules and associated auxiliary files
-  * merge trunk
+  * New upstream version
 
  -- Barak A. Pearlmutter <bap@debian.org>  Wed, 06 Jan 2010 14:01:47 +0100
 
