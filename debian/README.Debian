@@ -15,42 +15,65 @@ Man page created by manually editing output of this:
 	  | sed s'/ THIS / FOSSIL /' \
 	  > debian/fossil.1
 
-Only non-upstream patch outside of debian/ is removal of sqlite
-sources and replacement of references to them in makefile by -lXXX in
-order to use system dynamic sqlite library rather than a static
-private copy.
+The only substantive non-debian/ patch is use of system dynamic sqlite
+library rather than static private copy.  This means:
 
-Debianized sources tracked in fossil, of course.
-Brief "cheat sheet" of relevant commands.
+ - add option -lsqlite3 in Makefile
+ - remove source files sqlite3.{c,h}
+ - remove references to sqlite3.{c,h.o} from src/makemake.tcl
 
- # create local repo
- fossil clone http://www.fossil-scm.org/ fossil.fossil
- mkdir src
- cd src
- fossil open ../fossil.fossil
+
+The debianized sources are tracked in fossil, of course.
+
+Brief "cheat sheet" of relevant fossil commands.
+
+ ## FOR NEW UPSTREAM RELEASE
+
+ # fetch & merge new upstream release
+ uscan --rename
+ VER=xxx
+ DEBVER=1
+ fossil tag add upstream_${VER} X (where X is commit id; see fossil timeline)
+ fossil merge upstream_${VER}
+ fossil commit -m "merge upstream_${VER}"
+ debchange --append --newversion=${VER}-${DEBVER} New upstream version
+ fossil commit -m 'update debian/changelog'
+
+ # build debian release
+ dpkg-buildpackage -i_FOSSIL_
+
+ # tag debian release
+ fossil tag add debian_${VER}-${DEBVER} debian
+
+ ## TO START DEVELOPMENT
+
+ # create local repository
+ fossil clone http://www.fossil-scm.org/ fossil.fsl
+ mkdir fossil
+ cd fossil
+ fossil open ../fossil.fsl
  fossil co debian
  fossil user password ${USER} ${PWD}
 
- # sync to your own remote repo
+ # sync to your own remote repository
  ssh ${HOST}
-    cd ${PATH}/src
-    fossil server
+    cd ${PATH}/fossil
+    fossil server &
  fossil sync http://${USER}:${PWD}@${HOST}:8080
 
- # fetch & merge upstream changes
+ ## MISC
+
+ # pull/view upstream development
  fossil pull http://www.fossil-scm.org/
+ fossil timeline -t ci -n 40
+
+ # incorporate upstream development changes
  fossil merge trunk
  fossil commit -m 'merge trunk'
- <update debian/changelog>
- fossil commit -m 'log merge trunk'
-
- # alternative fetch & merge
- uscan --rename
- (note version VER)
- fossil tag add upstream_VER XXX (where XXX is the commit; see fossil timeline)
- fossil merge upstream_VER
- <update debian/changelog>
- fossil commit -m 'log merge trunk'
+ VER=xxx
+ DEBVER=1
+ debchange --append --newversion=${VER}-${DEBVER} New upstream version
+ fossil commit -m 'update debian/changelog'
 
  # figure out upstream version number, either from
  uscan --rename
@@ -58,18 +81,8 @@ Brief "cheat sheet" of relevant commands.
  make VERSION.h
  cat VERSION.h
 
- # create upstream tarball from trunk (NOT NEEDED if using upstream tarball)
- mkdir orig; cd orig
- fossil open ../fossil.fossil
+ # create upstream tarball (not needed if using upstream release tarball)
  fossil co trunk
- rm _FOSSIL_
- cd ..
- tar -zcf fossil_${VERSION}.orig.tar.gz orig
+ tar --exclude _FOSSIL_ -C .. -zcf fossil_${VER}.orig.tar.gz fossil
 
- # build local version
- dpkg-buildpackage -i_FOSSIL_
-
- # tag debian release
- fossil tag add debian_${VERSION}-${DEBIAN_VERSION} debian
-
- -- Barak A. Pearlmutter <bap@debian.org>, Wed,  6 Jan 2010 12:59:26 +0100
+ -- Barak A. Pearlmutter <bap@debian.org>, Fri, 22 Jan 2010 12:17:08 +0100
