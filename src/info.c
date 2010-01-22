@@ -1058,34 +1058,21 @@ void tinfo_page(void){
 void info_page(void){
   const char *zName;
   Blob uuid;
-  int rid, nName;
+  int rid;
   
   zName = P("name");
   if( zName==0 ) fossil_redirect_home();
-  nName = strlen(zName);
-  if( nName<4 || nName>UUID_SIZE || !validate16(zName, nName) ){
-    switch( sym_tag_to_uuid(zName, &uuid) ){
-      case 1: {
-        /* got one UUID, use it */
-        zName = blob_str(&uuid);
-        break;
-      }
-      case 2: {
-        /* go somewhere to show the multiple UUIDs */
-        return;
-        break;
-      }
-      default: {
-        fossil_redirect_home();
-        break;
-      }
-    }
-  }
-  if( db_exists("SELECT 1 FROM ticket WHERE tkt_uuid GLOB '%s*'", zName) ){
+  if( validate16(zName, strlen(zName))
+   && db_exists("SELECT 1 FROM ticket WHERE tkt_uuid LIKE '%q%%'", zName) ){
     tktview_page();
     return;
   }
-  rid = db_int(0, "SELECT rid FROM blob WHERE uuid GLOB '%s*'", zName);
+  blob_set(&uuid, zName);
+  if( name_to_uuid(&uuid, 1) ){
+    fossil_redirect_home();
+  }
+  zName = blob_str(&uuid);
+  rid = db_int(0, "SELECT rid FROM blob WHERE uuid='%s'", zName);
   if( rid==0 ){
     style_header("Broken Link");
     @ <p>No such object: %h(zName)</p>

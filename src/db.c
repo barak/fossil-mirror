@@ -101,7 +101,7 @@ static Stmt *pAllStmt = 0;  /* List of all unfinalized statements */
 
 /*
 ** This routine is called by the SQLite commit-hook mechanism
-** just prior to each omit.  All this routine does is verify
+** just prior to each commit.  All this routine does is verify
 ** that nBegin really is zero.  That insures that transactions
 ** cannot commit by any means other than by calling db_end_transaction()
 ** below.
@@ -140,6 +140,10 @@ void db_end_transaction(int rollbackFlag){
   }
 }
 void db_force_rollback(void){
+  static int busy = 0;
+  if( busy ) return;
+  busy = 1;
+  undo_rollback();
   if( nBegin ){
     sqlite3_exec(g.db, "ROLLBACK", 0, 0, 0);
     if( isNewRepo ){
@@ -148,6 +152,7 @@ void db_force_rollback(void){
     }
   }
   nBegin = 0;
+  busy = 0;
 }
 
 /*
@@ -1470,9 +1475,10 @@ static void print_setting(const char *zName){
 **                     which uses JavaScript to fill out the captcha for
 **                     the "anonymous" user. (Most bots cannot use JavaScript.)
 **
-**    autosync         If enabled, automatically pull prior to
-**                     commit or update and automatically push
-**                     after commit or tag or branch creation.
+**    autosync         If enabled, automatically pull prior to commit
+**                     or update and automatically push after commit or
+**                     tag or branch creation.  If the the value is "pullonly"
+**                     then only pull operations occur automatically.
 **
 **    clearsign        When enabled (the default), fossil will attempt to
 **                     sign all commits with gpg.  When disabled, commits will
@@ -1498,7 +1504,7 @@ static void print_setting(const char *zName){
 **                     unrestricted access to the repository.
 **
 **    mtime-changes    Use file modification times (mtimes) to detect when
-**                     files have been modified.  
+**                     files have been modified.  (Default "on".)
 **
 **    pgp-command      Command used to clear-sign manifests at check-in.
 **                     The default is "gpg --clearsign -o ".
