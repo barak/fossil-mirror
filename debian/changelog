@@ -1,3 +1,9 @@
+fossil (2010.01.21.205359-1) unstable; urgency=low
+
+  * New upstream version
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Fri, 22 Jan 2010 11:06:16 +0100
+
 fossil (2010.01.12.141013-1) unstable; urgency=low
 
   * minor mods to debian/rules and associated auxiliary files
