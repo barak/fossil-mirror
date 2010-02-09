@@ -231,7 +231,12 @@ void graph_finish(GraphContext *p){
     parentRid = pRow->aParent[0];
     assert( bag_find(&allRids, parentRid) );
     for(pDesc=pRow->pNext; pDesc && pDesc->rid!=parentRid; pDesc=pDesc->pNext){}
-    assert( pDesc!=0 );
+    if( pDesc==0 ){
+      /* Time skew */
+      pRow->iRail = ++p->mxRail;
+      pRow->railInUse = 1<<pRow->iRail;
+      continue;
+    }
     if( pDesc->aiRaiser[pDesc->iRail]==0 && pDesc->zBranch==pRow->zBranch ){
       pRow->iRail = pDesc->iRail;
     }else{
@@ -263,6 +268,12 @@ void graph_finish(GraphContext *p){
       if( pDesc->mergeOut<0 ){
         pDesc->mergeOut = findFreeRail(p, pRow->idx, pDesc->idx, 0);
         pDesc->mergeUpto = pRow->idx;
+        mask = 1<<pDesc->mergeOut;
+        pDesc->railInUse |= mask;
+        for(pDesc=pRow->pNext; pDesc && pDesc->rid!=parentRid;
+             pDesc=pDesc->pNext){
+          pDesc->railInUse |= mask;
+        }
       }
       pRow->mergeIn |= 1<<pDesc->mergeOut;
     }
