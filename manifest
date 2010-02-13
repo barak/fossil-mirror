@@ -1,8 +1,8 @@
 -----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA1
 
-C update\sdebian/changelog
-D 2010-02-13T21:03:36
+C rev\sdeb\spolicy
+D 2010-02-13T21:10:40
 F BUILD.txt 4f7988767e4e48b29f7eddd0e2cdea4555b9161c
 F COPYRIGHT-GPL2.txt 06877624ea5c77efe3b7e39b0f909eda6e25a4ec
 F Makefile 4148ee7e59b7c7be4061b1e10bca8fec6ec5b5a4 x
@@ -36,7 +36,7 @@ F cvs2fossil.txt 3bce849e6e4a81eefd08fc28b6bbe806d2494b1a
 F debian/README.Debian 48457545811c888ab4280bda6088861b783de755
 F debian/changelog 10742e56ac19cdf1b4b09b3905b3b8790ab57d4d
 F debian/compat d3964f9dad9f60363c81b688324d95b4ec7c8038
-F debian/control 30b0263ea731494c314a63627b1602f1e87c5a23
+F debian/control 950c8c6a3e58bd7b9152d4d09bfa30409c66ac18
 F debian/copyright 3589ddfb2c582715472209baaac7e5da9af680b1
 F debian/fossil.1 98d11bb94fe75586757c9c3f51914aaf9e976fbe
 F debian/fossil.install 8ae909034651ad9b0a72cd10460fed7b9e51f627
@@ -265,15 +265,15 @@ F www/sync.wiki e571cf1d8533431f4b9e33c6295c834829a2b81f
 F www/theory1.wiki bfec9e226c63747dbf51568ffcfb0cea9a1300cd
 F www/webui.wiki 6e2aa8a4b9359338019782e27269723ff89ad7ac
 F www/wikitheory.wiki 7cce5ff73627c7e28cbb38ba0abf5dc7aee674d1
-P 5279d8af58a34379fe5b9f67d91f280186974c6a
-R ad90dd8ddd4c6db31091b66141e4f644
+P 3af2b7237c18c5d584eb2df4aaeb900a96696bfd
+R 765c3721c7eee654091e73bbf624c9ac
 U barak
-Z 52bfd7091b96d11e881bc6d4a24ca2dc
+Z ab9a6aea0af318328fd913fc4cd762e4
 # Remove this line to create a well-formed Fossil manifest.
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.9 (GNU/Linux)
 
-iEYEARECAAYFAkt3E6gACgkQLz4Gnv7CP7L0KgCaA18oZvAJlNBJd6fkWkej3uCa
-QwQAoJ6eLi1S4JX3gcS8yZTuVcvgyaoQ
-=h3qx
+iEYEARECAAYFAkt3FVAACgkQLz4Gnv7CP7K6uwCglwJOihK6jZCZK6Ts2Onmmp40
+yqkAnjXIuFo6o7gyf2reboaqQLSdw9x+
+=2JwJ
 -----END PGP SIGNATURE-----
