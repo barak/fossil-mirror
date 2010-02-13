@@ -172,7 +172,7 @@ static int findFreeRail(GraphContext *p, int top, int btm, u32 inUseMask){
 /*
 ** Compute the complete graph
 */
-void graph_finish(GraphContext *p){
+void graph_finish(GraphContext *p, int omitDescenders){
   GraphRow *pRow, *pDesc;
   Bag allRids;
   int i;
@@ -210,11 +210,20 @@ void graph_finish(GraphContext *p){
   */
   for(pRow=p->pFirst; pRow; pRow=pRow->pNext){
     if( pRow->nParent==0 || !bag_find(&allRids,pRow->aParent[0]) ){
-      pRow->iRail = ++p->mxRail;
-      pRow->bDescender = pRow->nParent>0;
+      if( omitDescenders ){
+        pRow->iRail = findFreeRail(p, pRow->idx, pRow->idx, 0);
+      }else{
+        pRow->iRail = ++p->mxRail;
+      }
       mask = 1<<(pRow->iRail);
-      for(pDesc=pRow; pDesc; pDesc=pDesc->pNext){
-        pDesc->railInUse |= mask;
+      if( omitDescenders ){
+        pRow->railInUse |= mask;
+        if( pRow->pNext ) pRow->pNext->railInUse |= mask;
+      }else{
+        pRow->bDescender = pRow->nParent>0;
+        for(pDesc=pRow; pDesc; pDesc=pDesc->pNext){
+          pDesc->railInUse |= mask;
+        }
       }
     }
   }
@@ -223,7 +232,7 @@ void graph_finish(GraphContext *p){
   ** The first primary child of a row goes on the same rail as
   ** that row.
   */
-  inUse = 0;
+  inUse = (1<<(p->mxRail+1))-1;
   for(pRow=p->pLast; pRow; pRow=pRow->pPrev){
     int parentRid;
     if( pRow->iRail>=0 ) continue;
