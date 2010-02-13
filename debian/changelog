@@ -1,3 +1,9 @@
+fossil (2010.02.13.123048-1) unstable; urgency=low
+
+  * New upstream version
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Sat, 13 Feb 2010 21:02:59 +0000
+
 fossil (2010.02.09.115701-2) unstable; urgency=low
 
   * build dependency on libssl-dev (oopie)
