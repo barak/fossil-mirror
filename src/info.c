@@ -145,7 +145,7 @@ void info_cmd(void){
     printf("local-root:   %s\n", g.zLocalRoot);
 #ifdef __MINGW32__
     if( g.zHome ){
-      printf("user-home:  : %s\n", g.zHome);
+      printf("user-home:    %s\n", g.zHome);
     }
 #endif
     printf("project-code: %s\n", db_get("project-code", ""));
@@ -207,6 +207,10 @@ static void showTags(int rid, const char *zNotGlob){
         hyperlink_to_uuid(zOrigUuid);
       }else{
         @ propagates to descendants
+      }
+      if( zValue && strcmp(zTagname,"branch")==0 ){
+        @ &nbsp;&nbsp;
+        @ <a href="%s(g.zBaseURL)/timeline?t=%T(zValue)">branch timeline</a>
       }
     }
     if( zSrcUuid && zSrcUuid[0] ){

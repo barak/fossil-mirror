@@ -669,6 +669,17 @@ static int isValidLocalDb(const char *zDbName){
   db_open_config(0);
   db_open_repository(0);
 
+  /* If the "isexe" column is missing from the vfile table, then
+  ** add it now.   This code added on 2010-03-06.  After all users have
+  ** upgraded, this code can be safely deleted. 
+  */
+  rc = sqlite3_prepare(g.db, "SELECT isexe FROM vfile", -1, &pStmt, 0);
+  sqlite3_finalize(pStmt);
+  if( rc==SQLITE_ERROR ){
+    sqlite3_exec(g.db, "ALTER TABLE vfile ADD COLUMN isexe BOOLEAN", 0, 0, 0);
+  }
+
+#if 0
   /* If the "mtime" column is missing from the vfile table, then
   ** add it now.   This code added on 2008-12-06.  After all users have
   ** upgraded, this code can be safely deleted. 
@@ -678,7 +689,9 @@ static int isValidLocalDb(const char *zDbName){
   if( rc==SQLITE_ERROR ){
     sqlite3_exec(g.db, "ALTER TABLE vfile ADD COLUMN mtime INTEGER", 0, 0, 0);
   }
+#endif
 
+#if 0
   /* If the "origname" column is missing from the vfile table, then
   ** add it now.   This code added on 2008-11-09.  After all users have
   ** upgraded, this code can be safely deleted. 
@@ -688,6 +701,7 @@ static int isValidLocalDb(const char *zDbName){
   if( rc==SQLITE_ERROR ){
     sqlite3_exec(g.db, "ALTER TABLE vfile ADD COLUMN origname TEXT", 0, 0, 0);
   }
+#endif
 
   return 1;
 }
@@ -893,7 +907,11 @@ void db_create_default_users(int setupUserOnly, const char *zDefaultUser){
 ** check-in is created. The makeServerCodes flag determines whether or
 ** not server and project codes are invented for this repository.
 */
-void db_initial_setup (const char *zInitialDate, const char *zDefaultUser, int makeServerCodes){
+void db_initial_setup(
+  const char *zInitialDate,    /* Initial date of repository. (ex: "now") */
+  const char *zDefaultUser,    /* Default user for the repository */
+  int makeServerCodes          /* True to make new server & project codes */
+){
   char *zDate;
   Blob hash;
   Blob manifest;
@@ -950,6 +968,7 @@ void db_initial_setup (const char *zInitialDate, const char *zDefaultUser, int m
 ** Options:
 **
 **    --admin-user|-A USERNAME
+**    --date-override DATETIME
 **
 */
 void create_repository_cmd(void){
@@ -1418,8 +1437,8 @@ static void print_setting(const char *zName){
 **                     tag or branch creation.  If the the value is "pullonly"
 **                     then only pull operations occur automatically.
 **
-**    clearsign        When enabled (the default), fossil will attempt to
-**                     sign all commits with gpg.  When disabled, commits will
+**    clearsign        When enabled, fossil will attempt to sign all commits
+**                     with gpg.  When disabled (the default), commits will
 **                     be unsigned.
 **
 **    diff-command     External command to run when performing a diff.

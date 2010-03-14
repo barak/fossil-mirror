@@ -504,7 +504,7 @@ void www_print_timeline(
     @   }
     @   var canvasY = absoluteY("canvas");
     @   var left = absoluteX(rowinfo[0].id) - absoluteX("canvas") + 15;
-    @   var width = left + nrail*20 + 20;
+    @   var width = nrail*20;
     @   for(var i in rowinfo){
     @     rowinfo[i].y = absoluteY(rowinfo[i].id) + 10 - canvasY;
     @     rowinfo[i].x = left + rowinfo[i].r*20;
@@ -512,7 +512,7 @@ void www_print_timeline(
     @   var btm = rowinfo[rowinfo.length-1].y + 20;
     @   canvasDiv.innerHTML = '<canvas id="timeline-canvas" '+
     @      'style="position:absolute;left:'+(left-5)+'px;"' +
-    @      ' width="'+(width-left+26)+'" height="'+btm+'"></canvas>';
+    @      ' width="'+width+'" height="'+btm+'"></canvas>';
     @   realCanvas = document.getElementById('timeline-canvas');
     @   var context;
     @   if( realCanvas && realCanvas.getContext
@@ -700,7 +700,7 @@ void page_timeline(void){
   }else{
     tmFlags = TIMELINE_GRAPH;
   }
-  if( P("ng")!=0 ){
+  if( P("ng")!=0 || zSearch!=0 ){
     tmFlags &= ~TIMELINE_GRAPH;
   }
 
@@ -880,6 +880,7 @@ void page_timeline(void){
     }
     if( zUser ){
       blob_appendf(&desc, " by user %h", zUser);
+      tmFlags |= TIMELINE_DISJOINT;
     }
     if( tagid>0 ){
       blob_appendf(&desc, " tagged with \"%h\"", zTagName);
@@ -891,6 +892,9 @@ void page_timeline(void){
       blob_appendf(&desc, " occurring on or before %h.<br>", zBefore);
     }else if( zCirca ){
       blob_appendf(&desc, " occurring around %h.<br>", zCirca);
+    }
+    if( zSearch ){
+      blob_appendf(&desc, " matching \"%h\"", zSearch);
     }
     if( g.okHistory ){
       if( zAfter || n==nEntry ){

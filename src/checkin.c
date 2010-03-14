@@ -445,6 +445,7 @@ static void checkin_verify_younger(
   const char *zUuid,    /* The artifact ID of the ancestor */
   const char *zDate     /* Date & time of the current check-in */
 ){
+#ifndef FOSSIL_ALLOW_OUT_OF_ORDER_DATES
   int b;
   b = db_exists(
     "SELECT 1 FROM event"
@@ -456,6 +457,7 @@ static void checkin_verify_younger(
     fossil_fatal("ancestor check-in [%.10s] (%s) is younger (clock skew?)",
                  zUuid, zDate);
   }
+#endif
 }
 
 /*
@@ -542,7 +544,7 @@ void commit_cmd(void){
   zUserOvrd = find_option("user-override",0,1);
   db_must_be_within_tree();
   noSign = db_get_boolean("omitsign", 0)|noSign;
-  if( db_get_boolean("clearsign", 1)==0 ){ noSign = 1; }
+  if( db_get_boolean("clearsign", 0)==0 ){ noSign = 1; }
   verify_all_options();
 
   /* Get the ID of the parent manifest artifact */
@@ -688,7 +690,7 @@ void commit_cmd(void){
   blob_appendf(&manifest, "D %s\n", zDate);
   zDate[10] = ' ';
   db_prepare(&q,
-    "SELECT pathname, uuid, origname, blob.rid"
+    "SELECT pathname, uuid, origname, blob.rid, isexe"
     "  FROM vfile JOIN blob ON vfile.mrid=blob.rid"
     " WHERE NOT deleted AND vfile.vid=%d"
     " ORDER BY 1", vid);
@@ -700,9 +702,16 @@ void commit_cmd(void){
     const char *zUuid = db_column_text(&q, 1);
     const char *zOrig = db_column_text(&q, 2);
     int frid = db_column_int(&q, 3);
+    int isexe = db_column_int(&q, 4);
     const char *zPerm;
     blob_append(&filename, zName, -1);
-    if( file_isexe(blob_str(&filename)) ){
+#ifndef __MINGW32__
+    /* For unix, extract the "executable" permission bit directly from
+    ** the filesystem.  On windows, the "executable" bit is retained
+    ** unchanged from the original. */
+    isexe = file_isexe(blob_str(&filename));
+#endif
+    if( isexe ){
       zPerm = " x";
     }else{
       zPerm = "";
