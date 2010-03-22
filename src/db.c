@@ -504,16 +504,24 @@ void db_blob(Blob *pResult, const char *zSql, ...){
 char *db_text(char *zDefault, const char *zSql, ...){
   va_list ap;
   Stmt s;
-  char *z = zDefault;
+  char *z;
   va_start(ap, zSql);
   db_vprepare(&s, zSql, ap);
   va_end(ap);
   if( db_step(&s)==SQLITE_ROW ){
     z = mprintf("%s", sqlite3_column_text(s.pStmt, 0));
+  }else if( zDefault ){
+    z = mprintf("%s", zDefault);
+  }else{
+    z = 0;
   }
   db_finalize(&s);
   return z;
 }
+
+#ifdef __MINGW32__
+extern char *sqlite3_win32_mbcs_to_utf8(const char*);
+#endif
 
 /*
 ** Initialize a new database file with the given schema.  If anything
@@ -1437,6 +1445,10 @@ static void print_setting(const char *zName){
 **                     tag or branch creation.  If the the value is "pullonly"
 **                     then only pull operations occur automatically.
 **
+**    binary-glob      The VALUE is a comma-separated list of GLOB patterns
+**                     that should be treated as binary files for merging
+**                     purposes.  Example:   *.xml
+**
 **    clearsign        When enabled, fossil will attempt to sign all commits
 **                     with gpg.  When disabled (the default), commits will
 **                     be unsigned.
@@ -1454,6 +1466,10 @@ static void print_setting(const char *zName){
 **
 **    http-port        The TCP/IP port number to use by the "server"
 **                     and "ui" commands.  Default: 8080
+**
+**    ignore-glob      The VALUE is a comma-separated list of GLOB patterns
+**                     specifying files that the "extra" command will ignore.
+**                     Example:  *.o,*.obj,*.exe
 **
 **    localauth        If enabled, require that HTTP connections from
 **                     127.0.0.1 be authenticated by password.  If
@@ -1480,11 +1496,13 @@ void setting_cmd(void){
   static const char *azName[] = {
     "auto-captcha",
     "autosync",
+    "binary-glob",
     "clearsign",
     "diff-command",
     "dont-push",
     "editor",
     "gdiff-command",
+    "ignore-glob",
     "http-port",
     "localauth",
     "mtime-changes",
