@@ -1,8 +1,8 @@
 -----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA1
 
-C merge\supstream_2010.03.18.142033
-D 2010-03-22T09:26:48
+C update\sdebian/changelog;\sadd\sopenssl\sexception\sto\sdebian/copyright;\stweak\sdebian/README.Debian
+D 2010-03-22T09:38:44
 F BUILD.txt 10b5d2480a07d390ab78a308c37dad6888d40696
 F COPYRIGHT-GPL2.txt ad718601e81b56e96afd6e936a4ff40ddc31ca87
 F Makefile b6a8868251e1570357b1477b9c19efb3fccb750b x
@@ -33,11 +33,11 @@ F art/encode9.tex 84df5abf42b007748ec0ea1e3bd4ad2628502335
 F ci_cvs.txt 837df67f243330f601ed14e51761bc1528536dc1
 F ci_fossil.txt cf2b7a00fb594aa486f2bf953409d0d0429fd515
 F cvs2fossil.txt 3bce849e6e4a81eefd08fc28b6bbe806d2494b1a
-F debian/README.Debian 48457545811c888ab4280bda6088861b783de755
-F debian/changelog 030016114aa9a8ff1693c1e230b20f5885b965c9
+F debian/README.Debian 88cf3fe5bda10441a3c1cc5e50b31363f3f80612
+F debian/changelog 1c6e11b7b7eca72ce5a908af9ab727fe8a836aef
 F debian/compat d3964f9dad9f60363c81b688324d95b4ec7c8038
 F debian/control 950c8c6a3e58bd7b9152d4d09bfa30409c66ac18
-F debian/copyright 3589ddfb2c582715472209baaac7e5da9af680b1
+F debian/copyright cb6bd1a9b3c0b3bd2a8b0352b9e7f6d4ef864a2d
 F debian/fossil.1 98d11bb94fe75586757c9c3f51914aaf9e976fbe
 F debian/fossil.install 8ae909034651ad9b0a72cd10460fed7b9e51f627
 F debian/fossil.manpages a54d8f1ffdace2473552a7903f51d059edc38a07
@@ -273,15 +273,15 @@ F www/sync.wiki e571cf1d8533431f4b9e33c6295c834829a2b81f
 F www/theory1.wiki fed3bfce83de5f2cac4bd869c2e6c6af61de83a7
 F www/webui.wiki ee72c72e52ab277949e0d9f2be05f3ecfdc9373e
 F www/wikitheory.wiki f470f81c45825bf2da9cd0c0f5e90966171e1e4e
-P cdfe79c36c3fff375584b5a61ccc2574e80b5dc0 73c24ae363ee1b2234a3e322df124577ab3c7dcf
-R 79fa50d48020b3e37abf65e4ed199fc6
+P fcace531cb43dc36ca694fa1c3e4df37f00d7e2c
+R 70eac7dd2e10ce5fe3c864b3631202d0
 U barak
-Z 4287afa0c943d6c634b683454a4b8996
+Z 279eb1d8ead5b3274ef3c7fde4762d0f
 # Remove this line to create a well-formed Fossil manifest.
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.10 (GNU/Linux)
 
-iEYEARECAAYFAkunN9kACgkQLz4Gnv7CP7IyZgCfVJKsiJ0mhQH+/9Rh+T7syCnl
-B24An2QmSLEHNTyVVag9E06a5m6RpEFY
-=RqeY
+iEYEARECAAYFAkunOqQACgkQLz4Gnv7CP7LeIgCgkZBmus9ITRVFvIwDHNHjDcGu
+jbUAnRwLPPmjruQX2Ba6vCkwUXxVr9gA
+=LKuo
 -----END PGP SIGNATURE-----

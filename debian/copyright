@@ -21,5 +21,10 @@ http://www.fossil-scm.org/
 The "upstrema tarball" for the first upload to debian was
 http://www.fossil-scm.org/download/fossil-src-20090921191920.tar.gz
 
-Released under the terms of the GNU GPL v2 or later (see
-/usr/share/common-licenses/GPL-2)
+Fossil is licensed under the terms of the GPLv2 (see
+/usr/share/common-licenses/GPL-2).  In addition, permission is granted
+to link Fossil against the OpenSSL project's "OpenSSL" library (or
+with modified versions of that library that use the same license), and
+distribute the linked executables.  If you modify Fossil, you may
+extend the exception described in this paragraph to your
+modifications, or not, at your discretion.
