@@ -1,8 +1,5 @@
------BEGIN PGP SIGNED MESSAGE-----
-Hash: SHA1
-
-C update\sdebian/changelog;\sadd\sopenssl\sexception\sto\sdebian/copyright;\stweak\sdebian/README.Debian
-D 2010-03-22T09:38:44
+C dpkg-source\sformat\s3.0\s(quilt)
+D 2010-04-06T11:25:52
 F BUILD.txt 10b5d2480a07d390ab78a308c37dad6888d40696
 F COPYRIGHT-GPL2.txt ad718601e81b56e96afd6e936a4ff40ddc31ca87
 F Makefile b6a8868251e1570357b1477b9c19efb3fccb750b x
@@ -42,6 +39,7 @@ F debian/fossil.1 98d11bb94fe75586757c9c3f51914aaf9e976fbe
 F debian/fossil.install 8ae909034651ad9b0a72cd10460fed7b9e51f627
 F debian/fossil.manpages a54d8f1ffdace2473552a7903f51d059edc38a07
 F debian/rules a36a0a7eb953f0834f80646339f726866214ee97 x
+F debian/source/format 1064dc0ce263680c076a1005f35ec906a5cf5a32
 F debian/watch ef89439bf0d6920682338c97e49e4199f9e0164b
 F fossil.nsi b8accfec94b426e04f5aa11ed250e4e6723f5235
 F kktodo.wiki 9fccabf05735653d8937ba9c635e1341b3a2a311
@@ -273,15 +271,8 @@ F www/sync.wiki e571cf1d8533431f4b9e33c6295c834829a2b81f
 F www/theory1.wiki fed3bfce83de5f2cac4bd869c2e6c6af61de83a7
 F www/webui.wiki ee72c72e52ab277949e0d9f2be05f3ecfdc9373e
 F www/wikitheory.wiki f470f81c45825bf2da9cd0c0f5e90966171e1e4e
-P fcace531cb43dc36ca694fa1c3e4df37f00d7e2c
-R 70eac7dd2e10ce5fe3c864b3631202d0
+P e09af364aa54c9530597867a346e07bee66529da
+R f18b84237eb7e3d0745180963da67c31
 U barak
-Z 279eb1d8ead5b3274ef3c7fde4762d0f
+Z 9064b67ff72cb4fe2b75a3b7ce13677a
 # Remove this line to create a well-formed Fossil manifest.
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.10 (GNU/Linux)
-
-iEYEARECAAYFAkunOqQACgkQLz4Gnv7CP7LeIgCgkZBmus9ITRVFvIwDHNHjDcGu
-jbUAnRwLPPmjruQX2Ba6vCkwUXxVr9gA
-=LKuo
------END PGP SIGNATURE-----
