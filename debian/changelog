@@ -1,3 +1,9 @@
+fossil (2010.03.18.142033-2) UNRELEASED; urgency=low
+
+  * move to dpkg-source format 3.0 (quilt)
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Tue, 06 Apr 2010 12:26:19 +0100
+
 fossil (2010.03.18.142033-1) unstable; urgency=low
 
   * New upstream version
