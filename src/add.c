@@ -2,18 +2,12 @@
 ** Copyright (c) 2007 D. Richard Hipp
 **
 ** This program is free software; you can redistribute it and/or
-** modify it under the terms of the GNU General Public
-** License version 2 as published by the Free Software Foundation.
-**
+** modify it under the terms of the Simplified BSD License (also
+** known as the "2-Clause License" or "FreeBSD License".)
+
 ** This program is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public
-** License along with this library; if not, write to the
-** Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-** Boston, MA  02111-1307, USA.
+** but without any warranty; without even the implied warranty of
+** merchantability or fitness for a particular purpose.
 **
 ** Author contact information:
 **   drh@hwaci.com
@@ -46,6 +40,9 @@ static void add_one_file(const char *zName, int vid, Blob *pOmit){
   zPath = blob_str(&pathname);
   if( strcmp(zPath, "manifest")==0
    || strcmp(zPath, "_FOSSIL_")==0
+   || strcmp(zPath, "_FOSSIL_-journal")==0
+   || strcmp(zPath, ".fos")==0
+   || strcmp(zPath, ".fos-journal")==0
    || strcmp(zPath, "manifest.uuid")==0
    || blob_compare(&pathname, pOmit)==0
   ){
@@ -297,8 +294,8 @@ static void mv_one_file(int vid, const char *zOrig, const char *zNew){
 **
 ** Move or rename one or more files within the tree
 **
-** This command does not rename the files on disk.  All this command does is
-** record the fact that filenames have changed so that appropriate notations
+** This command does not rename the files on disk.  This command merely
+** records the fact that filenames have changed so that appropriate notations
 ** can be made at the next commit/checkin.
 */
 void mv_cmd(void){

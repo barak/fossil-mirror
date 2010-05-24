@@ -2,18 +2,12 @@
 ** Copyright (c) 2006 D. Richard Hipp
 **
 ** This program is free software; you can redistribute it and/or
-** modify it under the terms of the GNU General Public
-** License version 2 as published by the Free Software Foundation.
-**
+** modify it under the terms of the Simplified BSD License (also
+** known as the "2-Clause License" or "FreeBSD License".)
+
 ** This program is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-** General Public License for more details.
-** 
-** You should have received a copy of the GNU General Public
-** License along with this library; if not, write to the
-** Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-** Boston, MA  02111-1307, USA.
+** but without any warranty; without even the implied warranty of
+** merchantability or fitness for a particular purpose.
 **
 ** Author contact information:
 **   drh@hwaci.com
@@ -80,7 +74,7 @@ struct Global {
   int iErrPriority;       /* Priority of current error message */
   char *zErrMsg;          /* Text of an error message */
   Blob cgiIn;             /* Input to an xfer www method */
-  int cgiPanic;           /* Write error messages to CGI */
+  int cgiOutput;          /* Write error and status messages to CGI */
   int xferPanic;          /* Write error messages in XFER protocol */
   int fullHttpReply;      /* True for full HTTP reply.  False for CGI reply */
   Th_Interp *interp;      /* The TH1 interpreter */
@@ -228,6 +222,7 @@ int main(int argc, char **argv){
   int idx;
   int rc;
 
+  sqlite3_config(SQLITE_CONFIG_LOG, fossil_sqlite_log, 0);
   g.now = time(0);
   g.argc = argc;
   g.argv = argv;
@@ -279,7 +274,7 @@ void fossil_panic(const char *zFormat, ...){
   va_start(ap, zFormat);
   z = vmprintf(zFormat, ap);
   va_end(ap);
-  if( g.cgiPanic && once ){
+  if( g.cgiOutput && once ){
     once = 0;
     cgi_printf("<p><font color=\"red\">%h</font></p>", z);
     cgi_reply();
@@ -296,8 +291,8 @@ void fossil_fatal(const char *zFormat, ...){
   va_start(ap, zFormat);
   z = vmprintf(zFormat, ap);
   va_end(ap);
-  if( g.cgiPanic ){
-    g.cgiPanic = 0;
+  if( g.cgiOutput ){
+    g.cgiOutput = 0;
     cgi_printf("<p><font color=\"red\">%h</font></p>", z);
     cgi_reply();
   }else{
@@ -324,8 +319,8 @@ void fossil_fatal_recursive(const char *zFormat, ...){
   va_start(ap, zFormat);
   z = vmprintf(zFormat, ap);
   va_end(ap);
-  if( g.cgiPanic ){
-    g.cgiPanic = 0;
+  if( g.cgiOutput ){
+    g.cgiOutput = 0;
     cgi_printf("<p><font color=\"red\">%h</font></p>", z);
     cgi_reply();
   }else{
@@ -343,11 +338,51 @@ void fossil_warning(const char *zFormat, ...){
   va_start(ap, zFormat);
   z = vmprintf(zFormat, ap);
   va_end(ap);
-  if( g.cgiPanic ){
+  if( g.cgiOutput ){
     cgi_printf("<p><font color=\"red\">%h</font></p>", z);
   }else{
     fprintf(stderr, "%s: %s\n", g.argv[0], z);
   }
+}
+
+/*
+** Return a name for an SQLite error code
+*/
+static const char *sqlite_error_code_name(int iCode){
+  static char zCode[30];
+  switch( iCode & 0xff ){
+    case SQLITE_OK:         return "SQLITE_OK";
+    case SQLITE_ERROR:      return "SQLITE_ERROR";
+    case SQLITE_PERM:       return "SQLITE_PERM";
+    case SQLITE_ABORT:      return "SQLITE_ABORT";
+    case SQLITE_BUSY:       return "SQLITE_BUSY";
+    case SQLITE_NOMEM:      return "SQLITE_NOMEM";
+    case SQLITE_READONLY:   return "SQLITE_READONLY";
+    case SQLITE_INTERRUPT:  return "SQLITE_INTERRUPT";
+    case SQLITE_IOERR:      return "SQLITE_IOERR";
+    case SQLITE_CORRUPT:    return "SQLITE_CORRUPT";
+    case SQLITE_FULL:       return "SQLITE_FULL";
+    case SQLITE_CANTOPEN:   return "SQLITE_CANTOPEN";
+    case SQLITE_PROTOCOL:   return "SQLITE_PROTOCOL";
+    case SQLITE_EMPTY:      return "SQLITE_EMPTY";
+    case SQLITE_SCHEMA:     return "SQLITE_SCHEMA";
+    case SQLITE_CONSTRAINT: return "SQLITE_CONSTRAINT";
+    case SQLITE_MISMATCH:   return "SQLITE_MISMATCH";
+    case SQLITE_MISUSE:     return "SQLITE_MISUSE";
+    case SQLITE_NOLFS:      return "SQLITE_NOLFS";
+    case SQLITE_FORMAT:     return "SQLITE_FORMAT";
+    case SQLITE_RANGE:      return "SQLITE_RANGE";
+    case SQLITE_NOTADB:     return "SQLITE_NOTADB";
+    default: {
+      sqlite3_snprintf(sizeof(zCode),zCode,"error code %d",iCode);
+    }
+  }
+  return zCode;
+}
+
+/* Error logs from SQLite */
+void fossil_sqlite_log(void *notUsed, int iCode, const char *zErrmsg){
+  fossil_warning("%s: %s", sqlite_error_code_name(iCode), zErrmsg);
 }
 
 /*
@@ -610,6 +645,10 @@ static char *enter_chroot_jail(char *zRepo){
     }
     setgid(sStat.st_gid);
     setuid(sStat.st_uid);
+    if( g.db!=0 ){
+      db_close();
+      db_open_repository(zRepo);
+    }
   }
 #endif
   return zRepo;
@@ -653,6 +692,7 @@ static void process_one_web_page(const char *zNotFound){
     for(j=strlen(g.zRepositoryName)+1, k=0; k<i-1; j++, k++){
       if( !isalnum(zRepo[j]) && zRepo[j]!='-' ) zRepo[j] = '_';
     }
+    if( zRepo[0]=='/' && zRepo[1]=='/' ) zRepo++;
 
     if( file_size(zRepo)<1024 ){
       if( zNotFound ){
@@ -767,7 +807,7 @@ void cmd_cgi(void){
   setmode(fileno(g.httpOut), O_BINARY);
   setmode(fileno(g.httpIn), O_BINARY);
 #endif
-  g.cgiPanic = 1;
+  g.cgiOutput = 1;
   blob_read_from_file(&config, zFile);
   while( blob_line(&config, &line) ){
     if( !blob_token(&line, &key) ) continue;
@@ -865,7 +905,7 @@ void cmd_http(void){
   if( g.argc!=2 && g.argc!=3 && g.argc!=6 ){
     cgi_panic("no repository specified");
   }
-  g.cgiPanic = 1;
+  g.cgiOutput = 1;
   g.fullHttpReply = 1;
   if( g.argc==6 ){
     g.httpIn = fopen(g.argv[3], "rb");
@@ -995,7 +1035,7 @@ void cmd_webserver(void){
   if( g.fHttpTrace || g.fSqlTrace ){
     fprintf(stderr, "====== SERVER pid %d =======\n", getpid());
   }
-  g.cgiPanic = 1;
+  g.cgiOutput = 1;
   find_server_repository(isUiCmd);
   g.zRepositoryName = enter_chroot_jail(g.zRepositoryName);
   cgi_handle_http_request(0);

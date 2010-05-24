@@ -2,18 +2,12 @@
 ** Copyright (c) 2007 D. Richard Hipp
 **
 ** This program is free software; you can redistribute it and/or
-** modify it under the terms of the GNU General Public
-** License version 2 as published by the Free Software Foundation.
-**
+** modify it under the terms of the Simplified BSD License (also
+** known as the "2-Clause License" or "FreeBSD License".)
+
 ** This program is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-** General Public License for more details.
-** 
-** You should have received a copy of the GNU General Public
-** License along with this library; if not, write to the
-** Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-** Boston, MA  02111-1307, USA.
+** but without any warranty; without even the implied warranty of
+** merchantability or fitness for a particular purpose.
 **
 ** Author contact information:
 **   drh@hwaci.com
@@ -168,14 +162,12 @@ int count_nonbranch_children(int pid){
 **    2.  Date/Time
 **    3.  Comment string
 **    4.  User
-**    5.  Number of non-merge children
-**    6.  Number of parents
-**    7.  True if is a leaf
-**    8.  background color
-**    9.  type ("ci", "w", "t")
-**   10.  list of symbolic tags.
-**   11.  tagid for ticket or wiki
-**   12.  Short comment to user for repeated tickets and wiki
+**    5.  True if is a leaf
+**    6.  background color
+**    7.  type ("ci", "w", "t")
+**    8.  list of symbolic tags.
+**    9.  tagid for ticket or wiki
+**   10.  Short comment to user for repeated tickets and wiki
 */
 void www_print_timeline(
   Stmt *pQuery,          /* Query to implement the timeline */
@@ -207,15 +199,13 @@ void www_print_timeline(
   while( db_step(pQuery)==SQLITE_ROW ){
     int rid = db_column_int(pQuery, 0);
     const char *zUuid = db_column_text(pQuery, 1);
-    int nPChild = db_column_int(pQuery, 5);
-    int nParent = db_column_int(pQuery, 6);
-    int isLeaf = db_column_int(pQuery, 7);
-    const char *zBgClr = db_column_text(pQuery, 8);
+    int isLeaf = db_column_int(pQuery, 5);
+    const char *zBgClr = db_column_text(pQuery, 6);
     const char *zDate = db_column_text(pQuery, 2);
-    const char *zType = db_column_text(pQuery, 9);
+    const char *zType = db_column_text(pQuery, 7);
     const char *zUser = db_column_text(pQuery, 4);
-    const char *zTagList = db_column_text(pQuery, 10);
-    int tagid = db_column_int(pQuery, 11);
+    const char *zTagList = db_column_text(pQuery, 8);
+    int tagid = db_column_int(pQuery, 9);
     int commentColumn = 3;    /* Column containing comment text */
     char zTime[8];
     if( tagid ){
@@ -224,7 +214,7 @@ void www_print_timeline(
           suppressCnt++;
           continue;
         }else{
-          commentColumn = 12;
+          commentColumn = 10;
         }
       }
     }
@@ -258,7 +248,7 @@ void www_print_timeline(
       static Stmt qparent;
       static Stmt qbranch;
       db_static_prepare(&qparent,
-        "SELECT pid FROM plink WHERE cid=:rid ORDER BY isprim DESC"
+        "SELECT pid FROM plink WHERE cid=:rid ORDER BY isprim DESC /*sort*/"
       );
       db_static_prepare(&qbranch,
         "SELECT value FROM tagxref WHERE tagid=%d AND tagtype>0 AND rid=:rid",
@@ -275,7 +265,7 @@ void www_print_timeline(
       }else{
         zBr = "trunk";
       }
-      gidx = graph_add_row(pGraph, rid, nParent, aParent, zBr);
+      gidx = graph_add_row(pGraph, rid, nParent, aParent, zBr, zBgClr);
       db_reset(&qbranch);
       @ <div id="m%d(gidx)"></div>
     }
@@ -285,34 +275,14 @@ void www_print_timeline(
       @ <td valign="top" align="left">
     }
     if( zType[0]=='c' ){
-      const char *azTag[5];
-      int nTag = 0;
       hyperlink_to_uuid(zUuid);
-      if( (tmFlags & TIMELINE_LEAFONLY)==0 ){
-        if( nParent>1 ){
-          azTag[nTag++] = "Merge";
-        }
-        if( nPChild>1 ){
-          if( count_nonbranch_children(rid)>1 ){
-            azTag[nTag++] = "Fork";
-          }else{
-            azTag[nTag++] = "Branch-Point";
-          }
-        }
-      }
       if( isLeaf ){
         if( db_exists("SELECT 1 FROM tagxref"
                       " WHERE rid=%d AND tagid=%d AND tagtype>0",
                       rid, TAG_CLOSED) ){
-          azTag[nTag++] = "Closed-Leaf";
+          @ <b>Closed-Leaf:</b>
         }else{
-          azTag[nTag++] = "Leaf";
-        }
-      }
-      if( nTag>0 ){
-        int i;
-        for(i=0; i<nTag; i++){
-          @ <b>%s(azTag[i])%s(i==nTag-1?"":",")</b>
+          @ <b>Leaf:</b>
         }
       }
     }else if( (tmFlags & TIMELINE_ARTID)!=0 ){
@@ -371,8 +341,9 @@ void timeline_output_graph_javascript(GraphContext *pGraph){
     @ <script type="text/JavaScript">
     cgi_printf("var rowinfo = [\n");
     for(pRow=pGraph->pFirst; pRow; pRow=pRow->pNext){
-      cgi_printf("{id:\"m%d\",r:%d,d:%d,mo:%d,mu:%d,u:%d,au:",
+      cgi_printf("{id:\"m%d\",bg:\"%s\",r:%d,d:%d,mo:%d,mu:%d,u:%d,au:",
         pRow->idx,
+        pRow->zBgClr,
         pRow->iRail,
         pRow->bDescender,
         pRow->mergeOut,
@@ -409,7 +380,6 @@ void timeline_output_graph_javascript(GraphContext *pGraph){
     @   if( y0>y1 ){ var t=y0; y0=y1; y1=t; }
     @   var w = x1-x0+1;
     @   var h = y1-y0+1;
-    @   canvasDiv.appendChild(n);
     @   n.style.position = "absolute";
     @   n.style.overflow = "hidden";
     @   n.style.left = x0+"px";
@@ -417,6 +387,7 @@ void timeline_output_graph_javascript(GraphContext *pGraph){
     @   n.style.width = w+"px";
     @   n.style.height = h+"px";
     @   n.style.backgroundColor = color;
+    @   canvasDiv.appendChild(n);
     @ }
     @ function absoluteY(id){
     @   var obj = document.getElementById(id);
@@ -466,7 +437,7 @@ void timeline_output_graph_javascript(GraphContext *pGraph){
     @ }
     @ function drawNode(p, left, btm){
     @   drawBox("black",p.x-5,p.y-5,p.x+6,p.y+6);
-    @   drawBox("white",p.x-4,p.y-4,p.x+5,p.y+5);
+    @   drawBox(p.bg,p.x-4,p.y-4,p.x+5,p.y+5);
     @   if( p.u>0 ){
     @     var u = rowinfo[p.u-1];
     @     drawUpArrow(p.x, u.y+6, p.y-5);
@@ -514,22 +485,23 @@ void timeline_output_graph_javascript(GraphContext *pGraph){
     @     rowinfo[i].x = left + rowinfo[i].r*20;
     @   }
     @   var btm = rowinfo[rowinfo.length-1].y + 20;
-    @   canvasDiv.innerHTML = '<canvas id="timeline-canvas" '+
-    @      'style="position:absolute;left:'+(left-5)+'px;"' +
-    @      ' width="'+width+'" height="'+btm+'"></canvas>';
-    @   realCanvas = document.getElementById('timeline-canvas');
+    @   if( btm<32768 ){
+    @     canvasDiv.innerHTML = '<canvas id="timeline-canvas" '+
+    @        'style="position:absolute;left:'+(left-5)+'px;"' +
+    @        ' width="'+width+'" height="'+btm+'"></canvas>';
+    @     realCanvas = document.getElementById('timeline-canvas');
+    @   }else{
+    @     realCanvas = 0;
+    @   }
     @   var context;
     @   if( realCanvas && realCanvas.getContext
     @        && (context = realCanvas.getContext('2d'))) {
     @     drawBox = function(color,x0,y0,x1,y1) {
-    @       var colors = {
-    @          'white':'rgba(255,255,255,1)',
-    @          'black':'rgba(0,0,0,1)'
-    @       };
+    @       if( y0>32767 || y1>32767 ) return;
     @       if( x0>x1 ){ var t=x0; x0=x1; x1=t; }
     @       if( y0>y1 ){ var t=y0; y0=y1; y1=t; }
     @       if(isNaN(x0) || isNaN(y0) || isNaN(x1) || isNaN(y1)) return;
-    @       context.fillStyle = colors[color];
+    @       context.fillStyle = color;
     @       context.fillRect(x0-left+5,y0,x1-x0+1,y1-y0+1);
     @     };
     @   }
@@ -563,8 +535,6 @@ static void timeline_temp_table(void){
     @   timestamp TEXT,
     @   comment TEXT,
     @   user TEXT,
-    @   nchild INTEGER,
-    @   nparent INTEGER,
     @   isleaf BOOLEAN,
     @   bgcolor TEXT,
     @   etype TEXT,
@@ -589,8 +559,6 @@ const char *timeline_query_for_www(void){
     @   datetime(event.mtime,'localtime') AS timestamp,
     @   coalesce(ecomment, comment),
     @   coalesce(euser, user),
-    @   (SELECT count(*) FROM plink WHERE pid=blob.rid AND isprim=1),
-    @   (SELECT count(*) FROM plink WHERE cid=blob.rid),
     @   NOT EXISTS(SELECT 1 FROM plink
     @               WHERE pid=blob.rid
     @                AND coalesce((SELECT value FROM tagxref
@@ -677,8 +645,8 @@ void page_timeline(void){
   Blob sql;                          /* text of SQL used to generate timeline */
   Blob desc;                         /* Description of the timeline */
   int nEntry = atoi(PD("n","20"));   /* Max number of entries on timeline */
-  int p_rid = atoi(PD("p","0"));     /* artifact p and its parents */
-  int d_rid = atoi(PD("d","0"));     /* artifact d and its descendants */
+  int p_rid = name_to_rid(P("p"));   /* artifact p and its parents */
+  int d_rid = name_to_rid(P("d"));    /* artifact d and its descendants */
   const char *zUser = P("u");        /* All entries by this user if not NULL */
   const char *zType = PD("y","all"); /* Type of events.  All if NULL */
   const char *zAfter = P("a");       /* Events after this time */
@@ -873,7 +841,7 @@ void page_timeline(void){
     blob_appendf(&sql, " LIMIT %d", nEntry);
     db_multi_exec("%s", blob_str(&sql));
 
-    n = db_int(0, "SELECT count(*) FROM timeline");
+    n = db_int(0, "SELECT count(*) FROM timeline /*scan*/");
     if( n<nEntry && zAfter ){
       cgi_redirect(url_render(&url, "a", 0, "b", 0));
     }
@@ -902,12 +870,12 @@ void page_timeline(void){
     }
     if( g.okHistory ){
       if( zAfter || n==nEntry ){
-        zDate = db_text(0, "SELECT min(timestamp) FROM timeline");
+        zDate = db_text(0, "SELECT min(timestamp) FROM timeline /*scan*/");
         timeline_submenu(&url, "Older", "b", zDate, "a");
         free(zDate);
       }
       if( zBefore || (zAfter && n==nEntry) ){
-        zDate = db_text(0, "SELECT max(timestamp) FROM timeline");
+        zDate = db_text(0, "SELECT max(timestamp) FROM timeline /*scan*/");
         timeline_submenu(&url, "Newer", "a", zDate, "b");
         free(zDate);
       }else if( tagid==0 ){
@@ -933,7 +901,7 @@ void page_timeline(void){
     }
   }
   blob_zero(&sql);
-  db_prepare(&q, "SELECT * FROM timeline ORDER BY timestamp DESC");
+  db_prepare(&q, "SELECT * FROM timeline ORDER BY timestamp DESC /*scan*/");
   @ <h2>%b(&desc)</h2>
   blob_reset(&desc);
   www_print_timeline(&q, tmFlags, 0);

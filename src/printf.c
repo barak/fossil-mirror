@@ -2,18 +2,12 @@
 ** Copyright (c) 2006 D. Richard Hipp
 **
 ** This program is free software; you can redistribute it and/or
-** modify it under the terms of the GNU General Public
-** License version 2 as published by the Free Software Foundation.
-**
+** modify it under the terms of the Simplified BSD License (also
+** known as the "2-Clause License" or "FreeBSD License".)
+
 ** This program is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-** General Public License for more details.
-** 
-** You should have received a copy of the GNU General Public
-** License along with this library; if not, write to the
-** Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-** Boston, MA  02111-1307, USA.
+** but without any warranty; without even the implied warranty of
+** merchantability or fitness for a particular purpose.
 **
 ** Author contact information:
 **   drh@hwaci.com
@@ -54,6 +48,7 @@
 #define etPATH       20 /* Path type */
 #define etWIKISTR    21 /* Wiki text rendered from a char* */
 #define etWIKIBLOB   22 /* Wiki text rendered from a Blob* */
+#define etSTRINGID   23 /* String with length limit for a UUID prefix */
 
 
 /*
@@ -103,6 +98,7 @@ static const et_info fmtinfo[] = {
   {  't',  0, 4, etHTTPIZE,    0,  0 },  /* "/" -> "%2F" */
   {  'T',  0, 4, etURLIZE,     0,  0 },  /* "/" unchanged */
   {  'F',  0, 4, etFOSSILIZE,  0,  0 },
+  {  'S',  0, 4, etSTRINGID,   0,  0 },
   {  'c',  0, 0, etCHARX,      0,  0 },
   {  'o',  8, 0, etRADIX,      0,  2 },
   {  'u', 10, 0, etRADIX,      0,  0 },
@@ -577,6 +573,10 @@ int vxprintf(
         bufpt[length]='\0';
         break;
       }
+      case etSTRINGID: {
+        precision = 16;
+        /* Fall through */
+      }
       case etSTRING:
       case etDYNSTRING: {
         int limit = flag_alternateform ? va_arg(ap,int) : -1;
@@ -799,4 +799,19 @@ void fossil_error_reset(void){
   free(g.zErrMsg);
   g.zErrMsg = 0;
   g.iErrPriority = 0;
+}
+
+/*
+** Write output for user consumption.  If g.cgiOutput is enabled, then
+** send the output as part of the CGI reply.  If g.cgiOutput is false,
+** then write on standard output.
+*/
+void fossil_print(const char *zFormat, ...){
+  va_list ap;
+  va_start(ap, zFormat);
+  if( g.cgiOutput ){
+    cgi_vprintf(zFormat, ap);
+  }else{
+    vprintf(zFormat, ap);
+  }
 }

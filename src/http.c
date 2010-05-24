@@ -2,18 +2,12 @@
 ** Copyright (c) 2007 D. Richard Hipp
 **
 ** This program is free software; you can redistribute it and/or
-** modify it under the terms of the GNU General Public
-** License version 2 as published by the Free Software Foundation.
-**
+** modify it under the terms of the Simplified BSD License (also
+** known as the "2-Clause License" or "FreeBSD License".)
+
 ** This program is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-** General Public License for more details.
-** 
-** You should have received a copy of the GNU General Public
-** License along with this library; if not, write to the
-** Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-** Boston, MA  02111-1307, USA.
+** but without any warranty; without even the implied warranty of
+** merchantability or fitness for a particular purpose.
 **
 ** Author contact information:
 **   drh@hwaci.com
@@ -57,7 +51,12 @@ static void http_build_login_card(Blob *pPayload, Blob *pLogin){
   zLogin = g.urlUser;
   if( g.urlPasswd ){
     zPw = g.urlPasswd;
+  }else if( g.cgiOutput ){
+    /* Password failure while doing a sync from the web interface */
+    cgi_printf("*** incorrect or missing password for user %h\n", zLogin);
+    zPw = 0;
   }else{
+    /* Password failure while doing a sync from the command-line interface */
     url_prompt_for_password();
     zPw = g.urlPasswd;
     if( !g.dontKeepUrl ) db_set("last-sync-pw", zPw, 0);
@@ -195,10 +194,11 @@ void http_exchange(Blob *pSend, Blob *pReply, int useLogin){
   while( (zLine = transport_receive_line())!=0 && zLine[0]!=0 ){
     if( strncasecmp(zLine, "http/1.", 7)==0 ){
       if( sscanf(zLine, "HTTP/1.%d %d", &iHttpVersion, &rc)!=2 ) goto write_err;
-      if( rc!=200 ){
+      if( rc!=200 && rc!=302 ){
         int ii;
         for(ii=7; zLine[ii] && zLine[ii]!=' '; ii++){}
-        printf("ERROR. server says: %s\n", &zLine[ii]);
+        while( zLine[ii]==' ' ) ii++;
+        fossil_fatal("server says: %s\n", &zLine[ii]);
         goto write_err;
       }
       if( iHttpVersion==0 ){
@@ -206,7 +206,7 @@ void http_exchange(Blob *pSend, Blob *pReply, int useLogin){
       }else{
         closeConnection = 0;
       }
-    } else if( strncasecmp(zLine, "content-length:", 15)==0 ){
+    }else if( strncasecmp(zLine, "content-length:", 15)==0 ){
       for(i=15; isspace(zLine[i]); i++){}
       iLength = atoi(&zLine[i]);
     }else if( strncasecmp(zLine, "connection:", 11)==0 ){
@@ -218,14 +218,29 @@ void http_exchange(Blob *pSend, Blob *pReply, int useLogin){
       }else if( c=='k' || c=='K' ){
         closeConnection = 0;
       }
+    }else if( rc==302 && strncasecmp(zLine, "location:", 9)==0 ){
+      int i, j;
+      for(i=9; zLine[i] && zLine[i]==' '; i++){}
+      if( zLine[i]==0 ) fossil_fatal("malformed redirect: %s", zLine);
+      j = strlen(zLine) - 1; 
+      if( j>4 && strcmp(&zLine[j-4],"/xfer")==0 ) zLine[j-4] = 0;
+      fossil_print("redirect to %s\n", &zLine[i]);
+      url_parse(&zLine[i]);
+      transport_close();
+      http_exchange(pSend, pReply, useLogin);
+      return;
     }
+  }
+  if( rc!=200 ){
+    fossil_fatal("\"location:\" missing from 302 redirect reply");
+    goto write_err;
   }
 
   /*
   ** Extract the reply payload that follows the header
   */
   if( iLength<0 ){
-    printf("ERROR.  Server did not reply\n");
+    fossil_fatal("server did not reply");
     goto write_err;
   }
   blob_zero(pReply);

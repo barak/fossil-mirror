@@ -2,19 +2,12 @@
 ** Copyright (c) 2007 D. Richard Hipp
 **
 ** This program is free software; you can redistribute it and/or
-** modify it under the terms of the GNU General Public
-** License as published by the Free Software Foundation; either
-** version 2 of the License, or (at your option) any later version.
-**
+** modify it under the terms of the Simplified BSD License (also
+** known as the "2-Clause License" or "FreeBSD License".)
+
 ** This program is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-** General Public License for more details.
-** 
-** You should have received a copy of the GNU General Public
-** License along with this library; if not, write to the
-** Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-** Boston, MA  02111-1307, USA.
+** but without any warranty; without even the implied warranty of
+** merchantability or fitness for a particular purpose.
 **
 ** Author contact information:
 **   drh@hwaci.com
@@ -400,6 +393,17 @@ void login_check_credentials(void){
     sqlite3_snprintf(sizeof(g.zCsrfToken), g.zCsrfToken, "%.10s", zCookie);
   }
 
+  /* If no user found and the REMOTE_USER environment variable is set,
+  ** the accept the value of REMOTE_USER as the user.
+  */
+  if( uid==0 ){
+    const char *zRemoteUser = P("REMOTE_USER");
+    if( zRemoteUser && db_get_boolean("remote_user_ok",0) ){
+      uid = db_int(0, "SELECT uid FROM user WHERE login=%Q"
+                      " AND length(cap)>0 AND length(pw)>0", zRemoteUser);
+    }
+  }
+
   /* If no user found yet, try to log in as "nobody" */
   if( uid==0 ){
     uid = db_int(0, "SELECT uid FROM user WHERE login='nobody'");
@@ -478,7 +482,7 @@ void login_set_capabilities(const char *zCap){
                               g.okRdWiki = g.okWrWiki = g.okNewWiki =
                               g.okApndWiki = g.okHistory = g.okClone = 
                               g.okNewTkt = g.okPassword = g.okRdAddr =
-                              g.okTktFmt = g.okAttach = 1;
+                              g.okTktFmt = g.okAttach = g.okApndTkt = 1;
                               /* Fall thru into Read/Write */
       case 'i':   g.okRead = g.okWrite = 1;                     break;
       case 'o':   g.okRead = 1;                                 break;

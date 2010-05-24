@@ -2,18 +2,12 @@
 ** Copyright (c) 2010 D. Richard Hipp
 **
 ** This program is free software; you can redistribute it and/or
-** modify it under the terms of the GNU General Public
-** License version 2 as published by the Free Software Foundation.
-**
+** modify it under the terms of the Simplified BSD License (also
+** known as the "2-Clause License" or "FreeBSD License".)
+
 ** This program is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-** General Public License for more details.
-** 
-** You should have received a copy of the GNU General Public
-** License along with this library; if not, write to the
-** Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-** Boston, MA  02111-1307, USA.
+** but without any warranty; without even the implied warranty of
+** merchantability or fitness for a particular purpose.
 **
 ** Author contact information:
 **   drh@hwaci.com
@@ -32,9 +26,12 @@
 **
 **    tkt=TICKETUUID
 **    page=WIKIPAGE
-**    all
 **
 ** List attachments.
+** Either one of tkt= or page= are supplied or neither.  If neither
+** are given, all attachments are listed.  If one is given, only
+** attachments for the designated ticket or wiki page are shown.
+** TICKETUUID must be complete 
 */
 void attachlist_page(void){
   const char *zPage = P("page");
@@ -98,11 +95,8 @@ void attachlist_page(void){
         zSrc = "Added to";
       }
       if( strlen(zTarget)==UUID_SIZE && validate16(zTarget, UUID_SIZE) ){
-        char zShort[20];
-        memcpy(zShort, zTarget, 10);
-        zShort[10] = 0;
         @ %s(zSrc) ticket <a href="%s(g.zTop)/tktview?name=%s(zTarget)">
-        @ %s(zShort)</a>
+        @ %S(zTarget)</a>
       }else{
         @ %s(zSrc) wiki page <a href="%s(g.zTop)/wiki?name=%t(zTarget)">
         @ %h(zTarget)</a>
@@ -225,10 +219,12 @@ void attachadd_page(void){
   }else{
     if( g.okApndTkt==0 || g.okAttach==0 ) login_needed();
     if( !db_exists("SELECT 1 FROM tag WHERE tagname='tkt-%q'", zTkt) ){
-      fossil_redirect_home();
+      zTkt = db_text(0, "SELECT substr(tagname,5) FROM tag" 
+                        " WHERE tagname GLOB 'tkt-%q*'", zTkt);
+      if( zTkt==0 ) fossil_redirect_home();
     }
     zTarget = zTkt;
-    zTargetType = mprintf("Ticket <a href=\"%s/tktview?name=%.10s\">%.10s</a>",
+    zTargetType = mprintf("Ticket <a href=\"%s/tktview/%S\">%S</a>",
                           g.zTop, zTkt, zTkt);
   }
   if( zFrom==0 ) zFrom = mprintf("%s/home", g.zTop);

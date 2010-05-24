@@ -3,18 +3,12 @@
 ** Copyright (c) 2008 Stephan Beal
 **
 ** This program is free software; you can redistribute it and/or
-** modify it under the terms of the GNU General Public
-** License version 2 as published by the Free Software Foundation.
-**
+** modify it under the terms of the Simplified BSD License (also
+** known as the "2-Clause License" or "FreeBSD License".)
+
 ** This program is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-** General Public License for more details.
-** 
-** You should have received a copy of the GNU General Public
-** License along with this library; if not, write to the
-** Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-** Boston, MA  02111-1307, USA.
+** but without any warranty; without even the implied warranty of
+** merchantability or fitness for a particular purpose.
 **
 ** Author contact information:
 **   drh@hwaci.com
@@ -674,7 +668,7 @@ void wcontent_page(void){
     "  substr(tagname, 6),"
     "  (SELECT value FROM tagxref WHERE tagid=tag.tagid ORDER BY mtime DESC)"
     "  FROM tag WHERE tagname GLOB 'wiki-*'"
-    " ORDER BY lower(tagname)"
+    " ORDER BY lower(tagname) /*sort*/"
   );
   while( db_step(&q)==SQLITE_ROW ){
     const char *zName = db_column_text(&q, 0);
@@ -705,7 +699,8 @@ void wfind_page(void){
   style_header("Wiki Pages Found");
   @ <ul>
   db_prepare(&q, 
-    "SELECT substr(tagname, 6, 1000) FROM tag WHERE tagname like 'wiki-%%%q%%' ORDER BY lower(tagname)" ,
+    "SELECT substr(tagname, 6, 1000) FROM tag WHERE tagname like 'wiki-%%%q%%'"
+    " ORDER BY lower(tagname) /*sort*/" ,
 	zTitle);
   while( db_step(&q)==SQLITE_ROW ){
     const char *zName = db_column_text(&q, 0);
@@ -1029,7 +1024,7 @@ void wiki_cmd(void){
     Stmt q;
     db_prepare(&q, 
       "SELECT substr(tagname, 6) FROM tag WHERE tagname GLOB 'wiki-*'"
-      " ORDER BY lower(tagname)"
+      " ORDER BY lower(tagname) /*sort*/"
     );
     while( db_step(&q)==SQLITE_ROW ){
       const char *zName = db_column_text(&q, 0);

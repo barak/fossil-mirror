@@ -2,18 +2,12 @@
 ** Copyright (c) 2007 D. Richard Hipp
 **
 ** This program is free software; you can redistribute it and/or
-** modify it under the terms of the GNU General Public
-** License version 2 as published by the Free Software Foundation.
-**
+** modify it under the terms of the Simplified BSD License (also
+** known as the "2-Clause License" or "FreeBSD License".)
+
 ** This program is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-** General Public License for more details.
-** 
-** You should have received a copy of the GNU General Public
-** License along with this library; if not, write to the
-** Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-** Boston, MA  02111-1307, USA.
+** but without any warranty; without even the implied warranty of
+** merchantability or fitness for a particular purpose.
 **
 ** Author contact information:
 **   drh@hwaci.com
@@ -731,17 +725,19 @@ static void annotate_file(Annotator *p, int fnid, int mid, int webLabel){
 **
 ** Query parameters:
 **
-**    mid=NUM      The manifest ID at which to start the annotation
-**    fnid=NUM     The filename ID.
+**    checkin=ID          The manifest ID at which to start the annotation
+**    filename=FILENAME   The filename.
 */
 void annotation_page(void){
-  int mid = atoi(PD("mid","0"));
-  int fnid = atoi(PD("fnid","0"));
+  int mid;
+  int fnid;
   int i;
   Annotator ann;
 
   login_check_credentials();
   if( !g.okRead ){ login_needed(); return; }
+  mid = name_to_rid(PD("checkin","0"));
+  fnid = db_int(0, "SELECT fnid FROM filename WHERE name=%Q", P("filename"));
   if( mid==0 || fnid==0 ){ fossil_redirect_home(); }
   if( !db_exists("SELECT 1 FROM mlink WHERE mid=%d AND fnid=%d",mid,fnid) ){
     fossil_redirect_home();

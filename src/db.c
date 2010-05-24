@@ -2,18 +2,12 @@
 ** Copyright (c) 2006 D. Richard Hipp
 **
 ** This program is free software; you can redistribute it and/or
-** modify it under the terms of the GNU General Public
-** License version 2 as published by the Free Software Foundation.
-**
+** modify it under the terms of the Simplified BSD License (also
+** known as the "2-Clause License" or "FreeBSD License".)
+
 ** This program is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public
-** License along with this library; if not, write to the
-** Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-** Boston, MA  02111-1307, USA.
+** but without any warranty; without even the implied warranty of
+** merchantability or fitness for a particular purpose.
 **
 ** Author contact information:
 **   drh@hwaci.com
@@ -35,12 +29,6 @@
 **
 */
 #include "config.h"
-#ifndef __MINGW32__
-#  include <pwd.h>
-#endif
-#ifdef __MINGW32__
-#  include <windows.h>
-#endif
 #include <sqlite3.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -56,6 +44,7 @@ struct Stmt {
   Blob sql;               /* The SQL for this statement */
   sqlite3_stmt *pStmt;    /* The results of sqlite3_prepare() */
   Stmt *pNext, *pPrev;    /* List of all unfinalized statements */
+  int nStep;              /* Number of sqlite3_step() calls */
 };
 #endif /* INTERFACE */
 
@@ -77,8 +66,8 @@ static void db_err(const char *zFormat, ...){
     @ error Database\serror:\s%F(z)
     cgi_reply();
   }
-  if( g.cgiPanic ){
-    g.cgiPanic = 0;
+  if( g.cgiOutput ){
+    g.cgiOutput = 0;
     cgi_printf("<h1>Database Error</h1>\n"
                "<pre>%h</pre><p>%s</p>", z, zRebuildMsg);
     cgi_reply();
@@ -199,6 +188,7 @@ int db_vprepare(Stmt *pStmt, const char *zFormat, va_list ap){
     db_err("%s\n%s", sqlite3_errmsg(g.db), zSql);
   }
   pStmt->pNext = pStmt->pPrev = 0;
+  pStmt->nStep = 0;
   return 0;
 }
 int db_prepare(Stmt *pStmt, const char *zFormat, ...){
@@ -274,19 +264,45 @@ int db_bind_str(Stmt *pStmt, const char *zParamName, Blob *pBlob){
 int db_step(Stmt *pStmt){
   int rc;
   rc = sqlite3_step(pStmt->pStmt);
+  pStmt->nStep++;
   return rc;
+}
+
+/*
+** Print warnings if a query is inefficient.
+*/
+static void db_stats(Stmt *pStmt){
+#ifdef FOSSIL_DEBUG
+  int c1, c2, c3;
+  const char *zSql = sqlite3_sql(pStmt->pStmt);
+  if( zSql==0 ) return;
+  c1 = sqlite3_stmt_status(pStmt->pStmt, SQLITE_STMTSTATUS_FULLSCAN_STEP, 1);
+  c2 = sqlite3_stmt_status(pStmt->pStmt, SQLITE_STMTSTATUS_AUTOINDEX, 1);
+  c3 = sqlite3_stmt_status(pStmt->pStmt, SQLITE_STMTSTATUS_SORT, 1);
+  if( c1>pStmt->nStep*4 && strstr(zSql,"/*scan*/")==0 ){
+    fossil_warning("%d scan steps for %d rows in [%s]", c1, pStmt->nStep, zSql);
+  }else if( c2 ){
+    fossil_warning("%d automatic index rows in [%s]", c2, zSql);
+  }else if( c3 && strstr(zSql,"/*sort*/")==0 && strstr(zSql,"/*scan*/")==0 ){
+    fossil_warning("sort w/o index in [%s]", zSql);
+  }
+  pStmt->nStep = 0;
+#endif
 }
 
 /*
 ** Reset or finalize a statement.
 */
 int db_reset(Stmt *pStmt){
-  int rc = sqlite3_reset(pStmt->pStmt);
+  int rc;
+  db_stats(pStmt);
+  rc = sqlite3_reset(pStmt->pStmt);
   db_check_result(rc);
   return rc;
 }
 int db_finalize(Stmt *pStmt){
   int rc;
+  db_stats(pStmt);
   blob_reset(&pStmt->sql);
   rc = sqlite3_finalize(pStmt->pStmt);
   db_check_result(rc);
@@ -630,14 +646,22 @@ void db_open_config(int useAttach){
     }
   }
   if( zHome==0 ){
-    db_err("cannot locate home directory - "
-           "please set the HOMEPATH environment variable");
+    fossil_fatal("cannot locate home directory - "
+                "please set the HOMEPATH environment variable");
   }
 #else
   zHome = getenv("HOME");
   if( zHome==0 ){
-    db_err("cannot locate home directory - "
-           "please set the HOME environment variable");
+    fossil_fatal("cannot locate home directory - "
+                 "please set the HOME environment variable");
+  }
+#endif
+  if( file_isdir(zHome)!=1 ){
+    fossil_fatal("invalid home directory: %s", zHome);
+  }
+#ifndef __MINGW32__
+  if( access(zHome, W_OK) ){
+    fossil_fatal("home directory %s must be writeable", zHome);
   }
 #endif
   g.zHome = mprintf("%/", zHome);
@@ -1196,6 +1220,7 @@ int is_false(const char *zVal){
 void db_swap_connections(void){
   if( !g.useAttach ){
     sqlite3 *dbTemp = g.db;
+    assert( g.dbConfig!=0 );
     g.db = g.dbConfig;
     g.dbConfig = dbTemp;
   }
@@ -1436,10 +1461,6 @@ static void print_setting(const char *zName){
 ** The "unset" command clears a property setting.
 **
 **
-**    auto-captcha     If enabled, the Login page will provide a button
-**                     which uses JavaScript to fill out the captcha for
-**                     the "anonymous" user. (Most bots cannot use JavaScript.)
-**
 **    autosync         If enabled, automatically pull prior to commit
 **                     or update and automatically push after commit or
 **                     tag or branch creation.  If the the value is "pullonly"
@@ -1494,7 +1515,6 @@ static void print_setting(const char *zName){
 */
 void setting_cmd(void){
   static const char *azName[] = {
-    "auto-captcha",
     "autosync",
     "binary-glob",
     "clearsign",

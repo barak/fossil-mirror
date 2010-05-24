@@ -2,18 +2,12 @@
 ** Copyright (c) 2007 D. Richard Hipp
 **
 ** This program is free software; you can redistribute it and/or
-** modify it under the terms of the GNU General Public
-** License version 2 as published by the Free Software Foundation.
-**
+** modify it under the terms of the Simplified BSD License (also
+** known as the "2-Clause License" or "FreeBSD License".)
+
 ** This program is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-** General Public License for more details.
-** 
-** You should have received a copy of the GNU General Public
-** License along with this library; if not, write to the
-** Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-** Boston, MA  02111-1307, USA.
+** but without any warranty; without even the implied warranty of
+** merchantability or fitness for a particular purpose.
 **
 ** Author contact information:
 **   drh@hwaci.com
@@ -51,7 +45,7 @@ void branch_new(void){
   zColor = find_option("bgcolor","c",1);
   verify_all_options();
   if( g.argc<5 ){
-    usage("new BRANCH-NAME BASE-CHECK-IN ?-bgcolor COLOR?");
+    usage("new BRANCH-NAME CHECK-IN ?-bgcolor COLOR?");
   }
   db_find_and_open_repository(1);  
   noSign = db_get_int("omitsign", 0)|noSign;
@@ -176,7 +170,7 @@ void branch_new(void){
 **
 ** Usage: %fossil branch SUBCOMMAND ... ?-R|--repository FILE?
 **
-** Run various subcommands on the branches of the open repository or
+** Run various subcommands to manage branches of the open repository or
 ** of the repository identified by the -R or --repository option.
 **
 **    %fossil branch new BRANCH-NAME BASIS ?-bgcolor COLOR? 
@@ -248,7 +242,7 @@ void brlist_page(void){
     "SELECT DISTINCT value FROM tagxref"
     " WHERE tagid=%d AND value NOT NULL"
     "   AND rid IN leaves"
-    " ORDER BY value",
+    " ORDER BY value /*sort*/",
     TAG_BRANCH
   );
   cnt = 0;
@@ -277,7 +271,7 @@ void brlist_page(void){
     "SELECT value FROM tagxref"
     " WHERE tagid=%d AND value NOT NULL"
     "   AND rid IN leaves"
-    " ORDER BY value",
+    " ORDER BY value /*sort*/",
     TAG_BRANCH, TAG_BRANCH
   );
   while( db_step(&q)==SQLITE_ROW ){

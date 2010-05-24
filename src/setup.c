@@ -2,19 +2,12 @@
 ** Copyright (c) 2007 D. Richard Hipp
 **
 ** This program is free software; you can redistribute it and/or
-** modify it under the terms of the GNU General Public
-** License as published by the Free Software Foundation; either
-** version 2 of the License, or (at your option) any later version.
-**
+** modify it under the terms of the Simplified BSD License (also
+** known as the "2-Clause License" or "FreeBSD License".)
+
 ** This program is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public
-** License along with this library; if not, write to the
-** Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-** Boston, MA  02111-1307, USA.
+** but without any warranty; without even the implied warranty of
+** merchantability or fitness for a particular purpose.
 **
 ** Author contact information:
 **   drh@hwaci.com
@@ -66,8 +59,6 @@ void setup_page(void){
     "Control access settings.");
   setup_menu_entry("Configuration", "setup_config",
     "Configure the WWW components of the repository");
-  setup_menu_entry("Behavior", "setup_behavior",
-    "Configure the SCM behavior of the repository");
   setup_menu_entry("Timeline", "setup_timeline",
     "Timeline display preferences");
   setup_menu_entry("Tickets", "tktsetup",
@@ -88,8 +79,6 @@ void setup_page(void){
     "A record of received artifacts and their sources");
   setup_menu_entry("Stats", "stat",
     "Display repository statistics");
-  setup_menu_entry("Sync now", "setup_sync",
-    "Sync this repository with the 'remote-url' it was set up with");
   @ </table>
 
   style_footer();
@@ -740,13 +729,12 @@ void setup_access(void){
   @ 127.0.0.1.</p></li>
 
   @ <hr>
-  onoff_attribute("Show javascript button to fill in CAPTCHA",
-                  "auto-captcha", "autocaptcha", 0);
-  @ <p>When enabled, a button appears on the login screen for user
-  @ "anonymous" that will automatically fill in the CAPTCHA password.
-  @ This is less secure that forcing the user to do it manually, but is
-  @ probably secure enough and it is certainly more convenient for
-  @ anonymous users.</p>
+  onoff_attribute("Allow REMOTE_USER authentication",
+     "remote_user_ok", "remote_user_ok", 0);
+  @ <p>When enabled, if the REMOTE_USER environment variable is set to the
+  @ login name of a valid user and no other login credentials are available,
+  @ then the REMOTE_USER is accepted as an authenticated user.
+  @ </p></li>
 
   @ <hr>
   entry_attribute("Login expiration time", 6, "cookie-expire", "cex", "8766");
@@ -762,6 +750,15 @@ void setup_access(void){
   @ than this, then the client will issue multiple HTTP requests.
   @ Values below 1 million are not recommended.  5 million is a
   @ reasonable number.</p>
+
+  @ <hr>
+  onoff_attribute("Show javascript button to fill in CAPTCHA",
+                  "auto-captcha", "autocaptcha", 0);
+  @ <p>When enabled, a button appears on the login screen for user
+  @ "anonymous" that will automatically fill in the CAPTCHA password.
+  @ This is less secure that forcing the user to do it manually, but is
+  @ probably secure enough and it is certainly more convenient for
+  @ anonymous users.</p>
 
   @ <hr>
   @ <p><input type="submit"  name="submit" value="Apply Changes"></p>
@@ -809,102 +806,6 @@ void setup_timeline(void){
                   "timeline-max-comment", "tmc", "0");
   @ <p>The maximum length of a comment to be displayed in a timeline.
   @ "0" there is no length limit.</p>
-
-  @ <hr>
-  @ <p><input type="submit"  name="submit" value="Apply Changes"></p>
-  @ </form>
-  db_end_transaction(0);
-  style_footer();
-}
-
-/*
-** WEBPAGE: setup_behavior
-*/
-void setup_behavior(void){
-  login_check_credentials();
-  if( !g.okSetup ){
-    login_needed();
-  }
-
-  style_header("Fossil SCM Behavior");
-  db_begin_transaction();
-  @ <form action="%s(g.zBaseURL)/setup_behavior" method="POST">
-  login_insert_csrf_secret();
-
-  @ <hr>
-  onoff_attribute("Automatically synchronize with repository",
-                  "autosync", "autosync", 1);
-  @ <p>Automatically keeps your work in sync with a centralized server.</p>
-
-  @ <hr>
-  onoff_attribute("Show javascript button to fill in CAPTCHA",
-                  "auto-captcha", "autocaptcha", 0);
-  @ <p>When enabled, a button appears on the login screen for user
-  @ "anonymous" that will automatically fill in the CAPTCHA password.
-  @ This is less secure that forcing the user to do it manually, but is
-  @ probably secure enough and it is certainly more convenient for
-  @ anonymous users.</p>
-
-  @ <hr>
-  onoff_attribute("Sign all commits with GPG",
-                  "clearsign", "clearsign", 0);
-  @ <p>When enabled (the default), fossil will attempt to
-  @     sign all commits with GPG.  When disabled, commits will
-  @    be unsigned.</p>
-
-  @ <hr>
-  onoff_attribute("Require local authentication",
-                  "localauth", "localauth", 0);
-  @ <p>If enabled, require that HTTP connections from
-  @         127.0.0.1 be authenticated by password.  If
-  @        false, all HTTP requests from localhost have
-  @        unrestricted access to the repository.</p>
-
-  @ <hr>
-  onoff_attribute("Modification times used to detect changes",
-                  "mtime-changes", "mtime-changes", 0);
-  @ <p>Use file modification times (mtimes) to detect when files have been modified.</p>
-
-  @ <hr>
-  entry_attribute("File Ignore Glob", 40,
-                  "ignore-glob", "ignore-glob", "");
-  @ <p>Cause the 'extra' command to ignore files matching the glob. Example:
-  @ '*.o,*.a,*.bck,*~'</p>
-
-  @ <hr>
-  entry_attribute("Diff Command", 16,
-                  "diff-command", "diff-command", "diff");
-  @ <p>External command used to generate a textual diff</p>
-
-  @ <hr>
-  entry_attribute("Gdiff Command", 16,
-                  "gdiff-command", "gdiff-command", "gdiff");
-  @ <p>External command to run when performing a graphical diff. If undefined, text diff will be used.</p>
-
-  @ <hr>
-  entry_attribute("Editor", 16,
-                  "editor", "editor", "");
-  @ <p>Text editor command used for check-in comments.</p>
-
-  @ <hr>
-  entry_attribute("HTTP port", 16,
-                  "http-port", "http-port", "8080");
-  @ <p>The TCP/IP port number to use by the "server" and "ui" commands.  Default: 8080</p>
-
-  @ <hr>
-  entry_attribute("PGP Command", 32,
-                  "pgp-command", "pgp-command", "gpg --clearsign -o ");
-  @ <p>Command used to clear-sign manifests at check-in.The default is "gpg --clearsign -o ".</p>
-
-  @ <hr>
-  entry_attribute("Proxy", 32,
-                  "proxy", "proxy", "off");
-  @ <p>URL of the HTTP proxy.</p>
-
-  @ <hr>
-  entry_attribute("Web browser", 32,
-                  "web-browser", "web-browser", "");
-  @ <p>Default web browser for "fossil ui".</p>
 
   @ <hr>
   @ <p><input type="submit"  name="submit" value="Apply Changes"></p>
@@ -1157,14 +1058,4 @@ void setup_logo(void){
   @ </p>
   style_footer();
   db_end_transaction(0);
-}
-
-/*
-** WEBPAGE: setup_sync
-*/
-void setup_sync(void){
-	sync_cmd();
-	style_header("Synchronized");
-	@ <p>The project has been synchronized</p>
-	style_footer();
 }
