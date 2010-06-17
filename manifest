@@ -1,5 +1,8 @@
-C update\sdebian/changelog
-D 2010-05-24T09:58:25
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+C merge\supstream_2010.06.11.120259
+D 2010-06-17T18:38:36
 F BUILD.txt 10b5d2480a07d390ab78a308c37dad6888d40696
 F COPYRIGHT-BSD2.txt c7dd1de9f9539a5a859c2b41fe4560604a774476
 F Makefile d3799150da8a1b634c29b86e0dd69b9a568cd34c x
@@ -54,14 +57,14 @@ F src/browse.c 23a693054f1e70a9a63ca032ad5f66611cab0dfa
 F src/captcha.c 08be6903df4a1a72779ed618c8a41de2cde7fb40
 F src/cgi.c 0d187ce45f59bce039a40f3a99f4a0eb5e40d488
 F src/checkin.c de7bde34fe8b254d14a797127f578459b6993eae
-F src/checkout.c 7fc7b29741d75ffa57b7cacb6a295c04fcf6688e
+F src/checkout.c 33292b4cb7ffab4a783a2d2ad9434d73827e6324
 F src/clearsign.c b1078f1444dbe7265504f0c123afac607d03c2cf
 F src/clone.c b5eeb5558ee8d75862843f96f4829908fa135404
 F src/comformat.c cb5f71dc8760522c1872ca41e3e585ecf7542367
 F src/config.h 8b750d35e806456232d95a5eff03438007c75904
-F src/configure.c 7ae7c542abb2029e978cb642117637d3c1704aa3
+F src/configure.c c4d75dbe942fc7c4ba9bfafde631b8a655270fd3
 F src/content.c 1c4a5790d8ea446bb3dd6aae0c6919f77317118d
-F src/db.c 360ee81fbda1ff5c449c1eba390aaa7aa4ab44e7
+F src/db.c 32ba4722f8e355d63142523b9ff547171309c309
 F src/delta.c 186af88328c9afb02b27996ac7d0400772cdfa4c
 F src/deltacmd.c e879f45b3a690600edff50b99a28bc354c16b887
 F src/descendants.c 33c1fb15174bbb03e23a197463a16629c7e380ec
@@ -76,8 +79,8 @@ F src/http.c c37fb0c25a77eba0e385ff7ac483a6204ddc3200
 F src/http_socket.c a9ca689aee139e74080dbc1ae83930de3dd6fccd
 F src/http_ssl.c 65bb20fd9bb3de56c28068638305d2954240539d
 F src/http_transport.c f5395970b1ddfddb26da528e481e91ef2ee79c32
-F src/info.c e83d9d8f62fb21c58f326d3e7252418a4250c251
-F src/login.c 5a4fe1ea84a175ba3cab6724fc646e1edc7061cd
+F src/info.c c44525a4170716d856cc1827fcd7aa027ee1b7e2
+F src/login.c 9d55cf8fc467adcc7129322cfd0cc4bcdd238306
 F src/main.c c90cbe0a376a1ec331ac46a8302897e10f6a616a
 F src/main.mk 5c0abaf2ee8d96f2c16f5f3c43c1851b9c77164a
 F src/makeheaders.c 7746e0ebf5b374952fe9a7e292969851939484f3
@@ -94,15 +97,15 @@ F src/pqueue.c fc6bdd1de56fbe7d2c058c525c8dc4201bd5b36e
 F src/printf.c 12bfcbcc8de180020aadadc649f08d2ef8ab2d60
 F src/rebuild.c 389779aca55e66ab58d2ed434f260adc6dadee86
 F src/report.c 2a77ae11cd2118786d012df1564957dc2d1eda90
-F src/rss.c 71f385cee2e9cca143f968e6811ac35816d95c40
+F src/rss.c b7b02e66795a320c7d8f54bfaf76ff8d6ecec15b
 F src/schema.c 34f41f5d367471cb615c2b91a611a0b8f5377b09
 F src/search.c 953d09490f44e0c9efb7d05b643fc8ff9c06009b
 F src/setup.c 63287ca745db037f5a2fb200a678ae6a9544b451
 F src/sha1.c 039460fa0a112f731ba146dc1fd2d20c383f1c00
 F src/shun.c 844676140769b23f78ba8dc6c93d4f8254530211
-F src/skins.c bc2a501cc8581e31c5fd277b6246db467a774280
+F src/skins.c b693b6cb0e5e4e8a73d77ad33031bc8ac4826760
 F src/stat.c bbb8cda86b3853ff2d2927b86abf7a4148f5b776
-F src/style.c 17fee7439c0194f531515921e5432f688c672ad8
+F src/style.c 5e7ab265f940b472250cf480da17d23ea055e692
 F src/sync.c aef7ea255897126a2033dd810c8fcad25ece066b
 F src/tag.c 8a8a56dab9f21df8c56bfba1f303e71fe32eb102
 F src/th.c b97a4128cb40db5b33dece58164cc1207929a6cc
@@ -120,7 +123,7 @@ F src/user.c 754633c3475ae39d49e57fe87bcaefe5d42538dd
 F src/verify.c 31ba9820c45b49561804ab0c34e4b954d6d254f7
 F src/vfile.c ac84a88882e430508dfb0d3dcf7b05dee262597f
 F src/wiki.c c03ac692f432e3889e3b5bc5d92a684ea9aa7689
-F src/wikiformat.c 005c4168f89c40ff0061e15449a2cf8de3fb74df
+F src/wikiformat.c f0b6d3378c3aa76a4a21b9d65cbd4acb8a636c43
 F src/winhttp.c 0738154de2968607a30dc4118ed772706fac5403
 F src/xfer.c 145d5bf2d9377e94d22c376cbdc448c420ee4768
 F src/zip.c 0db3b1e1ec25c83bf21d0c6fb872602ee7ad057e
@@ -251,7 +254,7 @@ F www/fossil3.gif 0fa38d60655faf3da20c019583981cf6f71ae6fb
 F www/fossil_logo_small.gif b47a93e56ed5544b2942330bad7afff0b188a093
 F www/fossil_logo_small2.gif 2a25c3c9b9f266b884e98fe0f73da2341e6fe733
 F www/fossil_logo_small3.gif 6c2768dcb62988ab402a8b0a3d9bd290cbe6c132
-F www/index.wiki 88675e363655678b4a09ea19cb41aa72ac25aa5c
+F www/index.wiki 59d904dc742e5094ebeb4c7095c7c8bc7b82a82c
 F www/mkdownload.tcl 5fc5129fe11a268ce5e887943cf12fa76438c738
 F www/newrepo.wiki 0f60ddea661df55dbdb9203c4dcd5628522b0a06
 F www/password.wiki 4c626ba0e123d6b2c8a7c8695fef3d6bb6a8bb60
@@ -261,7 +264,7 @@ F www/quickstart.wiki fd1b090ebc278257516c0bb5b12063e689f819f6
 F www/reference.wiki 820ff3080adb7b766280bcfda02b8ecec0cf377f
 F www/reviews.wiki 50033359c634904410c6e610bf57df96a3b5a377
 F www/selfcheck.wiki 87d27f0d707889c1a1d8d681ef324bb836b9b99f
-F www/selfhost.wiki 712cb7df6c2767e7c62e176c066c5ae144df3726
+F www/selfhost.wiki 78cc85288e81a6b9ffdbe6c57dcb1688fd3d81b1
 F www/server.wiki 36a8ef685ae9b967876231769c7e4291ce0614b8
 F www/shunning.wiki 7b6d5703dc0d63a1ce7fc77c34985237c2d97f04
 F www/stats.wiki f1a2de8646f0885d29534168d30d72096cdaba7e
@@ -269,8 +272,15 @@ F www/sync.wiki e571cf1d8533431f4b9e33c6295c834829a2b81f
 F www/theory1.wiki fed3bfce83de5f2cac4bd869c2e6c6af61de83a7
 F www/webui.wiki ee72c72e52ab277949e0d9f2be05f3ecfdc9373e
 F www/wikitheory.wiki f470f81c45825bf2da9cd0c0f5e90966171e1e4e
-P fafe1fd86a84b33feee03984f23bac870d70839d
-R 40d952e480d647f8c9e1f75ad9bfcf1d
+P 245c611ebe6b1d913c92c99f220b1377a0e3ceb8 15b293259de5484b677c718ffdbe31e148be08f4
+R 2cfa097669116170e9b951591a33bb92
 U barak
-Z edee52b81fb46a35b1c9db587310ca63
+Z eba68bd61cefcb1513e30a288111f490
 # Remove this line to create a well-formed Fossil manifest.
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+
+iEYEARECAAYFAkwaa6wACgkQLz4Gnv7CP7J0SgCg21EV6SeRlykj5BrX0wfRKFGy
+LlsAnRdYK9gqe0KF6d/DwmDWihhcC8oV
+=GRm3
+-----END PGP SIGNATURE-----
