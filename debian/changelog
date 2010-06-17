@@ -1,3 +1,9 @@
+fossil (2010.06.11.120259-1) unstable; urgency=low
+
+  * New upstream version
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Thu, 17 Jun 2010 20:38:50 +0200
+
 fossil (2010.05.21.162104-1) unstable; urgency=low
 
   * move to dpkg-source format 3.0 (quilt)
