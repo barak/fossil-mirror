@@ -1412,7 +1412,7 @@ void cmd_open(void){
   Blob path;
   int vid;
   int keepFlag;
-  static char *azNewArgv[] = { 0, "checkout", "--latest", 0, 0, 0 };
+  static char *azNewArgv[] = { 0, "checkout", "--prompt", "--latest", 0, 0 };
   url_proxy_options();
   keepFlag = find_option("keep",0,0)!=0;
   if( g.argc!=3 && g.argc!=4 ){
@@ -1437,7 +1437,7 @@ void cmd_open(void){
     db_lset_int("checkout", vid);
     azNewArgv[0] = g.argv[0];
     g.argv = azNewArgv;
-    g.argc = 3;
+    g.argc = 4;
     if( oldArgc==4 ){
       azNewArgv[g.argc-1] = oldArgv[3];
     }
@@ -1494,6 +1494,9 @@ static void print_setting(const char *zName){
 **    auto-captcha     If enabled, the Login page provides a button to
 **                     fill in the captcha password.  Default: on
 **
+**    auto-shun        If enabled, automatically pull the shunning list
+**                     from a server to which the client autosyncs.
+**
 **    autosync         If enabled, automatically pull prior to commit
 **                     or update and automatically push after commit or
 **                     tag or branch creation.  If the the value is "pullonly"
@@ -1549,6 +1552,7 @@ static void print_setting(const char *zName){
 void setting_cmd(void){
   static const char *azName[] = {
     "auto-captcha",
+    "auto-shun",
     "autosync",
     "binary-glob",
     "clearsign",
