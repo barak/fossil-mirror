@@ -2,7 +2,7 @@ Source: fossil
 Section: vcs
 Priority: optional
 Maintainer: Barak A. Pearlmutter <bap@debian.org>
-Standards-Version: 3.8.4
+Standards-Version: 3.9.0
 Build-depends: debhelper (>= 7.2.5), libsqlite3-dev (>= 3.6.17), tcl8.5 | tclsh, zlib1g-dev | libz-dev, libssl-dev
 Vcs-Browser: http://fossil-scm.org
 Homepage: http://fossil-scm.org

@@ -1,3 +1,9 @@
+fossil (2010.07.03.153359-2) UNRELEASED; urgency=low
+
+  * rev deb policy
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Fri, 09 Jul 2010 09:47:31 +0100
+
 fossil (2010.07.03.153359-1) unstable; urgency=low
 
   * New upstream version
