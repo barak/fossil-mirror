@@ -75,7 +75,7 @@ static void db_err(const char *zFormat, ...){
     fprintf(stderr, "%s: %s\n\n%s", g.argv[0], z, zRebuildMsg);
   }
   db_force_rollback();
-  exit(1);
+  fossil_exit(1);
 }
 
 static int nBegin = 0;      /* Nesting depth of BEGIN */
@@ -116,6 +116,7 @@ void db_begin_transaction(void){
   nBegin++;
 }
 void db_end_transaction(int rollbackFlag){
+  if( g.db==0 ) return;
   if( nBegin<=0 ) return;
   if( rollbackFlag ) doRollback = 1;
   nBegin--;
@@ -130,7 +131,7 @@ void db_end_transaction(int rollbackFlag){
 }
 void db_force_rollback(void){
   static int busy = 0;
-  if( busy ) return;
+  if( busy || g.db==0 ) return;
   busy = 1;
   undo_rollback();
   if( nBegin ){
@@ -600,6 +601,7 @@ static sqlite3 *openDatabase(const char *zDbName){
     db_err(sqlite3_errmsg(db));
   }
   sqlite3_busy_timeout(db, 5000); 
+  sqlite3_wal_autocheckpoint(db, 1);  /* Set to checkpoint frequently */
   return db;
 }
 
@@ -612,12 +614,14 @@ static sqlite3 *openDatabase(const char *zDbName){
 void db_open_or_attach(const char *zDbName, const char *zLabel){
   if( !g.db ){
     g.db = openDatabase(zDbName);
+    g.zRepoDb = "main";
     db_connection_init();
   }else{
 #ifdef __MINGW32__
     zDbName = sqlite3_win32_mbcs_to_utf8(zDbName);
 #endif
     db_multi_exec("ATTACH DATABASE %Q AS %s", zDbName, zLabel);
+    g.zRepoDb = mprintf("%s", zLabel);
   }
 }
 
@@ -896,6 +900,7 @@ void db_close(void){
   while( pAllStmt ){
     db_finalize(pAllStmt);
   }
+  db_end_transaction(1);
   g.repositoryOpen = 0;
   g.localOpen = 0;
   g.configOpen = 0;
@@ -1481,10 +1486,10 @@ static void print_setting(const char *zName){
 /*
 ** COMMAND: settings
 ** COMMAND: unset
-** %fossil setting ?PROPERTY? ?VALUE? ?-global?
+** %fossil settings ?PROPERTY? ?VALUE? ?-global?
 ** %fossil unset PROPERTY ?-global?
 **
-** The "setting" command with no arguments lists all properties and their
+** The "settings" command with no arguments lists all properties and their
 ** values.  With just a property name it shows the value of that property.
 ** With a value argument it changes the property for the current repository.
 **
@@ -1499,7 +1504,7 @@ static void print_setting(const char *zName){
 **
 **    autosync         If enabled, automatically pull prior to commit
 **                     or update and automatically push after commit or
-**                     tag or branch creation.  If the the value is "pullonly"
+**                     tag or branch creation.  If the value is "pullonly"
 **                     then only pull operations occur automatically.
 **
 **    binary-glob      The VALUE is a comma-separated list of GLOB patterns

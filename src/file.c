@@ -199,16 +199,17 @@ int file_mkdir(const char *zName, int forceFlag){
 */
 int file_is_simple_pathname(const char *z){
   int i;
-  if( *z=='/' || *z==0 ) return 0;
-  if( *z=='.' ){
+  char c = z[0];
+  if( c=='/' || c==0 ) return 0;
+  if( c=='.' ){
     if( z[1]=='/' || z[1]==0 ) return 0;
     if( z[1]=='.' && (z[2]=='/' || z[2]==0) ) return 0;
   }
-  for(i=0; z[i]; i++){
-    if( z[i]=='\\' || z[i]=='*' || z[i]=='[' || z[i]==']' || z[i]=='?' ){
+  for(i=0; (c=z[i])!=0; i++){
+    if( c=='\\' || c=='*' || c=='[' || c==']' || c=='?' ){
       return 0;
     }
-    if( z[i]=='/' ){
+    if( c=='/' ){
       if( z[i+1]=='/' ) return 0;
       if( z[i+1]=='.' ){
         if( z[i+2]=='/' || z[i+2]==0 ) return 0;
@@ -279,7 +280,7 @@ void file_canonical_name(const char *zOrigName, Blob *pOut){
     char zPwd[2000];
     if( getcwd(zPwd, sizeof(zPwd)-20)==0 ){
       fprintf(stderr, "pwd too big: max %d\n", (int)sizeof(zPwd)-20);
-      exit(1);
+      fossil_exit(1);
     }
     blob_zero(pOut);
     blob_appendf(pOut, "%//%/", zPwd, zOrigName);
@@ -344,7 +345,7 @@ void file_relative_name(const char *zOrigName, Blob *pOut){
     char zPwd[2000];
     if( getcwd(zPwd, sizeof(zPwd)-20)==0 ){
       fprintf(stderr, "pwd too big: max %d\n", (int)sizeof(zPwd)-20);
-      exit(1);
+      fossil_exit(1);
     }
     for(i=1; zPath[i] && zPwd[i]==zPath[i]; i++){}
     if( zPath[i]==0 ){

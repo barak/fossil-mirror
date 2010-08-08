@@ -273,7 +273,9 @@ void extra_cmd(void){
   db_prepare(&q, 
       "SELECT x FROM sfile"
       " WHERE x NOT IN ('manifest','manifest.uuid','_FOSSIL_',"
-                         "'_FOSSIL_-journal','.fos','.fos-journal')"
+                       "'_FOSSIL_-journal','.fos','.fos-journal',"
+                       "'_FOSSIL_-wal','_FOSSIL_-shm','.fos-wal',"
+                       "'.fos-shm')"
       "   AND NOT %s"
       " ORDER BY 1",
       glob_expr("x", zIgnoreFlag)
@@ -320,7 +322,9 @@ void clean_cmd(void){
   db_prepare(&q, 
       "SELECT %Q || x FROM sfile"
       " WHERE x NOT IN ('manifest','manifest.uuid','_FOSSIL_',"
-                       "'_FOSSIL_-journal','.fos','.fos-journal')"
+                       "'_FOSSIL_-journal','.fos','.fos-journal',"
+                       "'_FOSSIL_-wal','_FOSSIL_-shm','.fos-wal',"
+                       "'.fos-shm')"
       " ORDER BY 1", g.zLocalRoot);
   if( file_tree_name(g.zRepositoryName, &repo, 0) ){
     db_multi_exec("DELETE FROM sfile WHERE x=%B", &repo);
@@ -532,7 +536,7 @@ static void checkin_verify_younger(
 ** (in that order) if no editor is set.
 **
 ** You will be prompted for your GPG passphrase in order to sign the
-** new manifest unless the "--nosign" options is used.  All files that
+** new manifest unless the "--nosign" option is used.  All files that
 ** have changed will be committed unless some subset of files is
 ** specified on the command line.
 **
@@ -694,8 +698,7 @@ void commit_cmd(void){
     blob_zero(&ans);
     prompt_user("empty check-in comment.  continue (y/N)? ", &ans);
     if( blob_str(&ans)[0]!='y' ){
-      db_end_transaction(1);
-      exit(1);
+      fossil_exit(1);
     }
   }else{
     db_multi_exec("REPLACE INTO vvar VALUES('ci-comment',%B)", &comment);
@@ -832,8 +835,7 @@ void commit_cmd(void){
     blob_zero(&ans);
     prompt_user("unable to sign manifest.  continue (y/N)? ", &ans);
     if( blob_str(&ans)[0]!='y' ){
-      db_end_transaction(1);
-      exit(1);
+      fossil_exit(1);
     }
   }
   blob_write_to_file(&manifest, zManifestFile);

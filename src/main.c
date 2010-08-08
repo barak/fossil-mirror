@@ -57,6 +57,7 @@ struct Global {
   long long int now;      /* Seconds since 1970 */
   int repositoryOpen;     /* True if the main repository database is open */
   char *zRepositoryName;  /* Name of the repository database */
+  char *zRepoDb;          /* SQLite database name for the repository */
   const char *zHome;      /* Name of user home directory */
   int localOpen;          /* True if the local database is open */
   char *zLocalRoot;       /* The directory holding the  local database */
@@ -218,7 +219,7 @@ static int name_search(
 ** This procedure runs first.
 */
 int main(int argc, char **argv){
-  const char *zCmdName;
+  const char *zCmdName = "unknown";
   int idx;
   int rc;
 
@@ -229,8 +230,11 @@ int main(int argc, char **argv){
   if( getenv("GATEWAY_INTERFACE")!=0 ){
     zCmdName = "cgi";
   }else if( argc<2 ){
-    fprintf(stderr, "Usage: %s COMMAND ...\n", argv[0]);
-    exit(1);
+    fprintf(stderr, "Usage: %s COMMAND ...\n"
+                    "\"%s help\" for a list of available commands\n"
+                    "\"%s help COMMAND\" for specific details\n",
+                    argv[0], argv[0], argv[0]);
+    fossil_exit(1);
   }else{
     g.fQuiet = find_option("quiet", 0, 0)!=0;
     g.fSqlTrace = find_option("sqltrace", 0, 0)!=0;
@@ -244,14 +248,16 @@ int main(int argc, char **argv){
     fprintf(stderr,"%s: unknown command: %s\n"
                    "%s: use \"help\" for more information\n",
                    argv[0], zCmdName, argv[0]);
-    return 1;
+    fossil_exit(1);
   }else if( rc==2 ){
     fprintf(stderr,"%s: ambiguous command prefix: %s\n"
                    "%s: use \"help\" for more information\n",
                    argv[0], zCmdName, argv[0]);
-    return 1;
+    fossil_exit(1);
   }
   aCommand[idx].xFunc();
+  fossil_exit(0);
+  /*NOT_REACHED*/
   return 0;
 }
 
@@ -261,6 +267,14 @@ int main(int argc, char **argv){
 ** shutting down, the recursive errors are silently ignored.
 */
 static int mainInFatalError = 0;
+
+/*
+** Exit.  Take care to close the database first.
+*/
+void fossil_exit(int rc){
+  db_close();
+  exit(rc);
+}
 
 /*
 ** Print an error message, rollback all databases, and quit.  These
@@ -282,7 +296,7 @@ void fossil_panic(const char *zFormat, ...){
     fprintf(stderr, "%s: %s\n", g.argv[0], z);
   }
   db_force_rollback();
-  exit(1);
+  fossil_exit(1);
 }
 void fossil_fatal(const char *zFormat, ...){
   char *z;
@@ -299,7 +313,7 @@ void fossil_fatal(const char *zFormat, ...){
     fprintf(stderr, "%s: %s\n", g.argv[0], z);
   }
   db_force_rollback();
-  exit(1);
+  fossil_exit(1);
 }
 
 /* This routine works like fossil_fatal() except that if called
@@ -327,7 +341,7 @@ void fossil_fatal_recursive(const char *zFormat, ...){
     fprintf(stderr, "%s: %s\n", g.argv[0], z);
   }
   db_force_rollback();
-  exit(1);
+  fossil_exit(1);
 }
 
 
@@ -390,7 +404,7 @@ void fossil_sqlite_log(void *notUsed, int iCode, const char *zErrmsg){
 */
 void usage(const char *zFormat){
   fprintf(stderr, "Usage: %s %s %s\n", g.argv[0], g.argv[1], zFormat);
-  exit(1);
+  fossil_exit(1);
 }
 
 /*
