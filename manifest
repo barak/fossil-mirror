@@ -1,8 +1,8 @@
 -----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA1
 
-C update\sdebian/changelog
-D 2010-08-26T07:47:49
+C minimise\sbuild\sdependency\sdebhelper\sversion
+D 2010-08-26T11:45:18
 F BUILD.txt 10b5d2480a07d390ab78a308c37dad6888d40696
 F COPYRIGHT-BSD2.txt c7dd1de9f9539a5a859c2b41fe4560604a774476
 F Makefile d3799150da8a1b634c29b86e0dd69b9a568cd34c x
@@ -34,9 +34,9 @@ F ci_cvs.txt 837df67f243330f601ed14e51761bc1528536dc1
 F ci_fossil.txt cf2b7a00fb594aa486f2bf953409d0d0429fd515
 F cvs2fossil.txt 3bce849e6e4a81eefd08fc28b6bbe806d2494b1a
 F debian/README.Debian 88cf3fe5bda10441a3c1cc5e50b31363f3f80612
-F debian/changelog fbd6731c68bfcc7ba2e8296c360a90a5137251f9
+F debian/changelog f2b9ba73eef6f7083565e75a008d4b054f558e8f
 F debian/compat d3964f9dad9f60363c81b688324d95b4ec7c8038
-F debian/control a046ca057fc299e027807d885297c47ec925419f
+F debian/control a8ff442c228681cb82ae2a3909f1d39f40f9ef40
 F debian/copyright cb6bd1a9b3c0b3bd2a8b0352b9e7f6d4ef864a2d
 F debian/fossil.1 98d11bb94fe75586757c9c3f51914aaf9e976fbe
 F debian/fossil.install 8ae909034651ad9b0a72cd10460fed7b9e51f627
@@ -272,15 +272,15 @@ F www/sync.wiki f7a1ce1ba2bded19777ffd07a2c7eaaab4caa175
 F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/webui.wiki ee72c72e52ab277949e0d9f2be05f3ecfdc9373e
 F www/wikitheory.wiki c301f0be747ca4cc59987e3c960d84a9e2686757
-P 82b250e122d823443ca7456e95d412be83819b4f
-R b0a3557f1dbdb920d22df4bfb2d62558
+P b6f6f179386070a3c2a74eebb60b172e741224aa
+R 6f2d75458fd67b64308c8c4f064f0aeb
 U barak
-Z fd1ee45e85e0a19e8e092660e2d48035
+Z 5116f17e256256dd740787f4522f45a1
 # Remove this line to create a well-formed Fossil manifest.
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.10 (GNU/Linux)
 
-iEYEARECAAYFAkx2HCUACgkQLz4Gnv7CP7KRfQCfbAd+B6gHobgUgo7Weg8iS3iQ
-NVgAoNVvXKs4lfUdfKEZtISZCyIrMcRa
-=XAiI
+iEYEARECAAYFAkx2U84ACgkQLz4Gnv7CP7JYqACeObUt57jY2+F61GZOxNxXiDWX
+PdcAn3lgilYFbxIalro8OH2OaoYWSyVn
+=Kkmu
 -----END PGP SIGNATURE-----
