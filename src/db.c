@@ -136,12 +136,12 @@ void db_force_rollback(void){
   undo_rollback();
   if( nBegin ){
     sqlite3_exec(g.db, "ROLLBACK", 0, 0, 0);
+    nBegin = 0;
     if( isNewRepo ){
       db_close();
       unlink(g.zRepositoryName);
     }
   }
-  nBegin = 0;
   busy = 0;
 }
 
@@ -896,16 +896,26 @@ void db_must_be_within_tree(void){
 ** Close the database connection.
 */
 void db_close(void){
+  sqlite3_stmt *pStmt;
   if( g.db==0 ) return;
   while( pAllStmt ){
     db_finalize(pAllStmt);
   }
   db_end_transaction(1);
+  pStmt = 0;
+  while( (pStmt = sqlite3_next_stmt(g.db, pStmt))!=0 ){
+    fossil_warning("unfinalized SQL statement: [%s]", sqlite3_sql(pStmt));
+  }
   g.repositoryOpen = 0;
   g.localOpen = 0;
   g.configOpen = 0;
+  sqlite3_wal_checkpoint(g.db, 0);
   sqlite3_close(g.db);
   g.db = 0;
+  if( g.dbConfig ){
+    sqlite3_close(g.dbConfig);
+    g.dbConfig = 0;
+  }
 }
 
 
@@ -1002,8 +1012,7 @@ void db_initial_setup(
     int rid;
     blob_zero(&manifest);
     blob_appendf(&manifest, "C initial\\sempty\\scheck-in\n");
-    zDate = db_text(0, "SELECT datetime(%Q)", zInitialDate);
-    zDate[10]='T';
+    zDate = date_in_standard_format(zInitialDate);
     blob_appendf(&manifest, "D %s\n", zDate);
     blob_appendf(&manifest, "P\n");
     md5sum_init();
@@ -1255,7 +1264,6 @@ int is_false(const char *zVal){
 void db_swap_connections(void){
   if( !g.useAttach ){
     sqlite3 *dbTemp = g.db;
-    assert( g.dbConfig!=0 );
     g.db = g.dbConfig;
     g.dbConfig = dbTemp;
   }
@@ -1376,7 +1384,7 @@ void db_lset_int(const char *zName, int value){
 
 /*
 ** Record the name of a local repository in the global_config() database.
-** The repostiroy filename %s is recorded as an entry with a "name" field
+** The repository filename %s is recorded as an entry with a "name" field
 ** of the following form:
 **
 **       repo:%s

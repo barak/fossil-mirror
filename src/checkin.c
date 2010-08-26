@@ -523,6 +523,23 @@ static void checkin_verify_younger(
 }
 
 /*
+** zDate should be a valid date string.  Convert this string into the
+** format YYYY-MM-DDTHH:MM:SS.  If the string is not a valid date, 
+** print a fatal error and quit.
+*/
+char *date_in_standard_format(const char *zInputDate){
+  char *zDate = db_text(0, "SELECT datetime(%Q)", zInputDate);
+  if( zDate[0]==0 ){
+    fossil_fatal("unrecognized date format (%s): use \"YYYY-MM-DD HH:MM:SS\"",
+                 zInputDate);
+  }
+  assert( strlen(zDate)==19 );
+  assert( zDate[10]==' ' );
+  zDate[10] = 'T';
+  return zDate;
+}
+
+/*
 ** COMMAND: ci
 ** COMMAND: commit
 **
@@ -742,8 +759,7 @@ void commit_cmd(void){
     blob_append(&comment, "(no comment)", -1);
   }
   blob_appendf(&manifest, "C %F\n", blob_str(&comment));
-  zDate = db_text(0, "SELECT datetime('%q')", zDateOvrd ? zDateOvrd : "now");
-  zDate[10] = 'T';
+  zDate = date_in_standard_format(zDateOvrd ? zDateOvrd : "now");
   blob_appendf(&manifest, "D %s\n", zDate);
   zDate[10] = ' ';
   db_prepare(&q,
@@ -800,7 +816,7 @@ void commit_cmd(void){
       free(zUuid);
     }
   }
-  db_reset(&q2);
+  db_finalize(&q2);
 
   blob_appendf(&manifest, "\n");
   blob_appendf(&manifest, "R %b\n", &cksum1);

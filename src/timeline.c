@@ -322,7 +322,8 @@ void www_print_timeline(
       graph_free(pGraph);
       pGraph = 0;
     }else{
-      @ <tr><td><td><div style="width:%d(pGraph->mxRail*20+30)px;"></div>
+      @ <tr><td><td>
+      @ <div id="grbtm" style="width:%d(pGraph->mxRail*20+30)px;"></div>
     }
   }
   @ </table>
@@ -354,7 +355,7 @@ void timeline_output_graph_javascript(GraphContext *pGraph){
       for(i=0; i<GR_MAX_RAIL; i++){
         if( i==pRow->iRail ) continue;
         if( pRow->aiRaiser[i]>0 ){
-          cgi_printf("%c%d,%d", cSep, pGraph->railMap[i], pRow->aiRaiser[i]);
+          cgi_printf("%c%d,%d", cSep, i, pRow->aiRaiser[i]);
           cSep = ',';
         }
       }
@@ -363,7 +364,7 @@ void timeline_output_graph_javascript(GraphContext *pGraph){
       cSep = '[';
       for(i=0; i<GR_MAX_RAIL; i++){
         if( pRow->mergeIn & (1<<i) ){
-          cgi_printf("%c%d", cSep, pGraph->railMap[i]);
+          cgi_printf("%c%d", cSep, i);
           cSep = ',';
         }
       }
@@ -484,7 +485,7 @@ void timeline_output_graph_javascript(GraphContext *pGraph){
     @     rowinfo[i].y = absoluteY(rowinfo[i].id) + 10 - canvasY;
     @     rowinfo[i].x = left + rowinfo[i].r*20;
     @   }
-    @   var btm = rowinfo[rowinfo.length-1].y + 20;
+    @   var btm = absoluteY("grbtm") + 10 - canvasY;
     @   if( btm<32768 ){
     @     canvasDiv.innerHTML = '<canvas id="timeline-canvas" '+
     @        'style="position:absolute;left:'+(left-5)+'px;"' +
