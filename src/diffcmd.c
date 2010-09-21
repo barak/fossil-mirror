@@ -22,32 +22,11 @@
 #include <assert.h>
 
 /*
-** Shell-escape the given string.  Append the result to a blob.
-*/
-static void shell_escape(Blob *pBlob, const char *zIn){
-  int n = blob_size(pBlob);
-  int k = strlen(zIn);
-  int i, c;
-  char *z;
-  for(i=0; (c = zIn[i])!=0; i++){
-    if( isspace(c) || c=='"' || (c=='\\' && zIn[i+1]!=0) ){
-      blob_appendf(pBlob, "\"%s\"", zIn);
-      z = blob_buffer(pBlob);
-      for(i=n+1; i<=n+k; i++){
-        if( z[i]=='"' ) z[i] = '_';
-      }
-      return;
-    }
-  }
-  blob_append(pBlob, zIn, -1);
-}
-
-/*
 ** This function implements a cross-platform "system()" interface.
 */
 int portable_system(const char *zOrigCmd){
   int rc;
-#ifdef __MINGW32__
+#if defined(_WIN32)
   /* On windows, we have to put double-quotes around the entire command.
   ** Who knows why - this is just the way windows works.
   */
@@ -265,8 +244,6 @@ static void diff_all_against_disk(
       printf("MISSING  %s\n", zPathname);
     }else if( isNew ){
       printf("ADDED    %s\n", zPathname);
-    }else if( isDeleted ){
-      printf("DELETED  %s\n", zPathname);
     }else if( isChnged==3 ){
       printf("ADDED_BY_MERGE %s\n", zPathname);
     }else{
