@@ -1,3 +1,9 @@
+fossil (2010.10.05.035549-1) unstable; urgency=low
+
+  * New upstream version
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Thu, 07 Oct 2010 09:27:20 +0100
+
 fossil (2010.09.18.155143-1) unstable; urgency=low
 
   * Lower given debhelper build dependency version
