@@ -1,5 +1,5 @@
-C update\sdebian/changelog
-D 2010-11-05T11:56:01
+C fix\supstream\smerge
+D 2010-11-05T11:59:06
 F BUILD.txt 10b5d2480a07d390ab78a308c37dad6888d40696
 F COPYRIGHT-BSD2.txt c7dd1de9f9539a5a859c2b41fe4560604a774476
 F Makefile bf1bff10a08cb8e251b34a310a9242c576e48d26 x
@@ -80,10 +80,10 @@ F src/http_transport.c 383057ae5f3e0d507f7fb13352778f3823e204c3
 F src/info.c 28ef7eae65618f3abf40e44e06203cc5bb87231c
 F src/login.c b6b93c2666a0f8fe653a26ced11da3540b308492
 F src/main.c 149ce91a67676201ab3ca1b5d4b94b04c5f41e83
-F src/main.mk f9c2134de9742bf77d16f9d54864908162e936af
+F src/main.mk 5c305ec8f15abe23b1aad7e42b40353c0e981a0b
 F src/makeheaders.c 4313451d393aa39549c11e2bc46bbf8a207c4743
 F src/makeheaders.html 3c3db86a7666b26b001d63a0e2da83bd2cdacf77
-F src/makemake.tcl 64a7cb0cdf7e8664e4c4001b78b0f5ec4bed6fb4 x
+F src/makemake.tcl a66080eee61a756b19b960a84482eae4f2536435 x
 F src/manifest.c 97635ebe4367248ebcb756406c5eb6186e9e5f48
 F src/md5.c 5f7f55a1e70ada8671134eb7fca456b5aa391d40
 F src/merge.c 8046331529da3d232e10374cfc0d6ea811384084
@@ -281,8 +281,8 @@ F www/sync.wiki f7a1ce1ba2bded19777ffd07a2c7eaaab4caa175
 F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/webui.wiki ee72c72e52ab277949e0d9f2be05f3ecfdc9373e
 F www/wikitheory.wiki 8b81a5dfc4d5c671aaebc2890d1bf9b891c9be10
-P e731718cfbc119dbfc702530d4283f4c7fd11f93
-R 15e39eacccf8ea3ca2c3ee1b3b9f4f30
+P e52b076aac5cd51a5ee97221e6493a75fc18115d
+R a437b130d6feb117b3aa4552592a4bef
 U barak
-Z 5f35ff525ef5f2a6b0be46329d7fdad5
+Z 5ef6cbc94bc85d39db1e058f804a0f74
 # Remove this line to create a well-formed Fossil manifest.
