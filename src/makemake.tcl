@@ -150,8 +150,19 @@ VERSION.h:	$(SRCDIR)/../manifest.uuid $(SRCDIR)/../manifest
 		substr($$2,1,10),substr($$2,12)}' \
 		$(SRCDIR)/../manifest >>VERSION.h
 
+>>>>>>> BEGIN MERGE CONFLICT
+EXTRAOBJ = \
+  $(OBJDIR)/sqlite3.o \
+  $(OBJDIR)/shell.o \
+  $(OBJDIR)/th.o \
+  $(OBJDIR)/th_lang.o
+
+$(APPNAME):	headers $(OBJ) $(EXTRAOBJ)
+	$(TCC) -o $(APPNAME) $(OBJ) $(EXTRAOBJ) $(LIB)
+============================
 $(APPNAME):	headers $(OBJ) $(OBJDIR)/th.o $(OBJDIR)/th_lang.o
 	$(TCC) -o $(APPNAME) $(OBJ) $(OBJDIR)/th.o $(OBJDIR)/th_lang.o $(LIB)
+<<<<<<< END MERGE CONFLICT
 
 # This rule prevents make from using its default rules to try build
 # an executable named "manifest" out of the file named "manifest.c"
@@ -195,6 +206,11 @@ foreach s [lsort $src] {
 
 
 append opt " -Dlocaltime=fossil_localtime"
+
+puts "\$(OBJDIR)/shell.o:\t\$(SRCDIR)/shell.c"
+set opt {-Dmain=sqlite3_shell}
+append opt " -DSQLITE_OMIT_LOAD_EXTENSION=1"
+puts "\t\$(XTCC) $opt -c \$(SRCDIR)/shell.c -o \$(OBJDIR)/shell.o\n"
 
 puts "\$(OBJDIR)/th.o:\t\$(SRCDIR)/th.c"
 puts "\t\$(XTCC) -I\$(SRCDIR) -c \$(SRCDIR)/th.c -o \$(OBJDIR)/th.o\n"
