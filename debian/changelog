@@ -1,6 +1,7 @@
 fossil (2010.11.11.133638-1) unstable; urgency=low
 
   * New upstream version
+  * Upgrade to debhelper 8
 
  -- Barak A. Pearlmutter <bap@debian.org>  Thu, 11 Nov 2010 16:02:12 +0000
 
