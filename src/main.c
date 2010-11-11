@@ -230,7 +230,7 @@ int main(int argc, char **argv){
   g.now = time(0);
   g.argc = argc;
   g.argv = argv;
-  if( getenv("GATEWAY_INTERFACE")!=0 ){
+  if( getenv("GATEWAY_INTERFACE")!=0 && !find_option("nocgi", 0, 0)){
     zCmdName = "cgi";
   }else if( argc<2 ){
     fprintf(stderr, "Usage: %s COMMAND ...\n"
@@ -378,6 +378,27 @@ void *fossil_realloc(void *p, size_t n){
   if( p==0 ) fossil_panic("out of memory");
   return p;
 }
+
+/*
+** This function implements a cross-platform "system()" interface.
+*/
+int fossil_system(const char *zOrigCmd){
+  int rc;
+#if defined(_WIN32)
+  /* On windows, we have to put double-quotes around the entire command.
+  ** Who knows why - this is just the way windows works.
+  */
+  char *zNewCmd = mprintf("\"%s\"", zOrigCmd);
+  rc = system(zNewCmd);
+  free(zNewCmd);
+#else
+  /* On unix, evaluate the command directly.
+  */
+  rc = system(zOrigCmd);
+#endif 
+  return rc; 
+}
+
 
 
 /*

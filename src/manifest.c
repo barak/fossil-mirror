@@ -188,6 +188,17 @@ void manifest_cache_clear(void){
 #endif
 
 /*
+** Return true if z points to the first character after a blank line.
+** Tolerate either \r\n or \n line endings.
+*/
+static int after_blank_line(const char *z){
+  if( z[-1]!='\n' ) return 0;
+  if( z[-2]=='\n' ) return 1;
+  if( z[-2]=='\r' && z[-3]=='\n' ) return 1;
+  return 0;
+}
+
+/*
 ** Remove the PGP signature from the artifact, if there is one.
 */
 static void remove_pgp_signature(char **pz, int *pn){
@@ -195,7 +206,7 @@ static void remove_pgp_signature(char **pz, int *pn){
   int n = *pn;
   int i;
   if( memcmp(z, "-----BEGIN PGP SIGNED MESSAGE-----", 34)!=0 ) return;
-  for(i=34; i<n && (z[i-1]!='\n' || z[i-2]!='\n'); i++){}
+  for(i=34; i<n && !after_blank_line(z+i); i++){}
   if( i>=n ) return;
   z += i;
   n -= i;
@@ -1212,6 +1223,16 @@ static void add_mlink(int pid, Manifest *pParent, int cid, Manifest *pChild){
   }else if( pChild->zBaseline==0 && pParent->zBaseline!=0 ){
     content_deltify(pParent->pBaseline->rid, cid, 0);
   }
+
+  /* Remember all children less than 2 seconds younger than their parent,
+  ** as we might want to fudge the times for those children.
+  */
+  if( pChild->rDate<pParent->rDate+2.3e-5 ){
+    db_multi_exec(
+       "INSERT OR REPLACE INTO time_fudge VALUES(%d, %.17g, %d, %.17g);",
+       pParent->rid, pParent->rDate, pChild->rid, pChild->rDate
+    );
+  }
   
   for(i=0, pChildFile=pChild->aFile; i<pChild->nFile; i++, pChildFile++){
     if( pChildFile->zPrior ){
@@ -1258,14 +1279,23 @@ void manifest_crosslink_begin(void){
   assert( manifest_crosslink_busy==0 );
   manifest_crosslink_busy = 1;
   db_begin_transaction();
-  db_multi_exec("CREATE TEMP TABLE pending_tkt(uuid TEXT UNIQUE)");
+  db_multi_exec(
+     "CREATE TEMP TABLE pending_tkt(uuid TEXT UNIQUE);"
+     "CREATE TEMP TABLE time_fudge("
+     "  mid INTEGER PRIMARY KEY,"
+     "  m1 REAL,"
+     "  cid INTEGER,"
+     "  m2 REAL"
+     ");"
+  );
 }
 
 /*
 ** Finish up a sequence of manifest_crosslink calls.
 */
 void manifest_crosslink_end(void){
-  Stmt q;
+  Stmt q, u;
+  int i;
   assert( manifest_crosslink_busy==1 );
   db_prepare(&q, "SELECT uuid FROM pending_tkt");
   while( db_step(&q)==SQLITE_ROW ){
@@ -1274,6 +1304,24 @@ void manifest_crosslink_end(void){
   }
   db_finalize(&q);
   db_multi_exec("DROP TABLE pending_tkt");
+
+  db_prepare(&q, "UPDATE time_fudge SET m1=m2-2.8935e-7 WHERE m1>=m2");
+  db_prepare(&u, "UPDATE time_fudge SET m2="
+        "(SELECT x.m1 FROM time_fudge AS x WHERE x.mid=time_fudge.cid)");
+  for(i=0; i<30; i++){
+    db_step(&q);
+    db_reset(&q);
+    if( sqlite3_changes(g.db)==0 ) break;
+    db_step(&u);
+    db_reset(&u);
+  }
+  db_finalize(&q);
+  db_finalize(&u);
+  db_multi_exec(
+    "UPDATE event SET mtime=(SELECT m1 FROM time_fudge WHERE mid=objid)"
+    " WHERE objid IN (SELECT mid FROM time_fudge)"
+  );
+
   db_end_transaction(0);
   manifest_crosslink_busy = 0;
 }

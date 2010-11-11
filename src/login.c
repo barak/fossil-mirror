@@ -53,11 +53,10 @@
 static char *login_cookie_name(void){
   static char *zCookieName = 0;
   if( zCookieName==0 ){
-    int n = strlen(g.zTop);
-    zCookieName = fossil_malloc( n*2+16 );
-                      /* 0123456789 12345 */
-    strcpy(zCookieName, "fossil_login_");
-    encode16((unsigned char*)g.zTop, (unsigned char*)&zCookieName[13], n);
+    unsigned int h = 0;
+    const char *z = g.zBaseURL;
+    while( *z ){ h = (h<<3) ^ (h>>26) ^ *(z++); }
+    zCookieName = mprintf("fossil_login_%08x", h);
   }
   return zCookieName;
 }
@@ -461,7 +460,7 @@ void login_set_anon_nobody_capabilities(void){
     /* All logged-in users inherit privileges from "nobody" */
     zCap = db_text("", "SELECT cap FROM user WHERE login = 'nobody'");
     login_set_capabilities(zCap);
-    if( strcmp(g.zLogin, "anonymous")!=0 ){
+    if( strcmp(g.zLogin, "nobody")!=0 ){
       /* All logged-in users inherit privileges from "anonymous" */
       zCap = db_text("", "SELECT cap FROM user WHERE login = 'anonymous'");
       login_set_capabilities(zCap);

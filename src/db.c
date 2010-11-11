@@ -1033,8 +1033,10 @@ void db_initial_setup(
 
 /*
 ** COMMAND: new
+** COMMAND: init
 **
 ** Usage: %fossil new ?OPTIONS? FILENAME
+**    Or: %fossil init ?OPTIONS? FILENAME
 **
 ** Create a repository for a new project in the file named FILENAME.
 ** This command is distinct from "clone".  The "clone" command makes
@@ -1525,7 +1527,7 @@ struct stControlSettings const ctrlSettings[] = {
   { "http-port",     0,               16, "8080"                },
   { "localauth",     0,                0, "off"                 },
   { "manifest",      0,                0, "off"                 },
-  { "mtime-changes", 0,                0, "off"                 },
+  { "mtime-changes", 0,                0, "on"                  },
   { "pgp-command",   0,               32, "gpg --clearsign -o " },
   { "proxy",         0,               32, "off"                 },
   { "repo-cksum",    0,                0, "on"                  },

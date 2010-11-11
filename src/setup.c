@@ -696,7 +696,7 @@ static void onoff_attribute(
     @ <input type="checkbox" name="%s(zQParm)" checked="checked" />
     @ <b>%s(zLabel)</b>
   }else{
-    @ <input type="checkbox" name="%s(zQParm)" /><b>%s(zLabel)</b>
+    @ <input type="checkbox" name="%s(zQParm)" /> <b>%s(zLabel)</b>
   }
 }
 
@@ -879,7 +879,7 @@ void setup_settings(void){
     if( pSet->width==0 ){
       onoff_attribute(pSet->name, pSet->name,
                       pSet->var!=0 ? pSet->var : pSet->name,
-                      pSet->def[0]=='1');
+                      is_truth(pSet->def));
       @ <br />
     }
   }
@@ -1089,7 +1089,7 @@ void setup_footer(void){
 ** WEBPAGE: setup_logo
 */
 void setup_logo(void){
-  const char *zMime = "image/gif";
+  const char *zMime = db_get("logo-mimetype","image/gif");
   const char *aImg = P("im");
   int szImg = atoi(PD("im:bytes","0"));
   if( szImg>0 ){
