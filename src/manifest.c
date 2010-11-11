@@ -837,7 +837,6 @@ static Manifest *manifest_parse(Blob *pContent, int rid){
   }else{
     if( p->nCChild>0 ) goto manifest_syntax_error;
     if( p->rDate<=0.0 ) goto manifest_syntax_error;
-    if( p->nParent>0 ) goto manifest_syntax_error;
     if( p->nField>0 ) goto manifest_syntax_error;
     if( p->zTicketUuid ) goto manifest_syntax_error;
     if( p->zWikiTitle ) goto manifest_syntax_error;
@@ -1261,6 +1260,14 @@ static void add_mlink(int pid, Manifest *pParent, int cid, Manifest *pChild){
         add_one_mlink(cid, 0, pChildFile->zUuid, pChildFile->zName, 0);
       }
     }
+  }else if( pChild->zBaseline==0 ){
+    manifest_file_rewind(pParent);
+    while( (pParentFile = manifest_file_next(pParent,0))!=0 ){
+      pChildFile = manifest_file_seek(pChild, pParentFile->zName);
+      if( pChildFile==0 ){
+        add_one_mlink(cid, pParentFile->zUuid, 0, pParentFile->zName, 0);
+      }
+    }
   }
   manifest_cache_insert(*ppOther);
 }
@@ -1319,7 +1326,8 @@ void manifest_crosslink_end(void){
   db_finalize(&u);
   db_multi_exec(
     "UPDATE event SET mtime=(SELECT m1 FROM time_fudge WHERE mid=objid)"
-    " WHERE objid IN (SELECT mid FROM time_fudge)"
+    " WHERE objid IN (SELECT mid FROM time_fudge);"
+    "DROP TABLE time_fudge;"
   );
 
   db_end_transaction(0);
@@ -1466,6 +1474,11 @@ int manifest_crosslink(int rid, Blob *pContent){
         add_mlink(rid, p, cid, 0);
       }
       db_finalize(&q);
+      if( p->nParent==0 ){
+        for(i=0; i<p->nFile; i++){
+          add_one_mlink(rid, 0, p->aFile[i].zUuid, p->aFile[i].zName, 0);
+        }
+      }
       db_multi_exec(
         "REPLACE INTO event(type,mtime,objid,user,comment,"
                            "bgcolor,euser,ecomment)"
