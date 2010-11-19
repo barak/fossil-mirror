@@ -1,5 +1,5 @@
-C fossil\sset\smanifest\son
-D 2010-11-19T15:25:32
+C missed\sdh8\sdependency\soops
+D 2010-11-19T15:34:48
 F BUILD.txt 10b5d2480a07d390ab78a308c37dad6888d40696
 F COPYRIGHT-BSD2.txt c7dd1de9f9539a5a859c2b41fe4560604a774476
 F Makefile bbb0c5a0b6e7835ba0cff175a3c1011442a80a93 x
@@ -33,7 +33,7 @@ F cvs2fossil.txt 3bce849e6e4a81eefd08fc28b6bbe806d2494b1a
 F debian/README.Debian 2fa94bab6af5c1e587a6cdd5736acce6fec65a05
 F debian/changelog 7a317ddde9488acaf72f5eafe383759705869980
 F debian/compat 136571b41aa14adc10c5f3c987d43c02c8f5d498
-F debian/control a8ff442c228681cb82ae2a3909f1d39f40f9ef40
+F debian/control 4f270aff3c601b1030281f75c392a3310d3852ad
 F debian/copyright cb6bd1a9b3c0b3bd2a8b0352b9e7f6d4ef864a2d
 F debian/fossil.1 98d11bb94fe75586757c9c3f51914aaf9e976fbe
 F debian/fossil.install 8ae909034651ad9b0a72cd10460fed7b9e51f627
@@ -286,8 +286,8 @@ F www/sync.wiki d6cbb8a817f115bf670eaba1017905ed88580ab1
 F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/webui.wiki ee72c72e52ab277949e0d9f2be05f3ecfdc9373e
 F www/wikitheory.wiki 8b81a5dfc4d5c671aaebc2890d1bf9b891c9be10
-P 56c9a6fc793a53eda0a2daebb47f0ee5e9c742fa
-R 5b283eb1ddf1813f10b46922c89d3030
+P 6a5e099b680680704fd23319d5ebc9816e1f8dec
+R d1c2cffff10e8664d8c2396549b526b8
 U barak
-Z 2029b6051802d194c03c486d715d7bd2
+Z 3bd08b54e11622c6c3c85366f65b82d4
 # Remove this line to create a well-formed Fossil manifest.
