@@ -55,6 +55,7 @@ Brief "cheat sheet" of relevant fossil commands.
  fossil open ../fossil.fsl
  fossil co debian
  fossil user password ${USER} ${PWD}
+ fossil set manifest on		# needed as of approx ver 2010.11.11.133638
 
  # sync to your own remote repository
  ssh ${HOST}
@@ -86,4 +87,4 @@ Brief "cheat sheet" of relevant fossil commands.
  fossil co trunk
  tar --exclude _FOSSIL_ -C .. -zcf fossil_${VER}.orig.tar.gz fossil
 
- -- Barak A. Pearlmutter <bap@debian.org>, Mon, 22 Mar 2010 09:31:41 +0000
+ -- Barak A. Pearlmutter <bap@debian.org>, Fri, 19 Nov 2010 15:24:23 +0000
