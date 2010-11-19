@@ -1,5 +1,5 @@
-C missed\sdh8\sdependency\soops
-D 2010-11-19T15:34:48
+C work\saround\sdebian\sretro\slibsqlite3
+D 2010-11-19T15:48:01
 F BUILD.txt 10b5d2480a07d390ab78a308c37dad6888d40696
 F COPYRIGHT-BSD2.txt c7dd1de9f9539a5a859c2b41fe4560604a774476
 F Makefile bbb0c5a0b6e7835ba0cff175a3c1011442a80a93 x
@@ -30,7 +30,7 @@ F art/encode9.tex 84df5abf42b007748ec0ea1e3bd4ad2628502335
 F ci_cvs.txt 837df67f243330f601ed14e51761bc1528536dc1
 F ci_fossil.txt cf2b7a00fb594aa486f2bf953409d0d0429fd515
 F cvs2fossil.txt 3bce849e6e4a81eefd08fc28b6bbe806d2494b1a
-F debian/README.Debian 2fa94bab6af5c1e587a6cdd5736acce6fec65a05
+F debian/README.Debian f135ccc3cce59eb85ae1eb3f9d3fcb1526d1ae11
 F debian/changelog 7a317ddde9488acaf72f5eafe383759705869980
 F debian/compat 136571b41aa14adc10c5f3c987d43c02c8f5d498
 F debian/control 4f270aff3c601b1030281f75c392a3310d3852ad
@@ -97,7 +97,7 @@ F src/popen.c 935a4cdb90ec123f56faea207eb72f0610f7bece
 F src/pqueue.c 4a43f2cdcc3e52a0922d1d15f338e327c41f9443
 F src/printf.c 90eaff0bc8cf2708cf96026717246afe56bb7b5d
 F src/rebuild.c f3b8f1117bd8f59b12a4f7dd5ed478cd61c263e0
-F src/report.c 6b2674f05c467a3cce145ea4141a7c04c0c055a3
+F src/report.c 283e02b6bd918100b0d7291340f8d4859b297e65
 F src/rss.c f2944a86fb6c3ce48a6ce843be41c42f2f73b477
 F src/schema.c 6baf06e2e0572ee95fd48504d8f482415670d1a8
 F src/search.c d3a38c62eca5b2a9c842c0e64468fa4cfee8fb96
@@ -286,8 +286,8 @@ F www/sync.wiki d6cbb8a817f115bf670eaba1017905ed88580ab1
 F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/webui.wiki ee72c72e52ab277949e0d9f2be05f3ecfdc9373e
 F www/wikitheory.wiki 8b81a5dfc4d5c671aaebc2890d1bf9b891c9be10
-P 6a5e099b680680704fd23319d5ebc9816e1f8dec
-R d1c2cffff10e8664d8c2396549b526b8
+P ea12bd03286239cfa0a42ee5045155d7798e5f30
+R 4f827dec71c179b46a1125efc22a66e7
 U barak
-Z 3bd08b54e11622c6c3c85366f65b82d4
+Z de52cb7a4fcbd271fc8f7d173fb1f79a
 # Remove this line to create a well-formed Fossil manifest.

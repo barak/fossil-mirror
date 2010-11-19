@@ -15,14 +15,19 @@ Man page created by manually editing output of this:
 	  | sed s'/ THIS / FOSSIL /' \
 	  > debian/fossil.1
 
-The only substantive non-debian/ patch is use of system dynamic sqlite
-library rather than static private copy.  This means:
+The only substantive patch outside debian/ is use of the system
+dynamic sqlite library rather than a static private copy.  This means:
 
  - add option -lsqlite3 in Makefile
  - remove source files sqlite3.{c,h}
  - remove references to sqlite3.{c,h.o} from src/makemake.tcl
  - cd src; ./makemake.tcl > main.mk
+ - ad-hoc work around uses of post-debian-version sqlite functionality
 
+The only such ad-hoc workaround of of now is:
+ - guard in src/report.c, #ifdef HAVE_SQLITE3_STMT_READONLY,
+   remove when Debian libsqlite3-dev upgrades to version > 7.3.4
+   with sqlite3_stmt_readonly()
 
 The debianized sources are tracked in fossil, of course.
 
@@ -87,4 +92,4 @@ Brief "cheat sheet" of relevant fossil commands.
  fossil co trunk
  tar --exclude _FOSSIL_ -C .. -zcf fossil_${VER}.orig.tar.gz fossil
 
- -- Barak A. Pearlmutter <bap@debian.org>, Fri, 19 Nov 2010 15:24:23 +0000
+ -- Barak A. Pearlmutter <bap@debian.org>, Fri, 19 Nov 2010 15:47:28 +0000

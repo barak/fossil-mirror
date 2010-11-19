@@ -241,9 +241,11 @@ char *verify_sql_statement(char *zSql){
   if( rc!=SQLITE_OK ){
     zErr = mprintf("Syntax error: %s", sqlite3_errmsg(g.db));
   }
+#ifdef HAVE_SQLITE3_STMT_READONLY
   if( !sqlite3_stmt_readonly(pStmt) ){
     zErr = mprintf("SQL must not modify the database");
   }
+#endif
   if( pStmt ){
     sqlite3_finalize(pStmt);
   }
