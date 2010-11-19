@@ -287,6 +287,8 @@ void update_cmd(void){
     free(zFullPath);
   }
   db_finalize(&q);
+  printf("--------------\n");
+  show_common_info(tid, "updated-to:", 1, 0);
   
   /*
   ** Clean up the mid and pid VFILE entries.  Then commit the changes.

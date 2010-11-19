@@ -63,6 +63,7 @@ void autosync(int flags){
   if( g.urlUser!=0 && g.urlPasswd==0 ){
     g.urlPasswd = mprintf("%s", zPw);
   }
+#if 0 /* Disabled for now */
   if( (flags & AUTOSYNC_PULL)!=0 && db_get_boolean("auto-shun",1) ){
     /* When doing an automatic pull, also automatically pull shuns from
     ** the server if pull_shuns is enabled.
@@ -73,6 +74,7 @@ void autosync(int flags){
     */
     configSync = CONFIGSET_SHUN;
   }
+#endif
   printf("Autosync:  %s\n", g.urlCanonical);
   url_enable_proxy("via proxy: ");
   client_sync((flags & AUTOSYNC_PUSH)!=0, 1, 0, configSync, 0);
@@ -105,16 +107,16 @@ static int process_sync_args(void){
     usage("URL");
   }
   url_parse(zUrl);
-  if( !g.dontKeepUrl ){
-    db_set("last-sync-url", g.urlCanonical, 0);
-    if( g.urlPasswd ) db_set("last-sync-pw", obscure(g.urlPasswd), 0);
-  }
   if( g.urlUser!=0 && g.urlPasswd==0 ){
     if( zPw==0 ){
       url_prompt_for_password();
     }else{
       g.urlPasswd = mprintf("%s", zPw);
     }
+  }
+  if( !g.dontKeepUrl ){
+    db_set("last-sync-url", g.urlCanonical, 0);
+    if( g.urlPasswd ) db_set("last-sync-pw", obscure(g.urlPasswd), 0);
   }
   user_select();
   if( g.argc==2 ){

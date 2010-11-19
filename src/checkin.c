@@ -132,7 +132,7 @@ void status_cmd(void){
   printf("server-code:  %s\n", db_get("server-code", ""));
   vid = db_lget_int("checkout", 0);
   if( vid ){
-    show_common_info(vid, "checkout:", 0);
+    show_common_info(vid, "checkout:", 1, 1);
   }
   changes_cmd();
 }
@@ -1062,6 +1062,7 @@ void commit_cmd(void){
     */
     vfile_aggregate_checksum_repository(nvid, &cksum2);
     if( blob_compare(&cksum1, &cksum2) ){
+      vfile_compare_repository_to_disk(nvid);
       fossil_panic("tree checksum does not match repository after commit");
     }
   

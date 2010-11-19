@@ -150,12 +150,9 @@ static int fast_insert_content(Blob *pContent, const char *zMark){
 */
 static void finish_blob(void){
   Blob content;
-
-  if( gg.nData>0 ){
-    blob_init(&content, gg.aData, gg.nData);
-    fast_insert_content(&content, gg.zMark);
-    blob_reset(&content);
-  }
+  blob_init(&content, gg.aData, gg.nData);
+  fast_insert_content(&content, gg.zMark);
+  blob_reset(&content);
   import_reset(0);
 }
 
@@ -188,6 +185,9 @@ static int mfile_cmp(const void *pLeft, const void *pRight){
   return strcmp(pA->zName, pB->zName);
 }
 
+/* Forward reference */
+static void import_prior_files(void);
+
 /*
 ** Use data accumulated in gg from a "commit" record to add a new 
 ** manifest artifact to the BLOB table.
@@ -196,12 +196,15 @@ static void finish_commit(void){
   int i;
   char *zFromBranch;
   Blob record, cksum;
+  import_prior_files();
   qsort(gg.aFile, gg.nFile, sizeof(gg.aFile[0]), mfile_cmp);
   blob_zero(&record);
   blob_appendf(&record, "C %F\n", gg.zComment);
   blob_appendf(&record, "D %s\n", gg.zDate);
   for(i=0; i<gg.nFile; i++){
-    blob_appendf(&record, "F %F %s", gg.aFile[i].zName, gg.aFile[i].zUuid);
+    const char *zUuid = gg.aFile[i].zUuid;
+    if( zUuid==0 ) continue;
+    blob_appendf(&record, "F %F %s", gg.aFile[i].zName, zUuid);
     if( gg.aFile[i].isExe ){
       blob_append(&record, " x\n", 3);
     }else{
@@ -592,6 +595,7 @@ void git_import_cmd(void){
     pIn = fopen(g.argv[3], "rb");
   }else{
     pIn = stdin;
+    fossil_binary_mode(pIn);
   }
   if( forceFlag ) unlink(g.argv[2]);
   db_create_repository(g.argv[2]);
