@@ -1,5 +1,5 @@
-C (debian/changelog)\slog\sworking\saround\sdebian\sretro\slibsqlite3
-D 2010-11-19T15:49:39
+C finish\sworking\saround\ssqlite3_stmt_readonly()
+D 2010-11-19T15:53:02
 F BUILD.txt 10b5d2480a07d390ab78a308c37dad6888d40696
 F COPYRIGHT-BSD2.txt c7dd1de9f9539a5a859c2b41fe4560604a774476
 F Makefile bbb0c5a0b6e7835ba0cff175a3c1011442a80a93 x
@@ -97,7 +97,7 @@ F src/popen.c 935a4cdb90ec123f56faea207eb72f0610f7bece
 F src/pqueue.c 4a43f2cdcc3e52a0922d1d15f338e327c41f9443
 F src/printf.c 90eaff0bc8cf2708cf96026717246afe56bb7b5d
 F src/rebuild.c f3b8f1117bd8f59b12a4f7dd5ed478cd61c263e0
-F src/report.c 283e02b6bd918100b0d7291340f8d4859b297e65
+F src/report.c c549f968d49d4418d2125652c63db7ec426f51c1
 F src/rss.c f2944a86fb6c3ce48a6ce843be41c42f2f73b477
 F src/schema.c 6baf06e2e0572ee95fd48504d8f482415670d1a8
 F src/search.c d3a38c62eca5b2a9c842c0e64468fa4cfee8fb96
@@ -286,8 +286,8 @@ F www/sync.wiki d6cbb8a817f115bf670eaba1017905ed88580ab1
 F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/webui.wiki ee72c72e52ab277949e0d9f2be05f3ecfdc9373e
 F www/wikitheory.wiki 8b81a5dfc4d5c671aaebc2890d1bf9b891c9be10
-P a3ae2ba910ce2366cd33d0f1c68b273fc98127d5
-R c16e392087a7d9c720f0220dc2397a3a
+P 1bfb7b9b7995d5885d5bd1b347f168737a574942
+R 9fd4893402f7245b9a198a9cd3fc88af
 U barak
-Z a7bbb31c953012ea070d73d51ef375a6
+Z 683cf27eb5184de9d0428defeeab6367
 # Remove this line to create a well-formed Fossil manifest.

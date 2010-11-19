@@ -851,10 +851,12 @@ int sqlite3_exec_readonly(
     /* this happens for a comment or white-space */
     return SQLITE_OK;
   }
+#ifdef HAVE_SQLITE3_STMT_READONLY
   if( !sqlite3_stmt_readonly(pStmt) ){
     sqlite3_finalize(pStmt);
     return SQLITE_ERROR;
   }
+#endif
 
   nCol = sqlite3_column_count(pStmt);
   azVals = fossil_malloc(2*nCol*sizeof(const char*) + 1);
