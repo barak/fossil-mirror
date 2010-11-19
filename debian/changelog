@@ -2,6 +2,7 @@ fossil (2010.11.17.133825-1) unstable; urgency=low
 
   * New upstream version
   * Document need for "fossil set manifest on" (debian/README.Debian)
+  * Work around new upstream use of new sqlite3_stmt_readonly()
 
  -- Barak A. Pearlmutter <bap@debian.org>  Fri, 19 Nov 2010 15:11:55 +0000
 
