@@ -1,3 +1,9 @@
+fossil (2010.12.07.133137-1) unstable; urgency=low
+
+  * New upstream version
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Fri, 10 Dec 2010 12:48:17 +0000
+
 fossil (2010.11.17.133825-1) unstable; urgency=low
 
   * New upstream version
