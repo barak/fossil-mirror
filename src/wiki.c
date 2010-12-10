@@ -83,16 +83,17 @@ void home_page(void){
   char *zPageName = db_get("project-name",0);
   char *zIndexPage = db_get("index-page",0);
   login_check_credentials();
-  if( !g.okRdWiki ){
-    cgi_redirectf("%s/login?g=%s/home", g.zBaseURL, g.zBaseURL);
-  }
   if( zIndexPage ){
     const char *zPathInfo = P("PATH_INFO");
     while( zIndexPage[0]=='/' ) zIndexPage++;
+    while( zPathInfo[0]=='/' ) zPathInfo++;
     if( strcmp(zIndexPage, zPathInfo)==0 ) zIndexPage = 0;
   }
   if( zIndexPage ){
     cgi_redirectf("%s/%s", g.zBaseURL, zIndexPage);
+  }
+  if( !g.okRdWiki ){
+    cgi_redirectf("%s/login?g=%s/home", g.zBaseURL, g.zBaseURL);
   }
   if( zPageName ){
     login_check_credentials();
@@ -881,7 +882,7 @@ int wiki_cmd_commit(char const * zPageName, int isNew, Blob *pContent){
 */
 void wiki_cmd(void){
   int n;
-  db_find_and_open_repository(1);
+  db_find_and_open_repository(0, 0);
   if( g.argc<3 ){
     goto wiki_cmd_usage;
   }

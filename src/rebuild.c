@@ -362,7 +362,7 @@ void rebuild_database(void){
   if( g.argc==3 ){
     db_open_repository(g.argv[2]);
   }else{
-    db_find_and_open_repository(1);
+    db_find_and_open_repository(OPEN_ANY_SCHEMA, 0);
     if( g.argc!=2 ){
       usage("?REPOSITORY-FILENAME?");
     }
@@ -372,6 +372,11 @@ void rebuild_database(void){
   db_begin_transaction();
   ttyOutput = 1;
   errCnt = rebuild_db(randomizeFlag, 1);
+  db_multi_exec(
+    "REPLACE INTO config(name,value) VALUES('content-schema','%s');"
+    "REPLACE INTO config(name,value) VALUES('aux-schema','%s');",
+    CONTENT_SCHEMA, AUX_SCHEMA
+  );
   if( errCnt && !forceFlag ){
     printf("%d errors. Rolling back changes. Use --force to force a commit.\n",
             errCnt);
@@ -383,7 +388,7 @@ void rebuild_database(void){
 }
 
 /*
-** COMMAND:  test-detach
+** COMMAND:  test-detach  ?REPOSITORY?
 **
 ** Change the project-code and make other changes in order to prevent
 ** the repository from ever again pushing or pulling to other
@@ -391,7 +396,7 @@ void rebuild_database(void){
 ** testing by cloning a working project repository.
 */
 void test_detach_cmd(void){
-  db_find_and_open_repository(1);
+  db_find_and_open_repository(0, 2);
   db_begin_transaction();
   db_multi_exec(
     "DELETE FROM config WHERE name='last-sync-url';"
@@ -413,7 +418,7 @@ void test_createcluster_cmd(void){
   if( g.argc==3 ){
     db_open_repository(g.argv[2]);
   }else{
-    db_find_and_open_repository(1);
+    db_find_and_open_repository(0, 0);
     if( g.argc!=2 ){
       usage("?REPOSITORY-FILENAME?");
     }
@@ -560,6 +565,21 @@ void reconstruct_cmd(void) {
 
   rebuild_db(0, 1);
 
+  /* Reconstruct the private table.  The private table contains the rid
+  ** of every manifest that is tagged with "private" and every file that
+  ** is not used by a manifest that is not private.
+  */
+  db_multi_exec(
+    "CREATE TEMP TABLE private_ckin(rid INTEGER PRIMARY KEY);"
+    "INSERT INTO private_ckin "
+        " SELECT rid FROM tagxref WHERE tagid=%d AND tagtype>0;"
+    "INSERT OR IGNORE INTO private"
+        " SELECT fid FROM mlink"
+        " EXCEPT SELECT fid FROM mlink WHERE mid NOT IN private_ckin;"
+    "INSERT OR IGNORE INTO private SELECT rid FROM private_ckin;"
+    "DROP TABLE private_ckin;"
+  );
+
   /* Skip the verify_before_commit() step on a reconstruct.  Most artifacts
   ** will have been changed and verification therefore takes a really, really
   ** long time.
@@ -625,7 +645,7 @@ void deconstruct_cmd(void){
     zFNameFormat = mprintf("%s/%%s",zDestDir);
   }
   /* open repository and open query for all artifacts */
-  db_find_and_open_repository(1);
+  db_find_and_open_repository(OPEN_ANY_SCHEMA, 0);
   bag_init(&bagDone);
   ttyOutput = 1;
   processCnt = 0;

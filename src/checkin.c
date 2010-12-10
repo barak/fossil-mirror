@@ -586,9 +586,11 @@ static void create_manifest(
   blob_appendf(pOut, "D %s\n", zDate);
   zDate[10] = ' ';
   db_prepare(&q,
-    "SELECT pathname, uuid, origname, blob.rid, isexe"
+    "SELECT pathname, uuid, origname, blob.rid, isexe,"
+    "       file_is_selected(vfile.id)"
     "  FROM vfile JOIN blob ON vfile.mrid=blob.rid"
-    " WHERE NOT deleted AND vfile.vid=%d"
+    " WHERE (NOT deleted OR NOT file_is_selected(vfile.id))"
+    "   AND vfile.vid=%d"
     " ORDER BY 1", vid);
   blob_zero(&filename);
   blob_appendf(&filename, "%s", g.zLocalRoot);
@@ -599,6 +601,7 @@ static void create_manifest(
     const char *zOrig = db_column_text(&q, 2);
     int frid = db_column_int(&q, 3);
     int isexe = db_column_int(&q, 4);
+    int isSelected = db_column_int(&q, 5);
     const char *zPerm;
     int cmp;
     blob_append(&filename, zName, -1);
@@ -625,6 +628,7 @@ static void create_manifest(
       || strcmp(pFile->zUuid, zUuid)!=0
     ){
       blob_resize(&filename, nBasename);
+      if( zOrig && !isSelected ){ zName = zOrig; zOrig = 0; }
       if( zOrig==0 || strcmp(zOrig,zName)==0 ){
         blob_appendf(pOut, "F %F %s%s\n", zName, zUuid, zPerm);
       }else{
@@ -664,14 +668,20 @@ static void create_manifest(
   blob_appendf(pOut, "\n");
   if( pCksum ) blob_appendf(pOut, "R %b\n", pCksum);
   if( zBranch && zBranch[0] ){
-    Stmt q;
+    /* Set tags for the new branch */
     if( zBgColor && zBgColor[0] ){
       blob_appendf(pOut, "T *bgcolor * %F\n", zBgColor);
     }
     blob_appendf(pOut, "T *branch * %F\n", zBranch);
     blob_appendf(pOut, "T *sym-%F *\n", zBranch);
-
-    /* Cancel all other symbolic tags */
+  }
+  if( g.markPrivate ){
+    /* If this manifest is private, mark it as such */
+    blob_appendf(pOut, "T +private *\n");
+  }
+  if( zBranch && zBranch[0] ){
+    /* For a new branch, cancel all prior propagating tags */
+    Stmt q;
     db_prepare(&q,
         "SELECT tagname FROM tagxref, tag"
         " WHERE tagxref.rid=%d AND tagxref.tagid=tag.tagid"
@@ -810,7 +820,14 @@ void commit_cmd(void){
   ** Autosync if autosync is enabled and this is not a private check-in.
   */
   if( !g.markPrivate ){
-    autosync(AUTOSYNC_PULL);
+    if( autosync(AUTOSYNC_PULL) ){
+      Blob ans;
+      blob_zero(&ans);
+      prompt_user("continue in spite of sync failure (y/N)? ", &ans);
+      if( blob_str(&ans)[0]!='y' ){
+        fossil_exit(1);
+      }
+    }
   }
 
   /* Require confirmation to continue with the check-in if there is
@@ -864,7 +881,8 @@ void commit_cmd(void){
     memset(&unmodified, 0, sizeof(Blob));
     blob_init(&unmodified, 0, 0);
     db_blob(&unmodified, 
-      "SELECT pathname FROM vfile WHERE chnged = 0 AND file_is_selected(id)"
+      "SELECT pathname FROM vfile"
+      " WHERE chnged = 0 AND origname IS NULL AND file_is_selected(id)"
     );
     if( strlen(blob_str(&unmodified)) ){
       fossil_panic("file %s has not changed", blob_str(&unmodified));
@@ -1063,24 +1081,27 @@ void commit_cmd(void){
     vfile_aggregate_checksum_repository(nvid, &cksum2);
     if( blob_compare(&cksum1, &cksum2) ){
       vfile_compare_repository_to_disk(nvid);
-      fossil_panic("tree checksum does not match repository after commit");
+      fossil_fatal("working checkout does not match what would have ended "
+                   "up in the repository:  %b versus %b",
+                   &cksum1, &cksum2);
     }
   
     /* Verify that the manifest checksum matches the expected checksum */
     vfile_aggregate_checksum_manifest(nvid, &cksum2, &cksum1b);
     if( blob_compare(&cksum1, &cksum1b) ){
-      fossil_panic("manifest checksum does not agree with manifest: "
+      fossil_fatal("manifest checksum self-test failed: "
                    "%b versus %b", &cksum1, &cksum1b);
     }
     if( blob_compare(&cksum1, &cksum2) ){
-      fossil_panic("tree checksum does not match manifest after commit: "
-                   "%b versus %b", &cksum1, &cksum2);
+      fossil_fatal(
+         "working checkout does not match manifest after commit: "
+         "%b versus %b", &cksum1, &cksum2);
     }
   
     /* Verify that the commit did not modify any disk images. */
     vfile_aggregate_checksum_disk(nvid, &cksum2);
     if( blob_compare(&cksum1, &cksum2) ){
-      fossil_panic("tree checksums before and after commit do not match");
+      fossil_fatal("working check before and after commit does not match");
     }
   }
 

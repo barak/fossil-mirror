@@ -165,7 +165,7 @@ int count_nonbranch_children(int pid){
 **    4.  User
 **    5.  True if is a leaf
 **    6.  background color
-**    7.  type ("ci", "w", "t")
+**    7.  type ("ci", "w", "t", "e", "div")
 **    8.  list of symbolic tags.
 **    9.  tagid for ticket or wiki or event
 **   10.  Short comment to user for repeated tickets and wiki
@@ -648,6 +648,7 @@ static void timeline_add_dividers(const char *zDate){
 **    y=TYPE         'ci', 'w', 't', 'e'
 **    s=TEXT         string search (comment and brief)
 **    ng             Suppress the graph if present
+**    f=RID          Show family (immediate parents and children) of RID
 **
 ** p= and d= can appear individually or together.  If either p= or d=
 ** appear, then u=, y=, a=, and b= are ignored.
@@ -663,7 +664,8 @@ void page_timeline(void){
   Blob desc;                         /* Description of the timeline */
   int nEntry = atoi(PD("n","20"));   /* Max number of entries on timeline */
   int p_rid = name_to_rid(P("p"));   /* artifact p and its parents */
-  int d_rid = name_to_rid(P("d"));    /* artifact d and its descendants */
+  int d_rid = name_to_rid(P("d"));   /* artifact d and its descendants */
+  int f_rid = name_to_rid(P("f"));   /* artifact f and immediate family */
   const char *zUser = P("u");        /* All entries by this user if not NULL */
   const char *zType = PD("y","all"); /* Type of events.  All if NULL */
   const char *zAfter = P("a");       /* Events after this time */
@@ -753,6 +755,30 @@ void page_timeline(void){
     }else{
       blob_appendf(&desc, " of check-in [%.10s]", zUuid);
     }
+  }else if( f_rid && g.okRead ){
+    /* If f= is present, ignore all other parameters other than n= */
+    char *zUuid;
+    db_multi_exec(
+       "CREATE TEMP TABLE IF NOT EXISTS ok(rid INTEGER PRIMARY KEY);"
+       "INSERT INTO ok VALUES(%d);"
+       "INSERT OR IGNORE INTO ok SELECT pid FROM plink WHERE cid=%d;"
+       "INSERT OR IGNORE INTO ok SELECT cid FROM plink WHERE pid=%d;",
+       f_rid, f_rid, f_rid
+    );
+    blob_appendf(&sql, " AND event.objid IN ok");
+    db_multi_exec("%s", blob_str(&sql));
+    timeline_add_dividers(
+      db_text("1","SELECT datetime(mtime,'localtime') FROM event"
+                  " WHERE objid=%d", f_rid)
+    );
+    blob_appendf(&desc, "Parents and children of check-in ");
+    zUuid = db_text("", "SELECT uuid FROM blob WHERE rid=%d", f_rid);
+    if( g.okHistory ){
+      blob_appendf(&desc, "<a href='%s/info/%s'>[%.10s]</a>",
+                   g.zBaseURL, zUuid, zUuid);
+    }else{
+      blob_appendf(&desc, "[%.10s]", zUuid);
+    }
   }else{
     int n;
     const char *zEType = "timeline item";
@@ -761,7 +787,6 @@ void page_timeline(void){
     url_initialize(&url, "timeline");
     url_add_parameter(&url, "n", zNEntry);
     if( tagid>0 ){
-      if( zType[0]!='e' ) zType = "ci";
       blob_appendf(&sql,
         "AND (EXISTS(SELECT 1 FROM tagxref"
                     " WHERE tagid=%d AND tagtype>0 AND rid=blob.rid)", tagid);
@@ -1108,7 +1133,7 @@ void timeline_cmd(void){
   int objid = 0;
   Blob uuid;
   int mode = 0 ;       /* 0:none  1: before  2:after  3:children  4:parents */
-  db_find_and_open_repository(1);
+  db_find_and_open_repository(0, 0);
   zCount = find_option("count","n",1);
   zType = find_option("type","t",1);
   if( zCount ){

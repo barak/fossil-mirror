@@ -42,7 +42,7 @@ const char zConfigSchema[] =
 ** the aux schema changes, all we need to do is rebuild the database.
 */
 #define CONTENT_SCHEMA  "1"
-#define AUX_SCHEMA      "2006-12-23"
+#define AUX_SCHEMA      "2010-11-24"
 
 #endif /* INTERFACE */
 
@@ -223,7 +223,7 @@ const char zRepositorySchema2[] =
 @ -- Events used to generate a timeline
 @ --
 @ CREATE TABLE event(
-@   type TEXT,                      -- Type of event
+@   type TEXT,                      -- Type of event: 'ci', 'w', 'e', 't'
 @   mtime DATETIME,                 -- Date and time when the event occurs
 @   objid INTEGER PRIMARY KEY,      -- Associated record ID
 @   tagid INTEGER,                  -- Associated ticket or wiki name tag
@@ -233,7 +233,8 @@ const char zRepositorySchema2[] =
 @   user TEXT,                      -- Name of the user
 @   ecomment TEXT,                  -- Comment set by 'comment' property
 @   comment TEXT,                   -- Comment describing the event
-@   brief TEXT                      -- Short comment when tagid already seen
+@   brief TEXT,                     -- Short comment when tagid already seen
+@   omtime DATETIME                 -- Original unchanged date+time, or NULL
 @ );
 @ CREATE INDEX event_i1 ON event(mtime);
 @
