@@ -1,6 +1,6 @@
 #!/usr/bin/make -f
 %:
-	dh $@
+	dh $@ --parallel
 
 # override_dh_auto_build:
 # 	@echo remove local copy of sqlite3 in case of deletion reversion
