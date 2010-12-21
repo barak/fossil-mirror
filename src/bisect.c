@@ -15,6 +15,9 @@
 *******************************************************************************
 **
 ** This file contains code used to implement the "bisect" command.
+**
+** This file also contains logic used to compute the closure of filename
+** changes that have occurred across multiple check-ins.
 */
 #include "config.h"
 #include "bisect.h"
@@ -25,8 +28,12 @@
 typedef struct BisectNode BisectNode;
 struct BisectNode {
   int rid;                 /* ID for this node */
+  int fromIsParent;        /* True if pFrom is the parent of rid */
   BisectNode *pFrom;       /* Node we came from */
-  BisectNode *pPeer;       /* List of nodes of the same generation */
+  union {
+    BisectNode *pPeer;       /* List of nodes of the same generation */
+    BisectNode *pTo;         /* Next on path from beginning to end */
+  } u;
   BisectNode *pAll;        /* List of all nodes */
 };
 
@@ -40,19 +47,21 @@ static struct {
   int bad;                /* The bad version */
   int good;               /* The good version */
   int nStep;              /* Number of steps from good to bad */
+  BisectNode *pStart;     /* Earliest node (bad) */
   BisectNode *pEnd;       /* Most recent (good) */
 } bisect;
 
 /*
 ** Create a new node
 */
-static BisectNode *bisect_new_node(int rid, BisectNode *pFrom){
+static BisectNode *bisect_new_node(int rid, BisectNode *pFrom, int isParent){
   BisectNode *p;
 
   p = fossil_malloc( sizeof(*p) );
   p->rid = rid;
+  p->fromIsParent = isParent;
   p->pFrom = pFrom;
-  p->pPeer = bisect.pCurrent;
+  p->u.pPeer = bisect.pCurrent;
   bisect.pCurrent = p;
   p->pAll = bisect.pAll;
   bisect.pAll = p;
@@ -80,18 +89,31 @@ static void bisect_reset(void){
 
 /*
 ** Compute the shortest path from iFrom to iTo
+**
+** If directOnly is true, then use only the "primary" links from parent to
+** child.  In other words, ignore merges.
 */
-static BisectNode *bisect_shortest_path(int iFrom, int iTo){
+static BisectNode *bisect_shortest_path(int iFrom, int iTo, int directOnly){
   Stmt s;
-  BisectNode *pStart;
   BisectNode *pPrev;
   BisectNode *p;
 
   bisect_reset();
-  pStart = bisect_new_node(iFrom, 0);
-  if( iTo==iFrom ) return pStart;
-  db_prepare(&s, "SELECT cid FROM plink WHERE pid=:pid "
-                 "UNION ALL SELECT pid FROM plink WHERE cid=:pid");
+  bisect.pStart = bisect_new_node(iFrom, 0, 0);
+  if( iTo==iFrom ) return bisect.pStart;
+  if( directOnly ){
+    db_prepare(&s, 
+        "SELECT cid, 1 FROM plink WHERE pid=:pid AND isprim "
+        "UNION ALL "
+        "SELECT pid, 0 FROM plink WHERE cid=:pid AND isprim"
+    );
+  }else{
+    db_prepare(&s, 
+        "SELECT cid, 1 FROM plink WHERE pid=:pid "
+        "UNION ALL "
+        "SELECT pid, 0 FROM plink WHERE cid=:pid"
+    );
+  }
   while( bisect.pCurrent ){
     bisect.nStep++;
     pPrev = bisect.pCurrent;
@@ -100,19 +122,74 @@ static BisectNode *bisect_shortest_path(int iFrom, int iTo){
       db_bind_int(&s, ":pid", pPrev->rid);
       while( db_step(&s)==SQLITE_ROW ){
         int cid = db_column_int(&s, 0);
+        int isParent = db_column_int(&s, 1);
         if( bag_find(&bisect.seen, cid) ) continue;
-        p = bisect_new_node(cid, pPrev);
+        p = bisect_new_node(cid, pPrev, isParent);
         if( cid==iTo ){
           db_finalize(&s);
           return p;
         }
       }
       db_reset(&s);
-      pPrev = pPrev->pPeer;
+      pPrev = pPrev->u.pPeer;
     }
   }
   bisect_reset();
   return 0;
+}
+
+/*
+** Construct the path from bisect.pStart to bisect.pEnd in the u.pTo fields.
+*/
+static void bisect_reverse_path(void){
+  BisectNode *p;
+  for(p=bisect.pEnd; p && p->pFrom; p = p->pFrom){
+    p->pFrom->u.pTo = p;
+  }
+  bisect.pEnd->u.pTo = 0;
+  assert( p==bisect.pStart );
+}
+
+/*
+** COMMAND:  test-shortest-path
+**
+** Usage: %fossil test-shortest-path ?--no-merge? VERSION1 VERSION2
+**
+** Report the shortest path between two checkins.  If the --no-merge flag
+** is used, follow only direct parent-child paths and omit merge links.
+*/
+void shortest_path_test_cmd(void){
+  int iFrom;
+  int iTo;
+  BisectNode *p;
+  int n;
+  int directOnly;
+
+  db_find_and_open_repository(0,0);
+  directOnly = find_option("no-merge",0,0)!=0;
+  if( g.argc!=4 ) usage("VERSION1 VERSION2");
+  iFrom = name_to_rid(g.argv[2]);
+  iTo = name_to_rid(g.argv[3]);
+  p = bisect_shortest_path(iFrom, iTo, directOnly);
+  if( p==0 ){
+    fossil_fatal("no path from %s to %s", g.argv[1], g.argv[2]);
+  }
+  bisect_reverse_path();
+  for(n=1, p=bisect.pStart; p; p=p->u.pTo, n++){
+    char *z;
+    z = db_text(0,
+      "SELECT substr(uuid,1,12) || ' ' || datetime(mtime)"
+      "  FROM blob, event"
+      " WHERE blob.rid=%d AND event.objid=%d AND event.type='ci'",
+      p->rid, p->rid);
+    printf("%4d: %s", n, z);
+    fossil_free(z);
+    if( p->u.pTo ){
+      printf(" is a %s of\n", p->u.pTo->fromIsParent ? "parent" : "child");
+    }else{
+      printf("\n");
+    }
+  }
 }
 
 /*
@@ -130,7 +207,7 @@ static BisectNode *bisect_path(void){
     bisect.good = db_int(0,"SELECT pid FROM plink ORDER BY mtime LIMIT 1");
     db_lset_int("bisect-good", bisect.good);
   }
-  p = bisect_shortest_path(bisect.good, bisect.bad);
+  p = bisect_shortest_path(bisect.good, bisect.bad, 0);
   if( p==0 ){
     char *zBad = db_text(0, "SELECT uuid FROM blob WHERE rid=%d", bisect.bad);
     char *zGood = db_text(0, "SELECT uuid FROM blob WHERE rid=%d", bisect.good);
@@ -244,4 +321,128 @@ void bisect_cmd(void){
   }else{
     usage("bad|good|next|reset|vlist ...");
   }
+}
+
+/*
+** A record of a file rename operation.
+*/
+typedef struct NameChange NameChange;
+struct NameChange {
+  int origName;        /* Original name of file */
+  int curName;         /* Current name of the file */
+  int newName;         /* Name of file in next version */
+  NameChange *pNext;   /* List of all name changes */
+};
+
+/*
+** Compute all file name changes that occur going from checkin iFrom
+** to checkin iTo.
+**
+** The number of name changes is written into *pnChng.  For each name
+** change, to integers are allocated for *piChng.  The first is the original
+** name and the second is the new name.  Space to hold *piChng is obtained
+** from fossil_malloc() and should be released by the caller.
+**
+** This routine really has nothing to do with bisection.  It is located
+** in this bisect.c module in order to leverage some of the bisect
+** infrastructure.
+*/
+void find_filename_changes(
+  int iFrom,
+  int iTo,
+  int *pnChng,
+  int **aiChng
+){
+  BisectNode *p;           /* For looping over path from iFrom to iTo */
+  NameChange *pAll = 0;    /* List of all name changes seen so far */
+  NameChange *pChng;       /* For looping through the name change list */
+  int nChng = 0;           /* Number of files whose names have changed */
+  int *aChng;              /* Two integers per name change */
+  int i;                   /* Loop counter */
+  Stmt q1;                 /* Query of name changes */
+
+  *pnChng = 0;
+  *aiChng = 0;
+  bisect_reset();
+  p = bisect_shortest_path(iFrom, iTo, 1);
+  if( p==0 ) return;
+  bisect_reverse_path();
+  db_prepare(&q1,
+     "SELECT pfnid, fnid FROM mlink WHERE mid=:mid AND pfnid>0"
+  );
+  for(p=bisect.pStart->u.pTo; p; p=p->u.pTo){
+    int fnid, pfnid;
+    db_bind_int(&q1, ":mid", p->rid);
+    while( db_step(&q1)==SQLITE_ROW ){
+      if( p->fromIsParent ){
+        fnid = db_column_int(&q1, 1);
+        pfnid = db_column_int(&q1, 0);
+      }else{
+        fnid = db_column_int(&q1, 0);
+        pfnid = db_column_int(&q1, 1);
+      }
+      for(pChng=pAll; pChng; pChng=pChng->pNext){
+        if( pChng->curName==pfnid ){
+          pChng->newName = fnid;
+          break;
+        }
+      }
+      if( pChng==0 ){
+        pChng = fossil_malloc( sizeof(*pChng) );
+        pChng->pNext = pAll;
+        pAll = pChng;
+        pChng->origName = pfnid;
+        pChng->curName = pfnid;
+        pChng->newName = fnid;
+        nChng++;
+      }
+    }
+    for(pChng=pAll; pChng; pChng=pChng->pNext) pChng->curName = pChng->newName;
+    db_reset(&q1);
+  }
+  db_finalize(&q1);
+  if( nChng ){
+    *pnChng = nChng;
+    aChng = *aiChng = fossil_malloc( nChng*2*sizeof(int) );
+    for(pChng=pAll, i=0; pChng; pChng=pChng->pNext, i+=2){
+      aChng[i] = pChng->origName;
+      aChng[i+1] = pChng->newName;
+    }
+    while( pAll ){
+      pChng = pAll;
+      pAll = pAll->pNext;
+      fossil_free(pChng);
+    }
+  }
+}
+
+/*
+** COMMAND: test-name-changes
+**
+** Usage: %fossil test-name-changes VERSION1 VERSION2
+**
+** Show all filename changes that occur going from VERSION1 to VERSION2
+*/
+void test_name_change(void){
+  int iFrom;
+  int iTo;
+  int *aChng;
+  int nChng;
+  int i;
+
+  db_find_and_open_repository(0,0);
+  if( g.argc!=4 ) usage("VERSION1 VERSION2");
+  iFrom = name_to_rid(g.argv[2]);
+  iTo = name_to_rid(g.argv[3]);
+  find_filename_changes(iFrom, iTo, &nChng, &aChng);
+  for(i=0; i<nChng; i++){
+    char *zFrom, *zTo;
+
+    zFrom = db_text(0, "SELECT name FROM filename WHERE fnid=%d", aChng[i*2]);
+    zTo = db_text(0, "SELECT name FROM filename WHERE fnid=%d", aChng[i*2+1]);
+    printf("[%s] -> [%s]\n", zFrom, zTo);
+    fossil_free(zFrom);
+    fossil_free(zTo);
+  }
+  fossil_free(aChng);
 }

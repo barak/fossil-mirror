@@ -359,6 +359,9 @@ double db_column_double(Stmt *pStmt, int N){
 const char *db_column_text(Stmt *pStmt, int N){
   return (char*)sqlite3_column_text(pStmt->pStmt, N);
 }
+const char *db_column_raw(Stmt *pStmt, int N){
+  return (const char*)sqlite3_column_blob(pStmt->pStmt, N);
+}
 const char *db_column_name(Stmt *pStmt, int N){
   return (char*)sqlite3_column_name(pStmt->pStmt, N);
 }
@@ -617,14 +620,13 @@ static sqlite3 *openDatabase(const char *zDbName){
 static void db_open_or_attach(const char *zDbName, const char *zLabel){
   if( !g.db ){
     g.db = openDatabase(zDbName);
-    g.zRepoDb = "main";
+    g.zMainDbType = zLabel;
     db_connection_init();
   }else{
 #if defined(_WIN32)
     zDbName = sqlite3_win32_mbcs_to_utf8(zDbName);
 #endif
     db_multi_exec("ATTACH DATABASE %Q AS %s", zDbName, zLabel);
-    g.zRepoDb = mprintf("%s", zLabel);
   }
 }
 
@@ -777,7 +779,7 @@ int db_open_local(void){
   while( n>0 ){
     if( access(zPwd, W_OK) ) break;
     for(i=0; i<sizeof(aDbName)/sizeof(aDbName[0]); i++){
-      strcpy(&zPwd[n], aDbName[i]);
+      sqlite3_snprintf(sizeof(zPwd)-n, &zPwd[n], "%s", aDbName[i]);
       if( isValidLocalDb(zPwd) ){
         /* Found a valid checkout database file */
         zPwd[n] = 0;
@@ -869,6 +871,17 @@ rep_not_found:
 }
 
 /*
+** Return the name of the database "localdb", "configdb", or "repository".
+*/
+const char *db_name(const char *zDb){
+  assert( strcmp(zDb,"localdb")==0
+       || strcmp(zDb,"configdb")==0
+       || strcmp(zDb,"repository")==0 );
+  if( strcmp(zDb, g.zMainDbType)==0 ) zDb = "main";
+  return zDb;
+}
+
+/*
 ** Verify that the repository schema is correct.  If it is not correct,
 ** issue a fatal error and die.
 */
@@ -930,6 +943,25 @@ void db_must_be_within_tree(void){
 void db_close(void){
   sqlite3_stmt *pStmt;
   if( g.db==0 ) return;
+  if( g.fSqlTrace ){
+    int cur, hiwtr;
+    sqlite3_db_status(g.db, SQLITE_DBSTATUS_LOOKASIDE_USED, &cur, &hiwtr, 0);
+    fprintf(stderr, "-- LOOKASIDE_USED %10d %10d\n", cur, hiwtr);
+    sqlite3_db_status(g.db, SQLITE_DBSTATUS_CACHE_USED, &cur, &hiwtr, 0);
+    fprintf(stderr, "-- CACHE_USED     %10d\n", cur);
+    sqlite3_db_status(g.db, SQLITE_DBSTATUS_SCHEMA_USED, &cur, &hiwtr, 0);
+    fprintf(stderr, "-- SCHEMA_USED    %10d\n", cur);
+    sqlite3_db_status(g.db, SQLITE_DBSTATUS_STMT_USED, &cur, &hiwtr, 0);
+    fprintf(stderr, "-- STMT_USED      %10d\n", cur);
+    sqlite3_status(SQLITE_STATUS_MEMORY_USED, &cur, &hiwtr, 0);
+    fprintf(stderr, "-- MEMORY_USED    %10d %10d\n", cur, hiwtr);
+    sqlite3_status(SQLITE_STATUS_MALLOC_SIZE, &cur, &hiwtr, 0);
+    fprintf(stderr, "-- MALLOC_SIZE               %10d\n", hiwtr);
+    sqlite3_status(SQLITE_STATUS_MALLOC_COUNT, &cur, &hiwtr, 0);
+    fprintf(stderr, "-- MALLOC_COUNT   %10d %10d\n", cur, hiwtr);
+    sqlite3_status(SQLITE_STATUS_PAGECACHE_OVERFLOW, &cur, &hiwtr, 0);
+    fprintf(stderr, "-- PCACHE_OVFLOW  %10d %10d\n", cur, hiwtr);
+  }
   while( pAllStmt ){
     db_finalize(pAllStmt);
   }
@@ -1055,7 +1087,7 @@ void db_initial_setup(
     md5sum_blob(&manifest, &hash);
     blob_appendf(&manifest, "Z %b\n", &hash);
     blob_reset(&hash);
-    rid = content_put(&manifest, 0, 0);
+    rid = content_put(&manifest, 0, 0, 0);
     manifest_crosslink(rid, &manifest);
   }
 }
@@ -1216,7 +1248,7 @@ char *db_conceal(const char *zContent, int n){
   }else{
     sha1sum_step_text(zContent, n);
     sha1sum_finish(&out);
-    strcpy(zHash, blob_str(&out));
+    sqlite3_snprintf(sizeof(zHash), zHash, "%s", blob_str(&out));
     blob_reset(&out);
     db_multi_exec(
        "INSERT OR IGNORE INTO concealed VALUES(%Q,%#Q)",

@@ -292,7 +292,7 @@ const char *mimetype_from_name(const char *zName){
   }
   len = strlen(z);
   if( len<sizeof(zSuffix)-1 ){
-    strcpy(zSuffix, z);
+    sqlite3_snprintf(sizeof(zSuffix), zSuffix, "%s", z);
     for(i=0; zSuffix[i]; i++) zSuffix[i] = fossil_tolower(zSuffix[i]);
     first = 0;
     last = sizeof(aMime)/sizeof(aMime[0]);
@@ -349,7 +349,7 @@ void doc_page(void){
     goto doc_not_found;
   }
   if( strcmp(zBaseline,"ckout")==0 && db_open_local()==0 ){
-    strcpy(zBaseline,"tip");
+    sqlite3_snprintf(sizeof(zBaseline), zBaseline, "tip");
   }
   if( strcmp(zBaseline,"ckout")==0 ){
     /* Read from the local checkout */
@@ -440,6 +440,11 @@ void doc_page(void){
   if( zMime==0 ){
     zMime = mimetype_from_name(zName);
   }
+  Th_Store("doc_name", zName);
+  Th_Store("doc_version", db_text(0, "SELECT '[' || substr(uuid,1,10) || ']'"
+                                     "  FROM blob WHERE rid=%d", vid));
+  Th_Store("doc_date", db_text(0, "SELECT datetime(mtime) FROM event"
+                                  " WHERE objid=%d AND type='ci'", vid));
   if( strcmp(zMime, "application/x-fossil-wiki")==0 ){
     Blob title, tail;
     if( wiki_find_title(&filebody, &title, &tail) ){

@@ -29,6 +29,36 @@ int is_a_version(int rid){
   return db_exists("SELECT 1 FROM event WHERE objid=%d AND type='ci'", rid);
 }
 
+/* This variable is set if we are doing an internal update.  It is clear
+** when running the "update" command.
+*/
+static int internalUpdate = 0;
+static int internalConflictCnt = 0;
+
+/*
+** Do an update to version vid.  
+**
+** Start an undo session but do not terminate it.  Do not autosync.
+*/
+int update_to(int vid){
+  int savedArgc;
+  char **savedArgv;
+  char *newArgv[3];
+  newArgv[0] = g.argv[0];
+  newArgv[1] = "update";
+  newArgv[2] = 0;
+  savedArgv = g.argv;
+  savedArgc = g.argc;
+  g.argc = 2;
+  g.argv = newArgv;
+  internalUpdate = vid;
+  internalConflictCnt = 0;
+  update_cmd();
+  g.argc = savedArgc;
+  g.argv = savedArgv;
+  return internalConflictCnt;
+}
+
 /*
 ** COMMAND: update
 **
@@ -63,11 +93,20 @@ void update_cmd(void){
   int latestFlag;       /* --latest.  Pick the latest version if true */
   int nochangeFlag;     /* -n or --nochange.  Do a dry run */
   int verboseFlag;      /* -v or --verbose.  Output extra information */
+  int debugFlag;        /* --debug option */
+  int nChng;            /* Number of file renames */
+  int *aChng;           /* Array of file renames */
+  int i;                /* Loop counter */
+  int nConflict = 0;    /* Number of merge conflicts */
 
-  url_proxy_options();
+  if( !internalUpdate ){
+    undo_capture_command_line();
+    url_proxy_options();
+  }
   latestFlag = find_option("latest",0, 0)!=0;
   nochangeFlag = find_option("nochange","n",0)!=0;
   verboseFlag = find_option("verbose","v",0)!=0;
+  debugFlag = find_option("debug",0,0)!=0;
   db_must_be_within_tree();
   vid = db_lget_int("checkout", 0);
   if( vid==0 ){
@@ -76,9 +115,11 @@ void update_cmd(void){
   if( !nochangeFlag && db_exists("SELECT 1 FROM vmerge") ){
     fossil_fatal("cannot update an uncommitted merge");
   }
-  if( !nochangeFlag ) autosync(AUTOSYNC_PULL);
+  if( !nochangeFlag && !internalUpdate ) autosync(AUTOSYNC_PULL);
 
-  if( g.argc>=3 ){
+  if( internalUpdate ){
+    tid = internalUpdate;
+  }else if( g.argc>=3 ){
     if( strcmp(g.argv[2], "current")==0 ){
       /* If VERSION is "current", then use the same algorithm to find the
       ** target as if VERSION were omitted. */
@@ -97,19 +138,40 @@ void update_cmd(void){
     }
   }
   
+  /* If no VERSION is specified on the command-line, then look for a
+  ** descendent of the current version.  If there are multiple descendents,
+  ** look for one from the same branch as the current version.  If there
+  ** are still multiple descendents, show them all and refuse to update
+  ** until the user selects one.
+  */
   if( tid==0 ){
-    compute_leaves(vid, 1);
-    if( !db_exists("SELECT 1 FROM leaves") ) compute_leaves(vid, 0);
+    int closeCode = 1;
+    compute_leaves(vid, closeCode);
+    if( !db_exists("SELECT 1 FROM leaves") ){
+      closeCode = 0;
+      compute_leaves(vid, closeCode);
+    }
     if( !latestFlag && db_int(0, "SELECT count(*) FROM leaves")>1 ){
-      db_prepare(&q, 
-        "%s "
-        "   AND event.objid IN leaves"
-        " ORDER BY event.mtime DESC",
-        timeline_query_for_tty()
+      db_multi_exec(
+        "DELETE FROM leaves WHERE rid NOT IN"
+        "   (SELECT leaves.rid FROM leaves, tagxref"
+        "     WHERE leaves.rid=tagxref.rid AND tagxref.tagid=%d"
+        "       AND tagxref.value==(SELECT value FROM tagxref"
+                                   " WHERE tagid=%d AND rid=%d))",
+        TAG_BRANCH, TAG_BRANCH, vid
       );
-      print_timeline(&q, 100);
-      db_finalize(&q);
-      fossil_fatal("Multiple descendants");
+      if( db_int(0, "SELECT count(*) FROM leaves")>1 ){
+        compute_leaves(vid, closeCode);
+        db_prepare(&q, 
+          "%s "
+          "   AND event.objid IN leaves"
+          " ORDER BY event.mtime DESC",
+          timeline_query_for_tty()
+        );
+        print_timeline(&q, 100);
+        db_finalize(&q);
+        fossil_fatal("Multiple descendants");
+      }
     }
     tid = db_int(0, "SELECT rid FROM leaves, event"
                     " WHERE event.objid=leaves.rid"
@@ -118,8 +180,8 @@ void update_cmd(void){
 
   if( !verboseFlag && (tid==vid)) return;  /* Nothing to update */
   db_begin_transaction();
-  vfile_check_signature(vid, 1);
-  if( !nochangeFlag ) undo_begin();
+  vfile_check_signature(vid, 1, 0);
+  if( !nochangeFlag && !internalUpdate ) undo_begin();
   load_vfile_from_rid(tid);
 
   /*
@@ -135,40 +197,71 @@ void update_cmd(void){
     "  idt INTEGER,"              /* VFILE entry for target version */
     "  chnged BOOLEAN,"           /* True if current version has been edited */
     "  ridv INTEGER,"             /* Record ID for current version */
-    "  ridt INTEGER "             /* Record ID for target */
+    "  ridt INTEGER,"             /* Record ID for target */
+    "  fnt TEXT"                  /* Filename of same file on target version */
     ");"
-    "INSERT OR IGNORE INTO fv"
-    " SELECT pathname, 0, 0, 0, 0, 0 FROM vfile"
   );
-  db_prepare(&q,
-    "SELECT id, pathname, rid FROM vfile"
-    " WHERE vid=%d", tid
+
+  /* Add files found in the current version
+  */
+  db_multi_exec(
+    "INSERT OR IGNORE INTO fv(fn,fnt,idv,idt,ridv,ridt,chnged)"
+    " SELECT pathname, pathname, id, 0, rid, 0, chnged FROM vfile WHERE vid=%d",
+    vid
   );
-  while( db_step(&q)==SQLITE_ROW ){
-    int id = db_column_int(&q, 0);
-    const char *fn = db_column_text(&q, 1);
-    int rid = db_column_int(&q, 2);
-    db_multi_exec(
-      "UPDATE fv SET idt=%d, ridt=%d WHERE fn=%Q",
-      id, rid, fn
-    );
+
+  /* Compute file name changes on V->T.  Record name changes in files that
+  ** have changed locally.
+  */
+  find_filename_changes(vid, tid, &nChng, &aChng);
+  if( nChng ){
+    for(i=0; i<nChng; i++){
+      db_multi_exec(
+        "UPDATE fv"
+        "   SET fnt=(SELECT name FROM filename WHERE fnid=%d)"
+        " WHERE fn=(SELECT name FROM filename WHERE fnid=%d) AND chnged",
+        aChng[i*2+1], aChng[i*2]
+      );
+    }
+    fossil_free(aChng);
   }
-  db_finalize(&q);
-  db_prepare(&q,
-    "SELECT id, pathname, rid, chnged FROM vfile"
-    " WHERE vid=%d", vid
+
+  /* Add files found in the target version T but missing from the current
+  ** version V.
+  */
+  db_multi_exec(
+    "INSERT OR IGNORE INTO fv(fn,fnt,idv,idt,ridv,ridt,chnged)"
+    " SELECT pathname, pathname, 0, 0, 0, 0, 0 FROM vfile"
+    "  WHERE vid=%d"
+    "    AND pathname NOT IN (SELECT fnt FROM fv)",
+    tid
   );
-  while( db_step(&q)==SQLITE_ROW ){
-    int id = db_column_int(&q, 0);
-    const char *fn = db_column_text(&q, 1);
-    int rid = db_column_int(&q, 2);
-    int chnged = db_column_int(&q, 3);
-    db_multi_exec(
-      "UPDATE fv SET idv=%d, ridv=%d, chnged=%d WHERE fn=%Q",
-      id, rid, chnged, fn
+
+  /*
+  ** Compute the file version ids for T
+  */
+  db_multi_exec(
+    "UPDATE fv SET"
+    " idt=coalesce((SELECT id FROM vfile WHERE vid=%d AND pathname=fnt),0),"
+    " ridt=coalesce((SELECT rid FROM vfile WHERE vid=%d AND pathname=fnt),0)",
+    tid, tid
+  );
+
+  if( debugFlag ){
+    db_prepare(&q,
+       "SELECT rowid, fn, fnt, chnged, ridv, ridt FROM fv"
     );
+    while( db_step(&q)==SQLITE_ROW ){
+       printf("%3d: ridv=%-4d ridt=%-4d chnged=%d\n",
+          db_column_int(&q, 0),
+          db_column_int(&q, 4),
+          db_column_int(&q, 5),
+          db_column_int(&q, 3));
+       printf("     fnv = [%s]\n", db_column_text(&q, 1));
+       printf("     fnt = [%s]\n", db_column_text(&q, 2));
+    }
+    db_finalize(&q);
   }
-  db_finalize(&q);
 
   /* If FILES appear on the command-line, remove from the "fv" table
   ** every entry that is not named on the command-line or which is not
@@ -202,8 +295,12 @@ void update_cmd(void){
     blob_reset(&sql);
   }
 
+  /*
+  ** Alter the content of the checkout so that it conforms with the
+  ** target
+  */
   db_prepare(&q, 
-    "SELECT fn, idv, ridv, idt, ridt, chnged FROM fv ORDER BY 1"
+    "SELECT fn, idv, ridv, idt, ridt, chnged, fnt FROM fv ORDER BY 1"
   );
   assert( g.zLocalRoot!=0 );
   assert( strlen(g.zLocalRoot)>1 );
@@ -215,14 +312,20 @@ void update_cmd(void){
     int idt = db_column_int(&q, 3);             /* VFILE entry for target */
     int ridt = db_column_int(&q, 4);            /* RecordID for target */
     int chnged = db_column_int(&q, 5);          /* Current is edited */
+    const char *zNewName = db_column_text(&q,6);/* New filename */
     char *zFullPath;                            /* Full pathname of the file */
+    char *zFullNewPath;                         /* Full pathname of dest */
+    char nameChng;                              /* True if the name changed */
 
     zFullPath = mprintf("%s%s", g.zLocalRoot, zName);
+    zFullNewPath = mprintf("%s%s", g.zLocalRoot, zNewName);
+    nameChng = strcmp(zName, zNewName);
     if( idv>0 && ridv==0 && idt>0 && ridt>0 ){
       /* Conflict.  This file has been added to the current checkout
       ** but also exists in the target checkout.  Use the current version.
       */
       printf("CONFLICT %s\n", zName);
+      nConflict++;
     }else if( idt>0 && idv==0 ){
       /* File added in the target. */
       printf("ADD %s\n", zName);
@@ -230,8 +333,8 @@ void update_cmd(void){
       if( !nochangeFlag ) vfile_to_disk(0, idt, 0, 0);
     }else if( idt>0 && idv>0 && ridt!=ridv && chnged==0 ){
       /* The file is unedited.  Change it to the target version */
-      printf("UPDATE %s\n", zName);
       undo_save(zName);
+      printf("UPDATE %s\n", zName);
       if( !nochangeFlag ) vfile_to_disk(0, idt, 0, 0);
     }else if( idt>0 && idv>0 && file_size(zFullPath)<0 ){
       /* The file missing from the local check-out. Restore it to the
@@ -245,21 +348,24 @@ void update_cmd(void){
         ** as an addition */
         db_multi_exec("UPDATE vfile SET vid=%d WHERE id=%d", tid, idv);
       }else if( chnged ){
-        /* Edited locally but deleted from the target.  Delete it. */
-        printf("CONFLICT %s\n", zName);
+        /* Edited locally but deleted from the target.  Do not track the
+        ** file but keep the edited version around. */
+        printf("CONFLICT %s - edited locally but deleted by update\n", zName);
+        nConflict++;
       }else{
-        char *zFullPath;
         printf("REMOVE %s\n", zName);
         undo_save(zName);
-        zFullPath = mprintf("%s/%s", g.zLocalRoot, zName);
         if( !nochangeFlag ) unlink(zFullPath);
-        free(zFullPath);
       }
     }else if( idt>0 && idv>0 && ridt!=ridv && chnged ){
       /* Merge the changes in the current tree into the target version */
       Blob e, r, t, v;
       int rc;
-      printf("MERGE %s\n", zName);
+      if( nameChng ){
+        printf("MERGE %s -> %s\n", zName, zNewName);
+      }else{
+        printf("MERGE %s\n", zName);
+      }
       undo_save(zName);
       content_get(ridt, &t);
       content_get(ridv, &v);
@@ -267,13 +373,17 @@ void update_cmd(void){
       blob_read_from_file(&e, zFullPath);
       rc = blob_merge(&v, &e, &t, &r);
       if( rc>=0 ){
-        if( !nochangeFlag ) blob_write_to_file(&r, zFullPath);
+        if( !nochangeFlag ) blob_write_to_file(&r, zFullNewPath);
         if( rc>0 ){
-          printf("***** %d merge conflicts in %s\n", rc, zName);
+          printf("***** %d merge conflicts in %s\n", rc, zNewName);
+          nConflict++;
         }
       }else{
-        printf("***** Cannot merge binary file %s\n", zName);
+        if( !nochangeFlag ) blob_write_to_file(&t, zFullNewPath);
+        printf("***** Cannot merge binary file %s\n", zNewName);
+        nConflict++;
       }
+      if( nameChng && !nochangeFlag ) unlink(zFullPath);
       blob_reset(&v);
       blob_reset(&e);
       blob_reset(&t);
@@ -286,10 +396,21 @@ void update_cmd(void){
       }
     }
     free(zFullPath);
+    free(zFullNewPath);
   }
   db_finalize(&q);
   printf("--------------\n");
   show_common_info(tid, "updated-to:", 1, 0);
+
+  /* Report on conflicts
+  */
+  if( nConflict && !nochangeFlag ){
+    if( internalUpdate ){
+      internalConflictCnt = nConflict;
+    }else{
+      printf("WARNING: merge conflicts - see messages above for details.\n");
+    }
+  }
   
   /*
   ** Clean up the mid and pid VFILE entries.  Then commit the changes.
@@ -308,7 +429,7 @@ void update_cmd(void){
       ** checkout unchanged. */
       db_multi_exec("DELETE FROM vfile WHERE vid!=%d", vid);
     }
-    undo_finish();
+    if( !internalUpdate ) undo_finish();
     db_end_transaction(0);
   }
 }
@@ -381,7 +502,8 @@ void revert_cmd(void){
   int errCode;
   int rid = 0;
   Stmt q;
-  
+
+  undo_capture_command_line();  
   zRevision = find_option("revision", "r", 1);
   verify_all_options();
   
@@ -407,7 +529,7 @@ void revert_cmd(void){
   }else{
     int vid;
     vid = db_lget_int("checkout", 0);
-    vfile_check_signature(vid, 0);
+    vfile_check_signature(vid, 0, 0);
     db_multi_exec(
       "DELETE FROM vmerge;"
       "INSERT INTO torevert "
@@ -435,10 +557,20 @@ void revert_cmd(void){
     if( errCode==2 ){
       fossil_warning("file not in repository: %s", zFile);
     }else{
-      char *zFull = mprintf("%//%/", g.zLocalRoot, zFile);
+      char *zFull = mprintf("%/%/", g.zLocalRoot, zFile);
       undo_save(zFile);
       blob_write_to_file(&record, zFull);
       printf("REVERTED: %s\n", zFile);
+      if( zRevision==0 ){
+        sqlite3_int64 mtime = file_mtime(zFull);
+        db_multi_exec(
+           "UPDATE vfile"
+           "   SET mtime=%lld, chnged=0, deleted=0,"
+           "       pathname=coalesce(origname,pathname), origname=NULL"     
+           " WHERE pathname=%Q",
+           mtime, zFile
+        );
+      }
       free(zFull);
     }
     blob_reset(&record);
@@ -446,5 +578,4 @@ void revert_cmd(void){
   db_finalize(&q);
   undo_finish();
   db_end_transaction(0);
-  printf("\"fossil undo\" is available to undo the changes shown above.\n");
 }

@@ -28,6 +28,14 @@
 #define DIFF_NOEOLWS  0x02    /* Ignore whitespace at the end of lines */
 
 /*
+** Print the "Index:" message that patch wants to see at the top of a diff.
+*/
+void diff_print_index(const char *zFile){
+  printf("Index: %s\n======================================="
+         "============================\n", zFile);
+}
+
+/*
 ** Show the difference between two files, one in memory and one on disk.
 **
 ** The difference is the set of edits needed to transform pFile1 into
@@ -36,7 +44,7 @@
 ** Use the internal diff logic if zDiffCmd is NULL.  Otherwise call the
 ** command zDiffCmd to do the diffing.
 */
-static void diff_file(
+void diff_file(
   Blob *pFile1,             /* In memory content to compare from */
   const char *zFile2,       /* On disk content to compare to */
   const char *zName,        /* Display name of the file */
@@ -106,7 +114,7 @@ static void diff_file(
 ** Use the internal diff logic if zDiffCmd is NULL.  Otherwise call the
 ** command zDiffCmd to do the diffing.
 */
-static void diff_file_mem(
+void diff_file_mem(
   Blob *pFile1,             /* In memory content to compare from */
   Blob *pFile2,             /* In memory content to compare to */
   const char *zName,        /* Display name of the file */
@@ -188,7 +196,7 @@ static void diff_all_against_disk(
   ignoreEolWs = (diffFlags & DIFF_NOEOLWS)!=0;
   asNewFile = (diffFlags & DIFF_NEWFILE)!=0;
   vid = db_lget_int("checkout", 0);
-  vfile_check_signature(vid, 1);
+  vfile_check_signature(vid, 1, 0);
   blob_zero(&sql);
   db_begin_transaction();
   if( zFrom ){
@@ -198,10 +206,10 @@ static void diff_all_against_disk(
     }
     load_vfile_from_rid(rid);
     blob_appendf(&sql,
-      "SELECT v2.pathname, v2.deleted, v2.chnged, v2.rid==0, v1.rid"
+      "SELECT v2.pathname, v2.deleted, v2.chnged, v2.rid==0, v1.mrid"
       "  FROM vfile v1, vfile v2 "
       " WHERE v1.pathname=v2.pathname AND v1.vid=%d AND v2.vid=%d"
-      "   AND (v2.deleted OR v2.chnged OR v1.rid!=v2.rid)"
+      "   AND (v2.deleted OR v2.chnged OR v1.mrid!=v2.rid)"
       "UNION "
       "SELECT pathname, 1, 0, 0, 0"
       "  FROM vfile v1"
@@ -219,7 +227,7 @@ static void diff_all_against_disk(
     );
   }else{
     blob_appendf(&sql,
-      "SELECT pathname, deleted, chnged , rid==0, rid"
+      "SELECT pathname, deleted, chnged , rid==0, mrid"
       "  FROM vfile"
       " WHERE vid=%d"
       "   AND (deleted OR chnged OR rid==0)"
@@ -259,10 +267,7 @@ static void diff_all_against_disk(
       }else{
         blob_zero(&content);
       }
-      printf("Index: %s\n======================================="
-             "============================\n",
-             zPathname
-      );
+      diff_print_index(zPathname);
       diff_file(&content, zFullName, zPathname, zDiffCmd, ignoreEolWs);
       blob_reset(&content);
     }
@@ -309,8 +314,7 @@ static void diff_manifest_entry(
   Blob f1, f2;
   int rid;
   const char *zName =  pFrom ? pFrom->zName : pTo->zName;
-  printf("Index: %s\n======================================="
-         "============================\n", zName);
+  diff_print_index(zName);
   if( pFrom ){
     rid = uuid_to_rid(pFrom->zUuid, 0);
     content_get(rid, &f1);

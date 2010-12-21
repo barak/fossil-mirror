@@ -221,7 +221,7 @@ static void showTags(int rid, const char *zNotGlob){
 #if 0
       if( zValue && strcmp(zTagname,"branch")==0 ){
         @ &nbsp;&nbsp;
-        @ <a href="%s(g.zBaseURL)/timeline?r=%T(zValue)">branch timeline</a>
+        @ <a href="%s(g.zTop)/timeline?r=%T(zValue)">branch timeline</a>
       }
 #endif
     }
@@ -429,10 +429,10 @@ void ci_page(void){
     if( g.okHistory ){
       const char *zProjName = db_get("project-name", "unnamed");
       @ <tr><th>Timelines:</th><td>
-      @   <a href="%s(g.zBaseURL)/timeline?f=%S(zUuid)">family</a>
-      @ | <a href="%s(g.zBaseURL)/timeline?p=%S(zUuid)">ancestors</a>
-      @ | <a href="%s(g.zBaseURL)/timeline?d=%S(zUuid)">descendants</a>
-      @ | <a href="%s(g.zBaseURL)/timeline?d=%S(zUuid)&amp;p=%S(zUuid)">both</a>
+      @   <a href="%s(g.zTop)/timeline?f=%S(zUuid)">family</a>
+      @ | <a href="%s(g.zTop)/timeline?p=%S(zUuid)">ancestors</a>
+      @ | <a href="%s(g.zTop)/timeline?d=%S(zUuid)">descendants</a>
+      @ | <a href="%s(g.zTop)/timeline?d=%S(zUuid)&amp;p=%S(zUuid)">both</a>
       db_prepare(&q, "SELECT substr(tag.tagname,5) FROM tagxref, tag "
                      " WHERE rid=%d AND tagtype>0 "
                      "   AND tag.tagid=tagxref.tagid "
@@ -469,15 +469,15 @@ void ci_page(void){
   if( db_get_boolean("show-version-diffs", 0)==0 ){
     showDiff = !showDiff;
     if( showDiff ){
-      @ <a href="%s(g.zBaseURL)/vinfo/%T(zName)">[hide&nbsp;diffs]</a><br/>
+      @ <a href="%s(g.zTop)/vinfo/%T(zName)">[hide&nbsp;diffs]</a><br/>
     }else{
-      @ <a href="%s(g.zBaseURL)/ci/%T(zName)">[show&nbsp;diffs]</a><br/>
+      @ <a href="%s(g.zTop)/ci/%T(zName)">[show&nbsp;diffs]</a><br/>
     }
   }else{
     if( showDiff ){
-      @ <a href="%s(g.zBaseURL)/ci/%T(zName)">[hide&nbsp;diffs]</a><br/>
+      @ <a href="%s(g.zTop)/ci/%T(zName)">[hide&nbsp;diffs]</a><br/>
     }else{
-      @ <a href="%s(g.zBaseURL)/vinfo/%T(zName)">[show&nbsp;diffs]</a><br/>
+      @ <a href="%s(g.zTop)/vinfo/%T(zName)">[show&nbsp;diffs]</a><br/>
     }
   }
   db_prepare(&q,
@@ -551,8 +551,8 @@ void winfo_page(void){
     if( g.okHistory ){
       @ <tr><th>Commands:</th>
       @   <td>
-      @     <a href="%s(g.zBaseURL)/whistory?name=%t(zName)">history</a>
-      @     | <a href="%s(g.zBaseURL)/artifact/%S(zUuid)">raw-text</a>
+      @     <a href="%s(g.zTop)/whistory?name=%t(zName)">history</a>
+      @     | <a href="%s(g.zTop)/artifact/%S(zUuid)">raw-text</a>
       @   </td>
       @ </tr>
     }
@@ -757,7 +757,7 @@ void object_description(
       @ File
     }
     if( g.okHistory ){
-      @ <a href="%s(g.zBaseURL)/finfo?name=%T(zName)">%h(zName)</a>
+      @ <a href="%s(g.zTop)/finfo?name=%T(zName)">%h(zName)</a>
     }else{
       @ %h(zName)
     }
@@ -792,7 +792,7 @@ void object_description(
       @ Wiki page
     }
     if( g.okHistory ){
-      @ [<a href="%s(g.zBaseURL)/wiki?name=%t(zPagename)">%h(zPagename)</a>]
+      @ [<a href="%s(g.zTop)/wiki?name=%t(zPagename)">%h(zPagename)</a>]
     }else{
       @ [%h(zPagename)]
     }
@@ -894,7 +894,7 @@ void object_description(
       blob_appendf(pDownloadName, "%.10s.txt", zUuid);
     }
   }else if( linkToView && g.okHistory ){
-    @ <a href="%s(g.zBaseURL)/artifact/%S(zUuid)">[view]</a>
+    @ <a href="%s(g.zTop)/artifact/%S(zUuid)">[view]</a>
   }
 }
 
@@ -977,7 +977,7 @@ static void hexdump(Blob *pBlob){
     zLine[2] = zHex[(i>>8)&0xf];
     zLine[3] = zHex[i&0xf];
     zLine[4] = ':';
-    sprintf(zLine, "%04x: ", i);
+    sqlite3_snprintf(sizeof(zLine), zLine, "%04x: ", i);
     for(j=0; j<16; j++){
       k = 5+j*3;
       zLine[k] = ' ';
@@ -1160,20 +1160,18 @@ void artifact_page(void){
     cgi_append_content(blob_buffer(&content), blob_size(&content));
     @ </div>
   }else{
+    style_submenu_element("Hex","Hex", "%s/hexdump?name=%s", g.zTop, zUuid);
     zMime = mimetype_from_content(&content);
     @ <blockquote>
     if( zMime==0 ){
       @ <pre>
       @ %h(blob_str(&content))
       @ </pre>
-      style_submenu_element("Hex","Hex", "%s/hexdump?name=%s", g.zTop, zUuid);
     }else if( strncmp(zMime, "image/", 6)==0 ){
-      @ <img src="%s(g.zBaseURL)/raw?name=%s(zUuid)&amp;m=%s(zMime)"></img>
+      @ <img src="%s(g.zTop)/raw?name=%s(zUuid)&amp;m=%s(zMime)"></img>
       style_submenu_element("Hex","Hex", "%s/hexdump?name=%s", g.zTop, zUuid);
     }else{
-      @ <pre>
-      hexdump(&content);
-      @ </pre>
+      @ <i>(file is %d(blob_size(&content)) bytes of binary data)</i>
     }
     @ </blockquote>
   }
@@ -1398,7 +1396,8 @@ void ci_edit_page(void){
   const char *zNewBrFlag;
   const char *zNewBranch;
   const char *zCloseFlag;
-  int fPropagateColor;
+  int fPropagateColor;          /* True if color propagates before edit */
+  int fNewPropagateColor;       /* True if color propagates after edit */
   char *zUuid;
   Blob comment;
   Stmt q;
@@ -1428,7 +1427,10 @@ void ci_edit_page(void){
   if( strcmp(zNewColor,"##")==0 ){
     zNewColor = P("clrcust");
   }
-  fPropagateColor = P("pclr")!=0;
+  fPropagateColor = db_int(0, "SELECT tagtype FROM tagxref"
+                              " WHERE rid=%d AND tagid=%d",
+                              rid, TAG_BGCOLOR)==2;
+  fNewPropagateColor = P("clr")!=0 ? P("pclr")!=0 : fPropagateColor;
   zNewTagFlag = P("newtag") ? " checked" : "";
   zNewTag = PD("tagname","");
   zNewBrFlag = P("newbr") ? " checked" : "";
@@ -1436,18 +1438,20 @@ void ci_edit_page(void){
   zCloseFlag = P("close") ? " checked" : "";
   if( P("apply") ){
     Blob ctrl;
-    char *zDate;
+    char *zNow;
     int nChng = 0;
 
     login_verify_csrf_secret();
     blob_zero(&ctrl);
-    zDate = db_text(0, "SELECT datetime('now')");
-    zDate[10] = 'T';
-    blob_appendf(&ctrl, "D %s\n", zDate);
+    zNow = db_text(0, "SELECT datetime('now')");
+    zNow[10] = 'T';
+    blob_appendf(&ctrl, "D %s\n", zNow);
     db_multi_exec("CREATE TEMP TABLE newtags(tag UNIQUE, prefix, value)");
-    if( zNewColor[0] && strcmp(zColor,zNewColor)!=0 ){
+    if( zNewColor[0]
+     && (fPropagateColor!=fNewPropagateColor || strcmp(zColor,zNewColor)!=0)
+    ){
       char *zPrefix = "+";
-      if( fPropagateColor ){
+      if( fNewPropagateColor ){
         zPrefix = "*";
       }
       db_multi_exec("REPLACE INTO newtags VALUES('bgcolor',%Q,%Q)",
@@ -1476,7 +1480,7 @@ void ci_edit_page(void){
       int tagid = db_column_int(&q, 0);
       const char *zTag = db_column_text(&q, 1);
       char zLabel[30];
-      sprintf(zLabel, "c%d", tagid);
+      sqlite3_snprintf(sizeof(zLabel), zLabel, "c%d", tagid);
       if( P(zLabel) ){
         db_multi_exec("REPLACE INTO newtags VALUES(%Q,'-',NULL)", zTag);
       }
@@ -1523,7 +1527,7 @@ void ci_edit_page(void){
       blob_appendf(&ctrl, "Z %b\n", &cksum);
       db_begin_transaction();
       g.markPrivate = content_is_private(rid);
-      nrid = content_put(&ctrl, 0, 0);
+      nrid = content_put(&ctrl, 0, 0, 0);
       manifest_crosslink(nrid, &ctrl);
       db_end_transaction(0);
     }
@@ -1570,7 +1574,7 @@ void ci_edit_page(void){
   }
   @ <p>Make changes to attributes of check-in
   @ [<a href="ci?name=%s(zUuid)">%s(zUuid)</a>]:</p>
-  @ <form action="%s(g.zBaseURL)/ci_edit" method="post"><div>
+  @ <form action="%s(g.zTop)/ci_edit" method="post"><div>
   login_insert_csrf_secret();
   @ <input type="hidden" name="r" value="%S(zUuid)" />
   @ <table border="0" cellspacing="10">
@@ -1592,7 +1596,7 @@ void ci_edit_page(void){
 
   @ <tr><td align="right" valign="top"><b>Background Color:</b></td>
   @ <td valign="top">
-  render_color_chooser(fPropagateColor, zNewColor, "pclr", "clr", "clrcust");
+  render_color_chooser(fNewPropagateColor, zNewColor, "pclr", "clr", "clrcust");
   @ </td></tr>
 
   @ <tr><td align="right" valign="top"><b>Tags:</b></td>
@@ -1611,7 +1615,7 @@ void ci_edit_page(void){
     int tagid = db_column_int(&q, 0);
     const char *zTagName = db_column_text(&q, 1);
     char zLabel[30];
-    sprintf(zLabel, "c%d", tagid);
+    sqlite3_snprintf(sizeof(zLabel), zLabel, "c%d", tagid);
     if( P(zLabel) ){
       @ <br /><input type="checkbox" name="c%d(tagid)" checked="checked" />
     }else{

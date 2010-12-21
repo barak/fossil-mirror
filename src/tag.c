@@ -31,7 +31,7 @@
 ** ancestor node.  If tagtype is 0 it means a branch tag is
 ** being cancelled.
 */
-void tag_propagate(
+static void tag_propagate(
   int pid,             /* Propagate the tag to children of this node */
   int tagid,           /* Tag to propagate */
   int tagType,         /* 2 for a propagating tag.  0 for an antitag */
@@ -100,14 +100,13 @@ void tag_propagate(
 }
 
 /*
-** Propagate all propagatable tags in pid to its children.
+** Propagate all propagatable tags in pid to the children of pid.
 */
 void tag_propagate_all(int pid){
   Stmt q;
   db_prepare(&q,
      "SELECT tagid, tagtype, mtime, value, origid FROM tagxref"
-     " WHERE rid=%d"
-     "   AND (tagtype=0 OR tagtype=2)",
+     " WHERE rid=%d",
      pid
   );
   while( db_step(&q)==SQLITE_ROW ){
@@ -116,6 +115,7 @@ void tag_propagate_all(int pid){
     double mtime = db_column_double(&q, 2);
     const char *zValue = db_column_text(&q, 3);
     int origid = db_column_int(&q, 4);
+    if( tagtype==1 ) tagtype = 0;
     tag_propagate(pid, tagid, tagtype, origid, zValue, mtime);
   }
   db_finalize(&q);
@@ -209,9 +209,8 @@ int tag_insert(
                   " WHERE objid=%d",
                   zValue, rid);
   }
-  if( tagtype==0 || tagtype==2 ){
-    tag_propagate(rid, tagid, tagtype, rid, zValue, mtime);
-  }
+  if( tagtype==1 ) tagtype = 0;
+  tag_propagate(rid, tagid, tagtype, rid, zValue, mtime);
   return tagid;
 }
 
@@ -309,7 +308,7 @@ void tag_add_artifact(
   blob_appendf(&ctrl, "U %F\n", zUserOvrd ? zUserOvrd : g.zLogin);
   md5sum_blob(&ctrl, &cksum);
   blob_appendf(&ctrl, "Z %b\n", &cksum);
-  nrid = content_put(&ctrl, 0, 0);
+  nrid = content_put(&ctrl, 0, 0, 0);
   manifest_crosslink(nrid, &ctrl);
 }
 
@@ -528,7 +527,7 @@ void taglist_page(void){
   while( db_step(&q)==SQLITE_ROW ){
     const char *zName = db_column_text(&q, 0);
     if( g.okHistory ){
-      @ <li><a class="tagLink" href="%s(g.zBaseURL)/timeline?t=%T(zName)">
+      @ <li><a class="tagLink" href="%s(g.zTop)/timeline?t=%T(zName)">
       @ %h(zName)</a></li>
     }else{
       @ <li><span class="tagDsp">%h(zName)</span></li>
@@ -557,7 +556,7 @@ static void tagtimeline_extra(int rid){
   while( db_step(&q)==SQLITE_ROW ){
     const char *zTagName = db_column_text(&q, 0);
     if( g.okHistory ){
-      @ <a class="tagLink" href="%s(g.zBaseURL)/timeline?t=%T(zTagName)">
+      @ <a class="tagLink" href="%s(g.zTop)/timeline?t=%T(zTagName)">
       @ [%h(zTagName)]</a>
     }else{
       @ <span class="tagDsp">[%h(zTagName)]</span>

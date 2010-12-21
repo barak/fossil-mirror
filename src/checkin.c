@@ -51,7 +51,7 @@ static void status_report(
     int isChnged = db_column_int(&q,2);
     int isNew = db_column_int(&q,3)==0;
     int isRenamed = db_column_int(&q,4);
-    char *zFullName = mprintf("%s/%s", g.zLocalRoot, zPathname);
+    char *zFullName = mprintf("%s%s", g.zLocalRoot, zPathname);
     blob_append(report, zPrefix, nPrefix);
     if( isDeleted ){
       blob_appendf(report, "DELETED    %s\n", zPathname);
@@ -104,14 +104,20 @@ static void status_report(
 **
 ** Report on the edit status of all files in the current checkout.
 ** See also the "status" and "extra" commands.
+**
+** Options:
+**
+**    --sha1sum         Verify file status using SHA1 hashing rather
+**                      than relying on file mtimes.
 */
 void changes_cmd(void){
   Blob report;
   int vid;
+  int useSha1sum = find_option("sha1sum", 0, 0)!=0;
   db_must_be_within_tree();
   blob_zero(&report);
   vid = db_lget_int("checkout", 0);
-  vfile_check_signature(vid, 0);
+  vfile_check_signature(vid, 0, useSha1sum);
   status_report(&report, "", 0);
   blob_write_to_file(&report, "-");
 }
@@ -122,6 +128,11 @@ void changes_cmd(void){
 ** Usage: %fossil status
 **
 ** Report on the status of the current checkout.
+**
+** Options:
+**
+**    --sha1sum         Verify file status using SHA1 hashing rather
+**                      than relying on file mtimes.
 */
 void status_cmd(void){
   int vid;
@@ -153,7 +164,7 @@ void ls_cmd(void){
   isBrief = find_option("l","l", 0)==0;
   db_must_be_within_tree();
   vid = db_lget_int("checkout", 0);
-  vfile_check_signature(vid, 0);
+  vfile_check_signature(vid, 0, 0);
   db_prepare(&q,
      "SELECT pathname, deleted, rid, chnged, coalesce(origname!=pathname,0)"
      "  FROM vfile"
@@ -165,19 +176,19 @@ void ls_cmd(void){
     int isNew = db_column_int(&q,2)==0;
     int chnged = db_column_int(&q,3);
     int renamed = db_column_int(&q,4);
-    char *zFullName = mprintf("%s/%s", g.zLocalRoot, zPathname);
+    char *zFullName = mprintf("%s%s", g.zLocalRoot, zPathname);
     if( isBrief ){
       printf("%s\n", zPathname);
     }else if( isNew ){
       printf("ADDED      %s\n", zPathname);
+    }else if( isDeleted ){
+      printf("DELETED    %s\n", zPathname);
     }else if( !file_isfile(zFullName) ){
       if( access(zFullName, 0)==0 ){
         printf("NOT_A_FILE %s\n", zPathname);
       }else{
         printf("MISSING    %s\n", zPathname);
       }
-    }else if( isDeleted ){
-      printf("DELETED    %s\n", zPathname);
     }else if( chnged ){
       printf("EDITED     %s\n", zPathname);
     }else if( renamed ){
@@ -253,6 +264,10 @@ char *glob_expr(const char *zVal, const char *zGlobList){
 **
 ** Files and subdirectories whose names begin with "." are normally
 ** ignored but can be included by adding the --dotfiles option.
+**
+** The GLOBPATTERN is a comma-separated list of GLOB expressions for
+** files that are ignored.  The GLOBPATTERN specified by the "ignore-glob"
+** is used if the --ignore option is omitted.
 */
 void extra_cmd(void){
   Blob path;
@@ -261,9 +276,10 @@ void extra_cmd(void){
   int n;
   const char *zIgnoreFlag = find_option("ignore",0,1);
   int allFlag = find_option("dotfiles",0,0)!=0;
-  int outputManifest = db_get_boolean("manifest",0);
+  int outputManifest;
 
   db_must_be_within_tree();
+  outputManifest = db_get_boolean("manifest",0);
   db_multi_exec("CREATE TEMP TABLE sfile(x TEXT PRIMARY KEY)");
   n = strlen(g.zLocalRoot);
   blob_init(&path, g.zLocalRoot, n-1);
@@ -273,14 +289,10 @@ void extra_cmd(void){
   vfile_scan(0, &path, blob_size(&path), allFlag);
   db_prepare(&q, 
       "SELECT x FROM sfile"
-      " WHERE x NOT IN ('%s','%s','_FOSSIL_',"
-                       "'_FOSSIL_-journal','.fos','.fos-journal',"
-                       "'_FOSSIL_-wal','_FOSSIL_-shm','.fos-wal',"
-                       "'.fos-shm')"
+      " WHERE x NOT IN (%s)"
       "   AND NOT %s"
       " ORDER BY 1",
-      outputManifest ? "manifest" : "_FOSSIL_",
-      outputManifest ? "manifest.uuid" : "_FOSSIL_",
+      fossil_all_reserved_names(),
       glob_expr("x", zIgnoreFlag)
   );
   if( file_tree_name(g.zRepositoryName, &repo, 0) ){
@@ -294,7 +306,7 @@ void extra_cmd(void){
 
 /*
 ** COMMAND: clean
-** Usage: %fossil clean ?--force? ?--dotfiles?
+** Usage: %fossil clean ?--force? ?--dotfiles? ?--ignore GLOBPATTERN?
 **
 ** Delete all "extra" files in the source tree.  "Extra" files are
 ** files that are not officially part of the checkout.  See also
@@ -307,28 +319,35 @@ void extra_cmd(void){
 ** Files and subdirectories whose names begin with "." are
 ** normally ignored.  They are included if the "--dotfiles" option
 ** is used.
+**
+** The GLOBPATTERN is a comma-separated list of GLOB expressions for
+** files that are ignored.  The GLOBPATTERN specified by the "ignore-glob"
+** is used if the --ignore option is omitted.
 */
 void clean_cmd(void){
   int allFlag;
   int dotfilesFlag;
+  const char *zIgnoreFlag;
   Blob path, repo;
   Stmt q;
   int n;
   allFlag = find_option("force","f",0)!=0;
   dotfilesFlag = find_option("dotfiles",0,0)!=0;
-  verify_all_options();
+  zIgnoreFlag = find_option("ignore",0,1);
   db_must_be_within_tree();
+  if( zIgnoreFlag==0 ){
+    zIgnoreFlag = db_get("ignore-glob", 0);
+  }
   db_multi_exec("CREATE TEMP TABLE sfile(x TEXT PRIMARY KEY)");
   n = strlen(g.zLocalRoot);
   blob_init(&path, g.zLocalRoot, n-1);
   vfile_scan(0, &path, blob_size(&path), dotfilesFlag);
   db_prepare(&q, 
       "SELECT %Q || x FROM sfile"
-      " WHERE x NOT IN ('manifest','manifest.uuid','_FOSSIL_',"
-                       "'_FOSSIL_-journal','.fos','.fos-journal',"
-                       "'_FOSSIL_-wal','_FOSSIL_-shm','.fos-wal',"
-                       "'.fos-shm')"
-      " ORDER BY 1", g.zLocalRoot);
+      " WHERE x NOT IN (%s) AND NOT %s"
+      " ORDER BY 1",
+      g.zLocalRoot, fossil_all_reserved_names(), glob_expr("x",zIgnoreFlag)
+  );
   if( file_tree_name(g.zRepositoryName, &repo, 0) ){
     db_multi_exec("DELETE FROM sfile WHERE x=%B", &repo);
   }
@@ -407,25 +426,39 @@ static void prepare_commit_comment(
     zEditor = getenv("EDITOR");
   }
   if( zEditor==0 ){
-#if defined(_WIN32)
-    zEditor = "notepad";
-#else
-    zEditor = "ed";
-#endif
+    blob_append(&text,
+       "#\n"
+       "# Since no default text editor is set using EDITOR or VISUAL\n"
+       "# environment variables or the \"fossil set editor\" command,\n"
+       "# and because no check-in comment was specified using the \"-m\"\n"
+       "# or \"-M\" command-line options, you will need to enter the\n"
+       "# check-in comment below.  Type \".\" on a line by itself when\n"
+       "# you are done:\n", -1);
+    zFile = mprintf("-");
+  }else{
+    zFile = db_text(0, "SELECT '%qci-comment-' || hex(randomblob(6)) || '.txt'",
+                    g.zLocalRoot);
   }
-  zFile = db_text(0, "SELECT '%qci-comment-' || hex(randomblob(6)) || '.txt'",
-                   g.zLocalRoot);
 #if defined(_WIN32)
   blob_add_cr(&text);
 #endif
   blob_write_to_file(&text, zFile);
-  zCmd = mprintf("%s \"%s\"", zEditor, zFile);
-  printf("%s\n", zCmd);
-  if( fossil_system(zCmd) ){
-    fossil_panic("editor aborted");
+  if( zEditor ){
+    zCmd = mprintf("%s \"%s\"", zEditor, zFile);
+    printf("%s\n", zCmd);
+    if( fossil_system(zCmd) ){
+      fossil_panic("editor aborted");
+    }
+    blob_reset(&text);
+    blob_read_from_file(&text, zFile);
+  }else{
+    char zIn[300];
+    blob_reset(&text);
+    while( fgets(zIn, sizeof(zIn), stdin)!=0 ){
+      if( zIn[0]=='.' && (zIn[1]==0 || zIn[1]=='\r' || zIn[1]=='\n') ) break;
+      blob_append(&text, zIn, -1);
+    }
   }
-  blob_reset(&text);
-  blob_read_from_file(&text, zFile);
   blob_remove_cr(&text);
   unlink(zFile);
   free(zFile);
@@ -557,6 +590,7 @@ static void create_manifest(
   const char *zUserOvrd,      /* User override.  If 0 then use g.zLogin */
   const char *zBranch,        /* Branch name.  May be 0 */
   const char *zBgColor,       /* Background color.  May be 0 */
+  const char *zTag,           /* Tag to apply to this check-in */
   int *pnFBcard               /* Number of generated B- and F-cards */
 ){
   char *zDate;                /* Date of the check-in */
@@ -679,13 +713,17 @@ static void create_manifest(
     /* If this manifest is private, mark it as such */
     blob_appendf(pOut, "T +private *\n");
   }
+  if( zTag && zTag[0] ){
+    /* Add a symbolic tag to this check-in */
+    blob_appendf(pOut, "T +sym-%F *\n", zTag);
+  }
   if( zBranch && zBranch[0] ){
     /* For a new branch, cancel all prior propagating tags */
     Stmt q;
     db_prepare(&q,
         "SELECT tagname FROM tagxref, tag"
         " WHERE tagxref.rid=%d AND tagxref.tagid=tag.tagid"
-        "   AND tagtype>0 AND tagname GLOB 'sym-*'"
+        "   AND tagtype==2 AND tagname GLOB 'sym-*'"
         "   AND tagname!='sym-'||%Q"
         " ORDER BY tagname",
         vid, zBranch);
@@ -730,6 +768,8 @@ static void create_manifest(
 ** The --private option creates a private check-in that is never synced.
 ** Children of private check-ins are automatically private.
 **
+** the --tag option applies the symbolic tag name to the check-in.
+**
 ** Options:
 **
 **    --comment|-m COMMENT-TEXT
@@ -741,6 +781,7 @@ static void create_manifest(
 **    --private
 **    --baseline
 **    --delta
+**    --tag TAG-NAME
 **    
 */
 void commit_cmd(void){
@@ -766,6 +807,7 @@ void commit_cmd(void){
   const char *zDateOvrd; /* Override date string */
   const char *zUserOvrd; /* Override user name */
   const char *zComFile;  /* Read commit message from this file */
+  const char *zTag;      /* Symbolic tag to apply to this check-in */
   Blob manifest;         /* Manifest in baseline form */
   Blob muuid;            /* Manifest uuid */
   Blob cksum1, cksum2;   /* Before and after commit checksums */
@@ -785,6 +827,7 @@ void commit_cmd(void){
   forceFlag = find_option("force", "f", 0)!=0;
   zBranch = find_option("branch","b",1);
   zBgColor = find_option("bgcolor",0,1);
+  zTag = find_option("tag",0,1);
   zComFile = find_option("message-file", "M", 1);
   if( find_option("private",0,0) ){
     g.markPrivate = 1;
@@ -951,7 +994,7 @@ void commit_cmd(void){
 
     blob_zero(&content);
     blob_read_from_file(&content, zFullname);
-    nrid = content_put(&content, 0, 0);
+    nrid = content_put(&content, 0, 0, 0);
     blob_reset(&content);
     if( rid>0 ){
       content_deltify(rid, nrid, 0);
@@ -970,7 +1013,7 @@ void commit_cmd(void){
   }else{
     create_manifest(&manifest, 0, 0, &comment, vid,
                     !forceFlag, useCksum ? &cksum1 : 0,
-                    zDateOvrd, zUserOvrd, zBranch, zBgColor, &szB);
+                    zDateOvrd, zUserOvrd, zBranch, zBgColor, zTag, &szB);
   }
 
   /* See if a delta-manifest would be more appropriate */
@@ -990,7 +1033,7 @@ void commit_cmd(void){
       Blob delta;
       create_manifest(&delta, zBaselineUuid, pBaseline, &comment, vid,
                       !forceFlag, useCksum ? &cksum1 : 0,
-                      zDateOvrd, zUserOvrd, zBranch, zBgColor, &szD);
+                      zDateOvrd, zUserOvrd, zBranch, zBgColor, zTag, &szD);
       /*
       ** At this point, two manifests have been constructed, either of
       ** which would work for this checkin.  The first manifest (held
@@ -1043,7 +1086,7 @@ void commit_cmd(void){
     blob_read_from_file(&manifest, zManifestFile);
     free(zManifestFile);
   }
-  nvid = content_put(&manifest, 0, 0);
+  nvid = content_put(&manifest, 0, 0, 0);
   if( nvid==0 ){
     fossil_panic("trouble committing manifest: %s", g.zErrMsg);
   }
@@ -1101,7 +1144,7 @@ void commit_cmd(void){
     /* Verify that the commit did not modify any disk images. */
     vfile_aggregate_checksum_disk(nvid, &cksum2);
     if( blob_compare(&cksum1, &cksum2) ){
-      fossil_fatal("working check before and after commit does not match");
+      fossil_fatal("working checkout before and after commit does not match");
     }
   }
 

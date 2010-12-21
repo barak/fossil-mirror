@@ -346,7 +346,7 @@ void eventedit_page(void){
     md5sum_blob(&event, &cksum);
     blob_appendf(&event, "Z %b\n", &cksum);
     blob_reset(&cksum);
-    nrid = content_put(&event, 0, 0);
+    nrid = content_put(&event, 0, 0, 0);
     db_multi_exec("INSERT OR IGNORE INTO unsent VALUES(%d)", nrid);
     manifest_crosslink(nrid, &event);
     blob_reset(&event);
@@ -396,7 +396,7 @@ void eventedit_page(void){
   }
   if( n<20 ) n = 20;
   if( n>40 ) n = 40;
-  @ <form method="post" action="%s(g.zBaseURL)/eventedit"><div>
+  @ <form method="post" action="%s(g.zTop)/eventedit"><div>
   login_insert_csrf_secret();
   @ <input type="hidden" name="name" value="%h(zEventId)" />
   @ <table border="0" cellspacing="10">

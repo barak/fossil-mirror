@@ -50,7 +50,7 @@ void hyperlink_to_uuid(const char *zUuid){
   char zShortUuid[UUID_SIZE+1];
   shorten_uuid(zShortUuid, zUuid);
   if( g.okHistory ){
-    @ <a class="timelineHistLink" href="%s(g.zBaseURL)/info/%s(zShortUuid)">
+    @ <a class="timelineHistLink" href="%s(g.zTop)/info/%s(zShortUuid)">
     @ [%s(zShortUuid)]</a>
   }else{
     @ <span class="timelineHistDsp">[%s(zShortUuid)]</span>
@@ -71,7 +71,7 @@ void hyperlink_to_uuid_with_mouseover(
   shorten_uuid(zShortUuid, zUuid);
   if( g.okHistory ){
     @ <a onmouseover='%s(zIn)("m%d(id)")' onmouseout='%s(zOut)("m%d(id)")'
-    @    href="%s(g.zBaseURL)/vinfo/%s(zShortUuid)">[%s(zShortUuid)]</a>
+    @    href="%s(g.zTop)/vinfo/%s(zShortUuid)">[%s(zShortUuid)]</a>
   }else{
     @ <b onmouseover='%s(zIn)("m%d(id)")' onmouseout='%s(zOut)("m%d(id)")'>
     @ [%s(zShortUuid)]</b>
@@ -84,9 +84,9 @@ void hyperlink_to_uuid_with_mouseover(
 void hyperlink_to_diff(const char *zV1, const char *zV2){
   if( g.okHistory ){
     if( zV2==0 ){
-      @ <a href="%s(g.zBaseURL)/diff?v2=%s(zV1)">[diff]</a>
+      @ <a href="%s(g.zTop)/diff?v2=%s(zV1)">[diff]</a>
     }else{
-      @ <a href="%s(g.zBaseURL)/diff?v1=%s(zV1)&amp;v2=%s(zV2)">[diff]</a>
+      @ <a href="%s(g.zTop)/diff?v1=%s(zV1)&amp;v2=%s(zV2)">[diff]</a>
     }
   }
 }
@@ -234,7 +234,7 @@ void www_print_timeline(
       continue;
     }
     if( memcmp(zDate, zPrevDate, 10) ){
-      sprintf(zPrevDate, "%.10s", zDate);
+      sqlite3_snprintf(sizeof(zPrevDate), zPrevDate, "%.10s", zDate);
       @ <tr><td>
       @   <div class="divider">%s(zPrevDate)</div>
       @ </td></tr>
@@ -464,7 +464,11 @@ void timeline_output_graph_javascript(GraphContext *pGraph){
     @     var x0 = x1>p.x ? p.x+7 : p.x-6;
     @     var u = rowinfo[p.mu-1];
     @     var y0 = u.y+5;
-    @     drawThinLine(x0,y1,x1,y1);
+    @     if( x1==p.x ){
+    @       y1 -= 2;
+    @     }else{
+    @       drawThinLine(x0,y1,x1,y1);
+    @     }
     @     drawThinLine(x1,y0,x1,y1);
     @   }
     @   var n = p.au.length;
@@ -479,7 +483,7 @@ void timeline_output_graph_javascript(GraphContext *pGraph){
     @     var y0 = p.y+5;
     @     var mx = p.mi[j]*20 + left;
     @     if( mx>p.x ){
-    @       drawThinArrow(y0,mx,p.x+5);
+    @       drawThinArrow(y0,mx,p.x+6);
     @     }else{
     @       drawThinArrow(y0,mx,p.x-5);
     @     }
@@ -751,7 +755,7 @@ void page_timeline(void){
     }
     if( g.okHistory ){
       blob_appendf(&desc, " of <a href='%s/info/%s'>[%.10s]</a>",
-                   g.zBaseURL, zUuid, zUuid);
+                   g.zTop, zUuid, zUuid);
     }else{
       blob_appendf(&desc, " of check-in [%.10s]", zUuid);
     }
@@ -775,7 +779,7 @@ void page_timeline(void){
     zUuid = db_text("", "SELECT uuid FROM blob WHERE rid=%d", f_rid);
     if( g.okHistory ){
       blob_appendf(&desc, "<a href='%s/info/%s'>[%.10s]</a>",
-                   g.zBaseURL, zUuid, zUuid);
+                   g.zTop, zUuid, zUuid);
     }else{
       blob_appendf(&desc, "[%.10s]", zUuid);
     }
@@ -1022,7 +1026,7 @@ void print_timeline(Stmt *q, int mxLine){
     char zPrefix[80];
     char zUuid[UUID_SIZE+1];
     
-    sprintf(zUuid, "%.10s", zId);
+    sqlite3_snprintf(sizeof(zUuid), zUuid, "%.10s", zId);
     if( memcmp(zDate, zPrevDate, 10) ){
       printf("=== %.10s ===\n", zDate);
       memcpy(zPrevDate, zDate, 10);

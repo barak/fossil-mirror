@@ -63,7 +63,7 @@ int uuid_to_rid(const char *zUuid, int phantomize){
   if( sz!=UUID_SIZE || !validate16(zUuid, sz) ){
     return 0;
   }
-  strcpy(z, zUuid);
+  memcpy(z, zUuid, UUID_SIZE+1);
   canonical16(z, sz);
   rid = fast_uuid_to_rid(z);
   if( rid==0 && phantomize ){
@@ -138,11 +138,11 @@ void vfile_build(int vid){
 ** If VFILE.DELETED is null or if VFILE.RID is zero, then we can assume
 ** the file has changed without having the check the on-disk image.
 */
-void vfile_check_signature(int vid, int notFileIsFatal){
+void vfile_check_signature(int vid, int notFileIsFatal, int useSha1sum){
   int nErr = 0;
   Stmt q;
   Blob fileCksum, origCksum;
-  int checkMtime = db_get_boolean("mtime-changes", 1);
+  int checkMtime = useSha1sum==0 && db_get_boolean("mtime-changes", 1);
 
   db_begin_transaction();
   db_prepare(&q, "SELECT id, %Q || pathname,"
@@ -193,7 +193,7 @@ void vfile_check_signature(int vid, int notFileIsFatal){
       blob_reset(&origCksum);
       blob_reset(&fileCksum);
     }
-    if( chnged!=oldChnged ){
+    if( chnged!=oldChnged && (chnged || !checkMtime) ){
       db_multi_exec("UPDATE vfile SET chnged=%d WHERE id=%d", chnged, id);
     }
   }
@@ -368,7 +368,7 @@ void vfile_aggregate_checksum_disk(int vid, Blob *pOut){
         continue;
       }
       fseek(in, 0L, SEEK_END);
-      sprintf(zBuf, " %ld\n", ftell(in));
+      sqlite3_snprintf(sizeof(zBuf), zBuf, " %ld\n", ftell(in));
       fseek(in, 0L, SEEK_SET);
       md5sum_step_text(zBuf, -1);
       /*printf("%s %s %s",md5sum_current_state(),zName,zBuf); fflush(stdout);*/
@@ -390,7 +390,7 @@ void vfile_aggregate_checksum_disk(int vid, Blob *pOut){
         md5sum_step_text(zName, -1);
         blob_zero(&file);
         content_get(rid, &file);
-        sprintf(zBuf, " %d\n", blob_size(&file));
+        sqlite3_snprintf(sizeof(zBuf), zBuf, " %d\n", blob_size(&file));
         md5sum_step_text(zBuf, -1);
         md5sum_step_blob(&file);
         blob_reset(&file);
@@ -478,7 +478,7 @@ void vfile_aggregate_checksum_repository(int vid, Blob *pOut){
     if( zOrigName && !isSelected ) zName = zOrigName;
     md5sum_step_text(zName, -1);
     content_get(rid, &file);
-    sprintf(zBuf, " %d\n", blob_size(&file));
+    sqlite3_snprintf(sizeof(zBuf), zBuf, " %d\n", blob_size(&file));
     md5sum_step_text(zBuf, -1);
     /*printf("%s %s %s",md5sum_current_state(),zName,zBuf); fflush(stdout);*/
     md5sum_step_blob(&file);
@@ -522,7 +522,7 @@ void vfile_aggregate_checksum_manifest(int vid, Blob *pOut, Blob *pManOut){
     fid = uuid_to_rid(pFile->zUuid, 0);
     md5sum_step_text(pFile->zName, -1);
     content_get(fid, &file);
-    sprintf(zBuf, " %d\n", blob_size(&file));
+    sqlite3_snprintf(sizeof(zBuf), zBuf, " %d\n", blob_size(&file));
     md5sum_step_text(zBuf, -1);
     md5sum_step_blob(&file);
     blob_reset(&file);

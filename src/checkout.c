@@ -35,7 +35,7 @@ int unsaved_changes(void){
   db_must_be_within_tree();
   vid = db_lget_int("checkout",0);
   if( vid==0 ) return 2;
-  vfile_check_signature(vid, 1);
+  vfile_check_signature(vid, 1, 0);
   return db_exists("SELECT 1 FROM vfile WHERE chnged"
                    " OR coalesce(origname!=pathname,0)");
 }
@@ -263,22 +263,16 @@ void checkout_cmd(void){
 /*
 ** Unlink the local database file
 */
-void unlink_local_database(void){
-  static const char *azFile[] = {
-     "%s_FOSSIL_",
-     "%s_FOSSIL_-journal",
-     "%s_FOSSIL_-wal",
-     "%s_FOSSIL_-shm",
-     "%s.fos",
-     "%s.fos-journal",
-     "%s.fos-wal",
-     "%s.fos-shm",
-  };
+static void unlink_local_database(int manifestOnly){
+  const char *zReserved;
   int i;
-  for(i=0; i<sizeof(azFile)/sizeof(azFile[0]); i++){
-    char *z = mprintf(azFile[i], g.zLocalRoot);
-    unlink(z);
-    free(z);
+  for(i=0; (zReserved = fossil_reserved_name(i))!=0; i++){
+    if( manifestOnly==0 || zReserved[0]=='m' ){
+      char *z;
+      z = mprintf("%s%s", g.zLocalRoot, zReserved);
+      unlink(z);
+      free(z);
+    }
   }
 }
 
@@ -297,6 +291,7 @@ void close_cmd(void){
   if( !forceFlag && unsaved_changes()==1 ){
     fossil_fatal("there are unsaved changes in the current checkout");
   }
+  unlink_local_database(1);
   db_close();
-  unlink_local_database();
+  unlink_local_database(0);
 }

@@ -111,7 +111,7 @@ static int isValidAnonymousLogin(
   zCS = P("cs");   /* The "cs" parameter is the "captcha seed" */
   if( zCS==0 ) return 0;
   zPw = captcha_decode((unsigned int)atoi(zCS));
-  if( strcasecmp(zPw, zPassword)!=0 ) return 0;
+  if( fossil_stricmp(zPw, zPassword)!=0 ) return 0;
   uid = db_int(0, "SELECT uid FROM user WHERE login='anonymous'"
                   " AND length(pw)>0 AND length(cap)>0");
   return uid;
@@ -348,7 +348,7 @@ void login_check_credentials(void){
     g.zLogin = db_text("?", "SELECT login FROM user WHERE uid=%d", uid);
     zCap = "s";
     g.noPswd = 1;
-    strcpy(g.zCsrfToken, "localhost");
+    sqlite3_snprintf(sizeof(g.zCsrfToken), g.zCsrfToken, "localhost");
   }
 
   /* Check the login cookie to see if it matches a known valid user.
@@ -413,7 +413,7 @@ void login_check_credentials(void){
       uid = -1;
       zCap = "";
     }
-    strcpy(g.zCsrfToken, "none");
+    sqlite3_snprintf(sizeof(g.zCsrfToken), g.zCsrfToken, "none");
   }
 
   /* At this point, we know that uid!=0.  Find the privileges associated

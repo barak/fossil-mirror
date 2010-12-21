@@ -57,7 +57,7 @@ struct Global {
   long long int now;      /* Seconds since 1970 */
   int repositoryOpen;     /* True if the main repository database is open */
   char *zRepositoryName;  /* Name of the repository database */
-  char *zRepoDb;          /* SQLite database name for the repository */
+  const char *zMainDbType;/* "configdb", "localdb", or "repository" */
   const char *zHome;      /* Name of user home directory */
   int localOpen;          /* True if the local database is open */
   char *zLocalRoot;       /* The directory holding the  local database */
@@ -253,9 +253,19 @@ int main(int argc, char **argv){
                    argv[0], zCmdName, argv[0]);
     fossil_exit(1);
   }else if( rc==2 ){
+    int i, n;
+    Blob couldbe;
+    blob_zero(&couldbe);
+    n = strlen(zCmdName);
+    for(i=0; i<count(aCommand); i++){
+      if( memcmp(zCmdName, aCommand[i].zName, n)==0 ){
+        blob_appendf(&couldbe, " %s", aCommand[i].zName);
+      }
+    }
     fprintf(stderr,"%s: ambiguous command prefix: %s\n"
+                   "%s: could be any of:%s\n"
                    "%s: use \"help\" for more information\n",
-                   argv[0], zCmdName, argv[0]);
+                   argv[0], zCmdName, argv[0], blob_str(&couldbe), argv[0]);
     fossil_exit(1);
   }
   aCommand[idx].xFunc();
@@ -733,7 +743,7 @@ void set_base_url(void){
 ** Send an HTTP redirect back to the designated Index Page.
 */
 void fossil_redirect_home(void){
-  cgi_redirectf("%s%s", g.zBaseURL, db_get("index-page", "/index"));
+  cgi_redirectf("%s%s", g.zTop, db_get("index-page", "/index"));
 }
 
 /*
