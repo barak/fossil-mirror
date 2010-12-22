@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Barak A. Pearlmutter <bap@debian.org>
 Standards-Version: 3.9.1
 Build-depends: debhelper (>= 8),
-	       libsqlite3-dev (>= 3.7.0),
+	       libsqlite3-dev (>= 3.7.4),
 	       tcl8.5 | tclsh,
 	       zlib1g-dev | libz-dev,
 	       libssl-dev
