@@ -1,8 +1,9 @@
 fossil (2010.12.21.135605-1) unstable; urgency=low
 
   * New upstream version
+  * Merge post-release changes to trunk to get test suite fix
 
- -- Barak A. Pearlmutter <bap@debian.org>  Tue, 21 Dec 2010 13:42:24 -0500
+ -- Barak A. Pearlmutter <bap@debian.org>  Tue, 21 Dec 2010 21:45:01 -0500
 
 fossil (2010.12.07.133137-1) unstable; urgency=low
 
