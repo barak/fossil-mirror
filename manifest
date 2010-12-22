@@ -1,8 +1,8 @@
 -----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA1
 
-C require\slibsqlite3\s>=\s3.7.4\sand\sremove\sworkarounds\sfor\searlier\sversion
-D 2010-12-22T02:59:50
+C update\sdebian/changelog
+D 2010-12-22T03:01:04
 F BUILD.txt 10b5d2480a07d390ab78a308c37dad6888d40696
 F COPYRIGHT-BSD2.txt c7dd1de9f9539a5a859c2b41fe4560604a774476
 F Makefile bbb0c5a0b6e7835ba0cff175a3c1011442a80a93 x
@@ -34,7 +34,7 @@ F ci_cvs.txt 837df67f243330f601ed14e51761bc1528536dc1
 F ci_fossil.txt cf2b7a00fb594aa486f2bf953409d0d0429fd515
 F cvs2fossil.txt 3bce849e6e4a81eefd08fc28b6bbe806d2494b1a
 F debian/README.Debian c997854361309f585a17a22d44a46af180ecbf72
-F debian/changelog daf72e1096702edc3fa44ef911046a752cf84949
+F debian/changelog 574513209af03d1a99fb0d45644e413de753663d
 F debian/compat 136571b41aa14adc10c5f3c987d43c02c8f5d498
 F debian/control 9f58c42e0a24e237dfc299341f86f6af8f865d52
 F debian/copyright cb6bd1a9b3c0b3bd2a8b0352b9e7f6d4ef864a2d
@@ -297,15 +297,15 @@ F www/sync.wiki 9ea990b4d45a19cf4d7aa473249213db6798378d
 F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/webui.wiki 41ab11efd9cc1423464d5482a0802935533f28b7
 F www/wikitheory.wiki f2136b3705cae41decfd2ed5783a65a52d9384b1
-P 0610e2aecdb40b88e5222aaab550a48ef762273a
-R e0ca9f1dfe39120c820b0a413f848c84
+P 81b9f0c74e618b573befd0ea10567ba1abf5e9f0
+R 2ad3ab95c9b24de64034e9e7063fdce7
 U barak
-Z 7f70111449a3b9843951cf548e8ca8ad
+Z 288d725043edc1cb361930206fef5bcd
 # Remove this line to create a well-formed Fossil manifest.
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.10 (GNU/Linux)
 
-iEYEARECAAYFAk0RaaYACgkQLz4Gnv7CP7ITdQCcD7m8nV2sjzM53KVw63vbHfSO
-gvAAoNjxITebFRhXFXETubCb920K6TqX
-=9Ia8
+iEYEARECAAYFAk0RafAACgkQLz4Gnv7CP7KQBACbBD+ObSrKeNhtmVhfR4es0fQk
+QSsAn155pOJ+pwYYXkMs0hZS0p9OnPwP
+=9BGi
 -----END PGP SIGNATURE-----
