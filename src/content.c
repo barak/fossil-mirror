@@ -453,7 +453,14 @@ int content_put(Blob *pBlob, const char *zUuid, int srcId, int nBlob){
   }else{
     blob_init(&hash, zUuid, -1);
   }
-  size = nBlob ? nBlob : blob_size(pBlob);
+  if( nBlob ){
+    size = nBlob;
+  }else{
+    size = blob_size(pBlob);
+    if( srcId ){
+      size = delta_output_size(blob_buffer(pBlob), size);
+    }
+  }
   db_begin_transaction();
 
   /* Check to see if the entry already exists and if it does whether
@@ -747,4 +754,50 @@ void test_content_deltify_cmd(void){
   if( g.argc!=5 ) usage("RID SRCID FORCE");
   db_must_be_within_tree();
   content_deltify(atoi(g.argv[2]), atoi(g.argv[3]), atoi(g.argv[4]));
+}
+
+/*
+** COMMAND: test-integrity
+**
+** Verify that all content can be extracted from the BLOB table correctly.
+** If the BLOB table is correct, then the repository can always be
+** successfully reconstructed using "fossil rebuild".
+*/
+void test_integrity(void){
+  Stmt q;
+  Blob content;
+  Blob cksum;
+  int n1 = 0;
+  int n2 = 0;
+  int total;
+  db_find_and_open_repository(OPEN_ANY_SCHEMA, 2);
+  db_prepare(&q, "SELECT rid, uuid, size FROM blob ORDER BY rid");
+  total = db_int(0, "SELECT max(rid) FROM blob");
+  while( db_step(&q)==SQLITE_ROW ){
+    int rid = db_column_int(&q, 0);
+    const char *zUuid = db_column_text(&q, 1);
+    int size = db_column_int(&q, 2);
+    n1++;
+    printf("  %d/%d\r", n1, total);
+    fflush(stdout);
+    if( size<0 ){
+      printf("skip phantom %d %s\n", rid, zUuid);
+      continue;  /* Ignore phantoms */
+    }
+    content_get(rid, &content);
+    if( blob_size(&content)!=size ){
+      fossil_warning("size mismatch on blob rid=%d:  %d vs %d",
+                     rid, blob_size(&content), size);
+    }
+    sha1sum_blob(&content, &cksum);
+    if( strcmp(blob_str(&cksum), zUuid)!=0 ){
+      fossil_fatal("checksum mismatch on blob rid=%d: %s vs %s",
+                   rid, blob_str(&cksum), zUuid);
+    }
+    blob_reset(&cksum);
+    blob_reset(&content);
+    n2++;
+  }
+  db_finalize(&q);
+  printf("%d non-phantom blobs (out of %d total) verified\n", n2, n1);
 }

@@ -229,7 +229,7 @@ void www_print_timeline(
       @ event%s(suppressCnt>1?"s":"") omitted.</span></td></tr>
       suppressCnt = 0;
     }
-    if( strcmp(zType,"div")==0 ){
+    if( fossil_strcmp(zType,"div")==0 ){
       @ <tr><td colspan="3"><hr /></td></tr>
       continue;
     }
@@ -252,7 +252,9 @@ void www_print_timeline(
       static Stmt qparent;
       static Stmt qbranch;
       db_static_prepare(&qparent,
-        "SELECT pid FROM plink WHERE cid=:rid ORDER BY isprim DESC /*sort*/"
+        "SELECT pid FROM plink"
+        " WHERE cid=:rid AND pid NOT IN phantom"
+        " ORDER BY isprim DESC /*sort*/"
       );
       db_static_prepare(&qbranch,
         "SELECT value FROM tagxref WHERE tagid=%d AND tagtype>0 AND rid=:rid",
@@ -352,22 +354,55 @@ void timeline_output_graph_javascript(GraphContext *pGraph){
     char cSep;
     @ <script  type="text/JavaScript">
     @ /* <![CDATA[ */
+
+    /* the rowinfo[] array contains all the information needed to generate
+    ** the graph.  Each entry contains information for a single row:
+    **
+    **   id:  The id of the <div> element for the row. This is an integer.
+    **        to get an actual id, prepend "m" to the integer.  The top node
+    **        is 1 and numbers increase moving down the timeline.
+    **   bg:  The background color for this row
+    **    r:  The "rail" that the node for this row sits on.  The left-most
+    **        rail is 0 and the number increases to the right.
+    **    d:  True if there is a "descender" - an arrow coming from the bottom
+    **        of the page straight up to this node.
+    **   mo:  "merge-out".  If non-zero, this is one more than the rail on which
+    **        a merge arrow travels upward.  The merge arrow is drawn upwards
+    **        to the row identified by mu:.  If this value is zero then
+    **        node has no merge children and no merge-out line is drawn.
+    **   mu:  The id of the row which is the top of the merge-out arrow.
+    **   md:  A bitmask of rails on which merge-arrow descenders should be
+    **        drawn from this row to the bottom of the page.  The least
+    **        significant bit (1) corresponds to rail 0.  The 2-bit corresponds
+    **        to rail 1.  And so forth.  This value is 0 if there are no
+    **        merge-arrow descenders.
+    **    u:  Draw a think child-line out of the top of this node and up to
+    **        the node with an id equal to this value.  0 if there is no
+    **        thick-line riser.
+    **   au:  An array of integers that define thick-line risers for branches.
+    **        The integers are in pairs.  For each pair, the first integer is
+    **        is the rail on which the riser should run and the second integer
+    **        is the id of the node upto which the riser should run.
+    **   mi:  "merge-in".  An array of integer rail numbers from which
+    **        merge arrows should be drawn into this node.
+    */
     cgi_printf("var rowinfo = [\n");
     for(pRow=pGraph->pFirst; pRow; pRow=pRow->pNext){
-      cgi_printf("{id:\"m%d\",bg:\"%s\",r:%d,d:%d,mo:%d,mu:%d,u:%d,au:",
+      cgi_printf("{id:%d,bg:\"%s\",r:%d,d:%d,mo:%d,mu:%d,md:%u,u:%d,au:",
         pRow->idx,
         pRow->zBgClr,
         pRow->iRail,
         pRow->bDescender,
-        pRow->mergeOut,
+        pRow->mergeOut+1,
         pRow->mergeUpto,
-        pRow->aiRaiser[pRow->iRail]
+        pRow->mergeDown,
+        pRow->aiRiser[pRow->iRail]
       );
       cSep = '[';
       for(i=0; i<GR_MAX_RAIL; i++){
         if( i==pRow->iRail ) continue;
-        if( pRow->aiRaiser[i]>0 ){
-          cgi_printf("%c%d,%d", cSep, i, pRow->aiRaiser[i]);
+        if( pRow->aiRiser[i]>0 ){
+          cgi_printf("%c%d,%d", cSep, i, pRow->aiRiser[i]);
           cSep = ',';
         }
       }
@@ -458,8 +493,8 @@ void timeline_output_graph_javascript(GraphContext *pGraph){
     @   if( p.d ){
     @     drawUpArrow(p.x, p.y+6, btm);
     @   } 
-    @   if( p.mo>=0 ){
-    @     var x1 = p.mo*20 + left;
+    @   if( p.mo>0 ){
+    @     var x1 = (p.mo-1)*20 + left;
     @     var y1 = p.y-3;
     @     var x0 = x1>p.x ? p.x+7 : p.x-6;
     @     var u = rowinfo[p.mu-1];
@@ -487,6 +522,9 @@ void timeline_output_graph_javascript(GraphContext *pGraph){
     @     }else{
     @       drawThinArrow(y0,mx,p.x-5);
     @     }
+    @     if( (1<<p.mi[j])&p.md ){
+    @       drawThinLine(mx,y0,mx,btm);
+    @     }
     @   }
     @ }
     @ function renderGraph(){
@@ -495,10 +533,10 @@ void timeline_output_graph_javascript(GraphContext *pGraph){
     @     canvasDiv.removeChild(canvasDiv.firstChild);
     @   }
     @   var canvasY = absoluteY("timelineTable");
-    @   var left = absoluteX(rowinfo[0].id) - absoluteX("canvas") + 15;
+    @   var left = absoluteX("m"+rowinfo[0].id) - absoluteX("canvas") + 15;
     @   var width = nrail*20;
     @   for(var i in rowinfo){
-    @     rowinfo[i].y = absoluteY(rowinfo[i].id) + 10 - canvasY;
+    @     rowinfo[i].y = absoluteY("m"+rowinfo[i].id) + 10 - canvasY;
     @     rowinfo[i].x = left + rowinfo[i].r*20;
     @   }
     @   var btm = absoluteY("grbtm") + 10 - canvasY;
@@ -526,7 +564,7 @@ void timeline_output_graph_javascript(GraphContext *pGraph){
     @     drawNode(rowinfo[i], left, btm);
     @   }
     @ }
-    @ var lastId = rowinfo[rowinfo.length-1].id;
+    @ var lastId = "m"+rowinfo[rowinfo.length-1].id;
     @ var lastY = 0;
     @ function checkHeight(){
     @   var h = absoluteY(lastId);
@@ -795,14 +833,14 @@ void page_timeline(void){
         "AND (EXISTS(SELECT 1 FROM tagxref"
                     " WHERE tagid=%d AND tagtype>0 AND rid=blob.rid)", tagid);
 
-      if( zBrName && zType[0]=='c' ){
+      if( zBrName ){
+        url_add_parameter(&url, "r", zBrName);
         /* The next two blob_appendf() calls add SQL that causes checkins that
         ** are not part of the branch which are parents or childen of the branch
         ** to be included in the report.  This related check-ins are useful
         ** in helping to visualize what has happened on a quiescent branch 
         ** that is infrequently merged with a much more activate branch.
         */
-        url_add_parameter(&url, "r", zBrName);
         blob_appendf(&sql,
           " OR EXISTS(SELECT 1 FROM plink JOIN tagxref ON rid=cid"
                      " WHERE tagid=%d AND tagtype>0 AND pid=blob.rid)", tagid);
@@ -1049,7 +1087,7 @@ void print_timeline(Stmt *q, int mxLine){
       sqlite3_snprintf(sizeof(zPrefix)-n, &zPrefix[n], zBrType);
       n = strlen(zPrefix);
     }
-    if( zCurrentUuid && strcmp(zCurrentUuid,zId)==0 ){
+    if( fossil_strcmp(zCurrentUuid,zId)==0 ){
       sqlite3_snprintf(sizeof(zPrefix)-n, &zPrefix[n], "*CURRENT* ");
       n += strlen(zPrefix);
     }
@@ -1245,6 +1283,7 @@ struct tm *fossil_localtime(const time_t *clock){
       g.fTimeFormat = 2;
     }
   }
+  if( clock==0 ) return 0;
   if( g.fTimeFormat==1 ){
     return gmtime(clock);
   }else{

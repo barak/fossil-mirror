@@ -22,23 +22,29 @@ set doclist {
   fossil-v-git.wiki {Fossil Versus Git}
   index.wiki {Home Page}
   inout.wiki {Import And Export To And From Git}
+  makefile.wiki {The Fossil Build Process}
   password.wiki {Password Management And Authentication}
   pop.wiki {Principles Of Operations}
   qandc.wiki {Questions And Criticisms}
   quickstart.wiki {Fossil Quick Start Guide}
+  quotes.wiki
+      {Quotes: What People Are Saying About Fossil, Git, and DVCSes in General}
   selfcheck.wiki {Fossil Repository Integrity Self Checks}
   selfhost.wiki {Fossil Self Hosting Repositories}
   server.wiki {How To Configure A Fossil Server}
-  shunning.wiki {Deleting Content From Fossil}
+  shunning.wiki {Shunning: Deleting Content From Fossil}
   stats.wiki {Performance Statistics}
   sync.wiki {The Fossil Sync Protocol}
+  tech_overview.wiki {A Technical Overview Of The Design And Implementation
+                      Of Fossil}
+  tech_overview.wiki {SQLite Databases Used By Fossil}
   theory1.wiki {Thoughts On The Design Of The Fossil DVCS}
   webui.wiki {The Fossil Web Interface}
   wikitheory.wiki {Wiki In Fossil}
 }
 
 set permindex {}
-set stopwords {fossil and a in of on the to}
+set stopwords {fossil and a in of on the to are about used by}
 foreach {file title} $doclist {
   set n [llength $title]
   lappend permindex [list $title $file]

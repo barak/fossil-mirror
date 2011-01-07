@@ -186,7 +186,7 @@ a living in Orwell's novel
 [http://en.wikipedia.org/wiki/Nineteen_Eighty-Four | 1984].
 
 Fossil deliberately avoids rewriting history.  Fossil strives to follow
-the accounting philosophy of never erasing anything.  Mistakes are fixed
+the accountants philosophy of never erasing anything.  Mistakes are fixed
 by entering a correction, with an explanation of why the correction is
 needed.  This can make the history of a project messy, but it also
 makes it more honest.  The lack of a "rebase" function is considered

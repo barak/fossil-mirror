@@ -421,6 +421,21 @@ int fossil_system(const char *zOrigCmd){
 }
 
 /*
+** Like strcmp() except that it accepts NULL pointers.  NULL sorts before
+** all non-NULL string pointers.
+*/
+int fossil_strcmp(const char *zA, const char *zB){
+  if( zA==0 ){
+    if( zB==0 ) return 0;
+    return -1;
+  }else if( zB==0 ){
+    return +1;
+  }else{
+    return strcmp(zA,zB);
+  }
+}
+
+/*
 ** Turn off any NL to CRNL translation on the stream given as an
 ** argument.  This is a no-op on unix but is necessary on windows.
 */
@@ -529,7 +544,7 @@ const char *find_option(const char *zLong, const char *zShort, int hasArg){
         remove_from_argv(i, 1+hasArg);
         break;
       }
-    }else if( zShort!=0 && strcmp(z,zShort)==0 ){
+    }else if( fossil_strcmp(z,zShort)==0 ){
       zReturn = g.argv[i+hasArg];
       remove_from_argv(i, 1+hasArg);
       break;
@@ -667,54 +682,92 @@ void help_cmd(void){
 
 /*
 ** WEBPAGE: help
-** URL: /help?cmd=CMD
+** URL: /help/CMD
 */
 void help_page(void){
-    const char * zCmd = P("cmd");
-    
-    style_header("Command line help %s%s",zCmd?" - ":"",zCmd?zCmd:"");
-    if( zCmd ){
-      int rc, idx;
-      char *z, *s, *d;
+  const char * zCmd = P("cmd");
 
-      @ <h1>%s(zCmd)</h1>
-      rc = name_search(zCmd, aCommand, count(aCommand), &idx);
-      if( rc==1 ){
-        @ unknown command: %s(zCmd)
-      }else if( rc==2 ){
-        @ ambiguous command prefix: %s(zCmd)
-      }else{
-        z = (char*)aCmdHelp[idx];
-        if( z==0 ){
-          @ no help available for the %s(aCommand[idx].zName) command
-        }else{
-          z=s=d=mprintf("%s",z);
-	  while( *s ){
-	    if( *s=='%' && strncmp(s, "%fossil", 7)==0 ){
-	      s++;
-	    }else{
-	      *d++ = *s++;
-	    }
-	  }
-	  *d = 0;
-	  @ <pre>%s(z)</pre>
-	  free(z);
-	}
-      }
-      @ <hr/><a href="help">available commands</a> in fossil
-      @ version %s(MANIFEST_VERSION" "MANIFEST_DATE) UTC
+  if( zCmd==0 ) zCmd = P("name");
+  style_header("Command-line Help");
+  if( zCmd ){
+    int rc, idx;
+    char *z, *s, *d;
+
+    style_submenu_element("Command-List", "Command-List", "%s/help", g.zTop);
+    @ <h1>The "%s(zCmd)" command:</h1>
+    rc = name_search(zCmd, aCommand, count(aCommand), &idx);
+    if( rc==1 ){
+      @ unknown command: %s(zCmd)
+    }else if( rc==2 ){
+      @ ambiguous command prefix: %s(zCmd)
     }else{
-      int i;
-      
-      @ <h1>Available commands</h1>
-      for(i=0; i<count(aCommand); i++){
-        if( strncmp(aCommand[i].zName,"test",4)==0 ) continue;
-        @ <kbd><a href="help?cmd=%s(aCommand[i].zName)">
-        @ %s(aCommand[i].zName)</a></kbd>
+      z = (char*)aCmdHelp[idx];
+      if( z==0 ){
+        @ no help available for the %s(aCommand[idx].zName) command
+      }else{
+        z=s=d=mprintf("%s",z);
+        while( *s ){
+          if( *s=='%' && strncmp(s, "%fossil", 7)==0 ){
+            s++;
+          }else{
+            *d++ = *s++;
+          }
+        }
+        *d = 0;
+        @ <blockquote><pre>
+        @ %h(z)
+        @ </pre></blockquote>
+        free(z);
       }
-      @ <hr/>fossil version %s(MANIFEST_VERSION" "MANIFEST_DATE) UTC
     }
-    style_footer();
+  }else{
+    int i, j, n;
+
+    @ <h1>Available commands:</h1>
+    @ <table border="0"><tr>
+    for(i=j=0; i<count(aCommand); i++){
+      const char *z = aCommand[i].zName;
+      if( strncmp(z,"test",4)==0 ) continue;
+      j++;
+    }
+    n = (j+6)/7;
+    for(i=j=0; i<count(aCommand); i++){
+      const char *z = aCommand[i].zName;
+      if( strncmp(z,"test",4)==0 ) continue;
+      if( j==0 ){
+        @ <td valign="top"><ul>
+      }
+      @ <li><a href="%s(g.zTop)/help?cmd=%s(z)">%s(z)</a>
+      j++;
+      if( j>=n ){
+        @ </ul></td>
+        j = 0;
+      }
+    }
+    if( j>0 ){
+      @ </ul></td>
+    }
+    @ </tr></table>
+  }
+  style_footer();
+}
+
+/*
+** WEBPAGE: test-all-help
+**
+** Show all help text on a single page.  Useful for proof-reading.
+*/
+void test_all_help_page(void){
+  int i;
+  style_header("Testpage: All Help Text");
+  for(i=0; i<count(aCommand); i++){
+    if( memcmp(aCommand[i].zName, "test", 4)==0 ) continue;
+    @ <h2>%s(aCommand[i].zName):</h2>
+    @ <blockquote><pre>
+    @ %h(aCmdHelp[i])
+    @ </pre></blockquote>
+  }
+  style_footer();
 }
 
 /*
@@ -929,7 +982,7 @@ void cmd_cgi(void){
   const char *zFile;
   const char *zNotFound = 0;
   Blob config, line, key, value;
-  if( g.argc==3 && strcmp(g.argv[1],"cgi")==0 ){
+  if( g.argc==3 && fossil_strcmp(g.argv[1],"cgi")==0 ){
     zFile = g.argv[2];
   }else{
     zFile = g.argv[1];

@@ -18,6 +18,7 @@
 ** Code to generate the ticket listings
 */
 #include "config.h"
+#include <time.h>
 #include "report.h"
 #include <assert.h>
 
@@ -66,7 +67,9 @@ void view_list(void){
     if( g.okTktFmt ){
       blob_appendf(&ril, "[<a href=\"rptedit?rn=%d&amp;copy=1\" rel=\"nofollow\">copy</a>] ", rn);
     }
-    if( g.okAdmin || (g.okWrTkt && zOwner && strcmp(g.zLogin,zOwner)==0) ){
+    if( g.okAdmin 
+     || (g.okWrTkt && zOwner && fossil_strcmp(g.zLogin,zOwner)==0)
+    ){
       blob_appendf(&ril, "[<a href=\"rptedit?rn=%d\" rel=\"nofollow\">edit</a>] ", rn);
     }
     if( g.okTktFmt ){
@@ -425,7 +428,7 @@ void view_edit(void){
   @ color for that line.<br />
   @ <textarea name="k" rows="8" cols="50">%h(zClrKey)</textarea>
   @ </p>
-  if( !g.okAdmin && strcmp(zOwner,g.zLogin)!=0 ){
+  if( !g.okAdmin && fossil_strcmp(zOwner,g.zLogin)!=0 ){
     @ <p>This report format is owned by %h(zOwner).  You are not allowed
     @ to change it.</p>
     @ </form>
@@ -956,6 +959,7 @@ void rptview_page(void){
     @ <table border="1" cellpadding="2" cellspacing="0" class="report">
     sState.rn = rn;
     sState.nCount = 0;
+    (void)fossil_localtime(0);  /* initialize the g.fTimeFormat variable */
     sqlite3_set_authorizer(g.db, report_query_authorizer, (void*)&zErr1);
     sqlite3_exec_readonly(g.db, zSql, generate_html, &sState, &zErr2);
     sqlite3_set_authorizer(g.db, 0, 0);
