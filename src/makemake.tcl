@@ -723,7 +723,7 @@ foreach s [lsort $src] {
 }
 writeln "\$(SRCDIR)\\sqlite3.h \$(SRCDIR)\\th.h VERSION.h"
 writeln "\t@copy /Y nul: headers"
-	
+
 
 close $output_file
 #

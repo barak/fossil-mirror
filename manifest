@@ -1,5 +1,5 @@
-C log\sguarding\snew\ssqlite3\sAPI\sinvocation
-D 2011-01-08T22:47:27
+C revert\sgratuitous\swhitespace\schange
+D 2011-01-08T23:00:28
 F BUILD.txt 58b010d4c2642615308f0f04cfa32eb884fdc982
 F COPYRIGHT-BSD2.txt c7dd1de9f9539a5a859c2b41fe4560604a774476
 F Makefile 93b752cf85c466f89444958e8e5e6e351ec3ffa9 x
@@ -85,7 +85,7 @@ F src/main.c 145ba6b70aeb6d85b5d37968fc535c97372065b1
 F src/main.mk 7060ed930a9cecaf80aaa3104ac51d79d2a7cc87
 F src/makeheaders.c 66f7de56cdd0fdc07d9776e5d17b9795008fddf6
 F src/makeheaders.html 3c3db86a7666b26b001d63a0e2da83bd2cdacf77
-F src/makemake.tcl 6dd2fc017b9a09e31d186e9bcbea4e18830b22a2 x
+F src/makemake.tcl 70bd79cc58bea4399338b87e66a1362a1521a663 x
 F src/manifest.c e0c9be0237df268654d5012a7c0b6b4bc0b71668
 F src/md5.c 5f7f55a1e70ada8671134eb7fca456b5aa391d40
 F src/merge.c 6131cabe35fb8c8dd8d9b96ad2a66da3e4a5d5e0
@@ -298,8 +298,8 @@ F www/tech_overview.wiki 487503a4bf90dc6b42f23cdb0db76e1cd8e8c866
 F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/webui.wiki 41ab11efd9cc1423464d5482a0802935533f28b7
 F www/wikitheory.wiki f2136b3705cae41decfd2ed5783a65a52d9384b1
-P a81438dbc4d6f7377fe0e303a99894d6fdaaf77f
-R 95443200c3001a8bdc460452a8514c6c
+P de2127c2fcd7fd02f855fd9e004c6069590418f7
+R e47dafb7e01294672d83dcdd8366ba8c
 U barak
-Z 56383319d1a912c85501b58d11be24c8
+Z e27e17b7bdae8e5aecb9245a8bb8f7cd
 # Remove this line to create a well-formed Fossil manifest.
