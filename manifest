@@ -1,5 +1,5 @@
-C update\sdebian/changelog
-D 2011-01-07T22:32:18
+C guard\ssome\svery\snew\ssqlite3\sAPI\sinvocations
+D 2011-01-08T22:46:09
 F BUILD.txt 58b010d4c2642615308f0f04cfa32eb884fdc982
 F COPYRIGHT-BSD2.txt c7dd1de9f9539a5a859c2b41fe4560604a774476
 F Makefile 93b752cf85c466f89444958e8e5e6e351ec3ffa9 x
@@ -61,7 +61,7 @@ F src/comformat.c 8591c01b2ba6043585b303c7a71083bc2cbe87b4
 F src/config.h 56f6a96486fb3f7d2e052279c24206037b583f1c
 F src/configure.c bf989ae67595c6f528bfc46c10cd09c9e95643b7
 F src/content.c 98efb9a02099dee9c5a47db0317d985c4e3aa170
-F src/db.c 0b5c5db149dd86021e71aff0bc5f6c932f160547
+F src/db.c fd45dde7f14b0ff406633337d05117808673a3af
 F src/delta.c e3dfb31289b71aa446b61fc6e9d09a3fcdd92710
 F src/deltacmd.c b873b0bdd070a7fee96ca9efec034774446db5ec
 F src/descendants.c d19dd64e7b7462ca52b59acbe5bf005663054ecd
@@ -298,8 +298,8 @@ F www/tech_overview.wiki 487503a4bf90dc6b42f23cdb0db76e1cd8e8c866
 F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/webui.wiki 41ab11efd9cc1423464d5482a0802935533f28b7
 F www/wikitheory.wiki f2136b3705cae41decfd2ed5783a65a52d9384b1
-P c284e45294b148534849ec721a1b5a8b836cf1d5
-R 03b5901cd00cf1aae64e1197b71e89d3
+P 4c0537bca9e8fb52f8b87d15c2bc1f4a831bb20c
+R 7dbc660d20ecd5c9c6f087ef1cbcf24f
 U barak
-Z 5a1671b64449bbdf1d177cdb39c4512c
+Z 9a25769e11f497397ce94e49c7003479
 # Remove this line to create a well-formed Fossil manifest.
