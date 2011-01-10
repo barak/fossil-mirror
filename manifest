@@ -1,5 +1,5 @@
-C revert\sgratuitous\swhitespace\schange
-D 2011-01-08T23:00:28
+C update\sman\spage\s(debian/fossil.1)
+D 2011-01-10T11:19:21
 F BUILD.txt 58b010d4c2642615308f0f04cfa32eb884fdc982
 F COPYRIGHT-BSD2.txt c7dd1de9f9539a5a859c2b41fe4560604a774476
 F Makefile 93b752cf85c466f89444958e8e5e6e351ec3ffa9 x
@@ -34,7 +34,7 @@ F debian/changelog ecfe3027e78f0f2006f207953e309a3b12496975
 F debian/compat 136571b41aa14adc10c5f3c987d43c02c8f5d498
 F debian/control 9f58c42e0a24e237dfc299341f86f6af8f865d52
 F debian/copyright cb6bd1a9b3c0b3bd2a8b0352b9e7f6d4ef864a2d
-F debian/fossil.1 98d11bb94fe75586757c9c3f51914aaf9e976fbe
+F debian/fossil.1 5c0f9c88ae2898f60b89d1b8a482b131c9c5af25
 F debian/fossil.install 8ae909034651ad9b0a72cd10460fed7b9e51f627
 F debian/fossil.manpages a54d8f1ffdace2473552a7903f51d059edc38a07
 F debian/rules be8ee50ff33bbd5fb5ff0d46b2e96450944c9a83 x
@@ -298,8 +298,8 @@ F www/tech_overview.wiki 487503a4bf90dc6b42f23cdb0db76e1cd8e8c866
 F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/webui.wiki 41ab11efd9cc1423464d5482a0802935533f28b7
 F www/wikitheory.wiki f2136b3705cae41decfd2ed5783a65a52d9384b1
-P de2127c2fcd7fd02f855fd9e004c6069590418f7
-R e47dafb7e01294672d83dcdd8366ba8c
+P d60b7329f3bb440508ff68598235d8c5a890ca8d
+R 5afb9bc8a3a17c69eceaf5b871c680d9
 U barak
-Z e27e17b7bdae8e5aecb9245a8bb8f7cd
+Z 8be4b35c41abc57f829949dc13daf092
 # Remove this line to create a well-formed Fossil manifest.

@@ -1,4 +1,4 @@
-.TH FOSSIL "1" "September 2009" "http://fossil-scm.org" "User Commands"
+.TH FOSSIL "1" "January 2011" "http://fossil-scm.org" "User Commands"
 .SH NAME
 fossil \- Distributed Version Control System
 .SH SYNOPSIS
@@ -14,81 +14,97 @@ fossil \- Distributed Version Control System
 Fossil is a distributed version control system (DVCS) with built-in
 wiki, ticket tracker, CGI/http interface, and http server.
 
-.SH AVAILABLE COMMANDS
+.SH Available COMMANDs:
+
+add            close          http           reconstruct    status       
 .br
-add            commit         leaves         remote\-url     timeline
+addremove      co             import         redo           sync         
 .br
-all            configuration  ls             rename         ui
+all            commit         info           remote\-url     tag          
 .br
-branch         deconstruct    merge          revert         undo
+annotate       configuration  init           rename         ticket       
 .br
-cgi            del            mv             rm             unset
+artifact       deconstruct    leaves         revert         timeline     
 .br
-changes        descendants    new            rstats         update
+bisect         delete         ls             rm             ui           
 .br
-checkout       diff           open           scrub          user
+branch         descendants    merge          scrub          undo         
 .br
-ci             extras         pull           server         version
+cgi            diff           mv             search         unset        
 .br
-clean          gdiff          push           settings       wiki
+changes        export         new            server         update       
 .br
-clone          help           rebuild        status
+checkout       extras         open           settings       user         
 .br
-close          http           reconstruct    sync
+ci             finfo          pull           sha1sum        version      
 .br
-co             info           redo           tag
+clean          gdiff          push           sqlite3        wiki         
+.br
+clone          help           rebuild        stash          zip          
 
 .SH FEATURES
 
 Features as described on the fossil home page.
 
 .HP
-1. Bug Tracking And Wiki - In addition to doing distributed version
-control like Git and Mercurial, Fossil also supports distributed bug
-tracking and distributed wiki all in a single integrated package.
+1.
+.B Bug Tracking And Wiki
+- In addition to doing distributed version control like Git and
+Mercurial, Fossil also supports distributed bug tracking, distributed
+wiki, and a distributed blog mechanism all in a single integrated
+package.
 
 .HP
-2. Web Interface - Fossil has a built-in and easy-to-use web
-interface that simplifies project tracking and promotes situational
-awareness. Simply type "fossil ui" from within any check-out and
-Fossil automatically opens your web browser in a page that gives
-detailed history and status information on that project.
+2.
+.B Web Interface
+- Fossil has a built-in and easy-to-use web interface that simplifies
+project tracking and promotes situational awareness. Simply type
+"fossil ui" from within any check-out and Fossil automatically opens
+your web browser in a page that gives detailed graphical history and
+status information on that project.
 
 .HP
-3. Autosync - Fossil supports "autosync" mode which helps to keep
-projects moving forward by reducing the amount of needless forking and
-merging often associated distributed projects.
+3.
+.B Autosync
+- Fossil supports "autosync" mode which helps to keep projects moving
+forward by reducing the amount of needless forking and merging often
+associated with distributed projects.
 
 .HP
-4. Self-Contained - Fossil is a single stand-alone executable that
-contains everything needed to do configuration
-management. Installation is trivial: simply download a precompiled
-binary for Linux, Mac, or Windows and put it on your
-$PATH. Easy-to-compile source code is available for users on other
-platforms. Fossil sources are also mostly self-contained, requiring
-only the "zlib" library and the standard C library to build.
+4.
+.B Self-Contained
+- Fossil is a single stand-alone executable that contains everything
+needed to do configuration management. Installation is trivial: simply
+download a precompiled binary for Linux, Mac, or Windows and put it on
+your $PATH. Easy-to-compile source code is available for users on
+other platforms. Fossil sources are also mostly self-contained,
+requiring only the "zlib" library and the standard C library to build.
 
 .HP
-5. Simple Networking - Fossil uses plain old HTTP (with proxy
-support) for all network communications, meaning that it works fine
-from behind restrictive firewalls. The protocol is bandwidth efficient
-to the point that Fossil can be used comfortably over a dial-up
-internet connection.
+5.
+.B Simple Networking
+- Fossil uses plain old HTTP (with proxy support) for all network
+communications, meaning that it works fine from behind restrictive
+firewalls. The protocol is bandwidth efficient to the point that
+Fossil can be used comfortably over a dial-up internet connection.
 
 .HP
-6. CGI Enabled - No server is required to use fossil. But a server
-does make collaboration easier. Fossil supports three different yet
-simple server configurations. The most popular is a 2-line CGI
-script. This is the approach used by the self-hosting fossil
-repositories.
+6.
+.B CGI Enabled
+- No server is required to use fossil. But a server does make
+collaboration easier. Fossil supports three different yet simple
+server configurations. The most popular is a 2-line CGI script. This
+is the approach used by the self-hosting fossil repositories.
 
 .HP
-7. Robust & Reliable - Fossil stores content in an SQLite database so
-that transactions are atomic even if interrupted by a power loss or
-system crash. Furthermore, automatic self-checks verify that all
-aspects of the repository are consistent prior to each commit. In over
-two years of operation, no work has ever been lost after having been
-committed to a Fossil repository.
+7.
+.B Robust & Reliable
+- Fossil stores content using an enduring file format in an SQLite
+database so that transactions are atomic even if interrupted by a
+power loss or system crash. Furthermore, automatic self-checks verify
+that all aspects of the repository are consistent prior to each
+commit. In over three years of operation, no work has ever been lost
+after having been committed to a Fossil repository.
 
 .SH DOCUMENTATION
 http://www.fossil-scm.org/
