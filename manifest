@@ -1,5 +1,5 @@
-C log\supdated\sman\spage
-D 2011-01-10T11:20:01
+C tweak\smakefile\sfor\starget\sdir
+D 2011-01-10T12:51:49
 F BUILD.txt 58b010d4c2642615308f0f04cfa32eb884fdc982
 F COPYRIGHT-BSD2.txt c7dd1de9f9539a5a859c2b41fe4560604a774476
 F Makefile 93b752cf85c466f89444958e8e5e6e351ec3ffa9 x
@@ -82,10 +82,10 @@ F src/import.c ae713391c763e3fe7b390305457b9d222fc817c4
 F src/info.c 60b77d8bcdbeda8dc72fa3876260e228d57ba6d3
 F src/login.c 24107b88a32ac7e2503c5f7c4b6c609147d9231e
 F src/main.c 145ba6b70aeb6d85b5d37968fc535c97372065b1
-F src/main.mk 7060ed930a9cecaf80aaa3104ac51d79d2a7cc87
+F src/main.mk 7b1fd574e66647f56dbbe8877ec8ce2a7b2e7d3a
 F src/makeheaders.c 66f7de56cdd0fdc07d9776e5d17b9795008fddf6
 F src/makeheaders.html 3c3db86a7666b26b001d63a0e2da83bd2cdacf77
-F src/makemake.tcl 70bd79cc58bea4399338b87e66a1362a1521a663 x
+F src/makemake.tcl da3ca9597028f76a16d96bdd1dcbbb0a217f9089 x
 F src/manifest.c e0c9be0237df268654d5012a7c0b6b4bc0b71668
 F src/md5.c 5f7f55a1e70ada8671134eb7fca456b5aa391d40
 F src/merge.c 6131cabe35fb8c8dd8d9b96ad2a66da3e4a5d5e0
@@ -298,8 +298,8 @@ F www/tech_overview.wiki 487503a4bf90dc6b42f23cdb0db76e1cd8e8c866
 F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/webui.wiki 41ab11efd9cc1423464d5482a0802935533f28b7
 F www/wikitheory.wiki f2136b3705cae41decfd2ed5783a65a52d9384b1
-P a3e4cc66891da04527c21883df4ff50a0bc4c90e
-R b234816c439c1855c071d8d540f0b369
+P 791c15b17ad9c7c089175ca147fe50492409f757
+R 0955219759917adc13b013e32c3412e8
 U barak
-Z 03609448de1147ec8e0bfb4b9b4b2081
+Z 20e9ce28ba68c970252bc8ccf29c6a2b
 # Remove this line to create a well-formed Fossil manifest.
