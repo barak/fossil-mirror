@@ -128,24 +128,35 @@ void db_end_transaction(int rollbackFlag){
     for(i=0; doRollback==0 && i<nCommitHook; i++){
       doRollback |= aHook[i].xHook();
     }
+    while( pAllStmt ){
+      db_finalize(pAllStmt);
+    }
     db_multi_exec(doRollback ? "ROLLBACK" : "COMMIT");
     doRollback = 0;
   }
 }
+
+/*
+** Force a rollback and shutdown the database
+*/
 void db_force_rollback(void){
   static int busy = 0;
   if( busy || g.db==0 ) return;
   busy = 1;
   undo_rollback();
+  while( pAllStmt ){
+    db_finalize(pAllStmt);
+  }
   if( nBegin ){
     sqlite3_exec(g.db, "ROLLBACK", 0, 0, 0);
     nBegin = 0;
     if( isNewRepo ){
-      db_close();
+      db_close(0);
       unlink(g.zRepositoryName);
     }
   }
   busy = 0;
+  db_close(0);
 }
 
 /*
@@ -922,7 +933,7 @@ void move_repo_cmd(void){
   }
   db_open_or_attach(zRepo, "test_repo");
   db_lset("repository", blob_str(&repo));
-  db_close();
+  db_close(1);
 }
 
 
@@ -939,8 +950,11 @@ void db_must_be_within_tree(void){
 
 /*
 ** Close the database connection.
+**
+** Check for unfinalized statements and report errors if the reportErrors
+** argument is true.  Ignore unfinalized statements when false.
 */
-void db_close(void){
+void db_close(int reportErrors){
   sqlite3_stmt *pStmt;
   if( g.db==0 ) return;
   if( g.fSqlTrace ){
@@ -979,8 +993,10 @@ void db_close(void){
   }
   db_end_transaction(1);
   pStmt = 0;
-  while( (pStmt = sqlite3_next_stmt(g.db, pStmt))!=0 ){
-    fossil_warning("unfinalized SQL statement: [%s]", sqlite3_sql(pStmt));
+  if( reportErrors ){
+    while( (pStmt = sqlite3_next_stmt(g.db, pStmt))!=0 ){
+      fossil_warning("unfinalized SQL statement: [%s]", sqlite3_sql(pStmt));
+    }
   }
   g.repositoryOpen = 0;
   g.localOpen = 0;
@@ -1592,6 +1608,7 @@ struct stControlSettings const ctrlSettings[] = {
   { "autosync",      0,                0, "on"                  },
   { "binary-glob",   0,               32, ""                    },
   { "clearsign",     0,                0, "off"                 },
+  { "default-perms", 0,               16, "u"                   },
   { "diff-command",  0,               16, ""                    },
   { "dont-push",     0,                0, "off"                 },
   { "editor",        0,               16, ""                    },
@@ -1604,6 +1621,7 @@ struct stControlSettings const ctrlSettings[] = {
   { "pgp-command",   0,               32, "gpg --clearsign -o " },
   { "proxy",         0,               32, "off"                 },
   { "repo-cksum",    0,                0, "on"                  },
+  { "self-register", 0,                0, "off"                 },
   { "ssh-command",   0,               32, ""                    },
   { "web-browser",   0,               32, ""                    },
   { 0,0,0,0 }
@@ -1643,6 +1661,10 @@ struct stControlSettings const ctrlSettings[] = {
 **    clearsign        When enabled, fossil will attempt to sign all commits
 **                     with gpg.  When disabled (the default), commits will
 **                     be unsigned.  Default: off
+**
+**    default-perms    Permissions given automatically to new users.  For more
+**                     information on permissions see Users page in Server
+**                     Administration of the HTTP UI. Default: u.
 **
 **    diff-command     External command to run when performing a diff.
 **                     If undefined, the internal text diff will be used.
@@ -1686,6 +1708,11 @@ struct stControlSettings const ctrlSettings[] = {
 **                     as a double-check of correctness.  Defaults to "on".
 **                     Disable on large repositories for a performance
 **                     improvement.
+**
+**    self-register    Allow users to register themselves through the HTTP UI.
+**                     This is useful if you want to see other names than
+**                     "Anonymous" in e.g. ticketing system. On the other hand
+**                     users can not be deleted. Default: off.
 **
 **    ssh-command      Command used to talk to a remote machine with
 **                     the "ssh://" protocol.

@@ -244,7 +244,19 @@ int main(int argc, char **argv){
     g.fSqlPrint = find_option("sqlprint", 0, 0)!=0;
     g.fHttpTrace = find_option("httptrace", 0, 0)!=0;
     g.zLogin = find_option("user", "U", 1);
-    zCmdName = argv[1];
+    if( find_option("help",0,0)!=0 ){
+      /* --help anywhere on the command line is translated into
+      ** "fossil help argv[1] argv[2]..." */
+      int i;
+      char **zNewArgv = fossil_malloc( sizeof(char*)*(g.argc+2) );
+      for(i=1; i<g.argc; i++) zNewArgv[i+1] = argv[i];
+      zNewArgv[i+1] = 0;
+      zNewArgv[0] = argv[0];
+      zNewArgv[1] = "help";
+      g.argc++;
+      g.argv = zNewArgv;
+    }
+    zCmdName = g.argv[1];
   }
   rc = name_search(zCmdName, aCommand, count(aCommand), &idx);
   if( rc==1 ){
@@ -296,7 +308,7 @@ const char *fossil_nameofexe(void){
 ** Exit.  Take care to close the database first.
 */
 void fossil_exit(int rc){
-  db_close();
+  db_close(1);
   exit(rc);
 }
 
@@ -521,7 +533,7 @@ const char *find_option(const char *zLong, const char *zShort, int hasArg){
   const char *zReturn = 0;
   assert( hasArg==0 || hasArg==1 );
   nLong = strlen(zLong);
-  for(i=2; i<g.argc; i++){
+  for(i=1; i<g.argc; i++){
     char *z;
     if (i+hasArg >= g.argc) break;
     z = g.argv[i];
@@ -593,17 +605,16 @@ static void multi_column_list(const char **azWord, int nWord){
 }
 
 /*
-** COM -off- MAND: commands
-**
-** Usage: %fossil commands
-** List all supported commands.
+** List of commands starting with zPrefix, or all commands if zPrefix is NULL.
 */
-void cmd_cmd_list(void){
+static void cmd_cmd_list(const char *zPrefix){
   int i, nCmd;
+  int nPrefix = zPrefix ? strlen(zPrefix) : 0;
   const char *aCmd[count(aCommand)];
   for(i=nCmd=0; i<count(aCommand); i++){
-    if( strncmp(aCommand[i].zName,"test",4)==0 ) continue;
-    /* if( strcmp(aCommand[i].zName, g.argv[1])==0 ) continue; */
+    const char *z = aCommand[i].zName;
+    if( memcmp(z,"test",4)==0 ) continue;
+    if( zPrefix && memcmp(zPrefix, z, nPrefix)!=0 ) continue;
     aCmd[nCmd++] = aCommand[i].zName;
   }
   multi_column_list(aCmd, nCmd);
@@ -621,7 +632,6 @@ void cmd_test_cmd_list(void){
   const char *aCmd[count(aCommand)];
   for(i=nCmd=0; i<count(aCommand); i++){
     if( strncmp(aCommand[i].zName,"test",4)!=0 ) continue;
-    /* if( strcmp(aCommand[i].zName, g.argv[1])==0 ) continue; */
     aCmd[nCmd++] = aCommand[i].zName;
   }
   multi_column_list(aCmd, nCmd);
@@ -650,18 +660,23 @@ void version_cmd(void){
 void help_cmd(void){
   int rc, idx;
   const char *z;
-  if( g.argc!=3 ){
+  if( g.argc<3 ){
     printf("Usage: %s help COMMAND.\nAvailable COMMANDs:\n",
            fossil_nameofexe());
-    cmd_cmd_list();
+    cmd_cmd_list(0);
     version_cmd();
     return;
   }
   rc = name_search(g.argv[2], aCommand, count(aCommand), &idx);
   if( rc==1 ){
-    fossil_fatal("unknown command: %s", g.argv[2]);
+    fossil_print("unknown command: %s\nAvailable commands:\n", g.argv[2]);
+    cmd_cmd_list(0);
+    fossil_exit(1);
   }else if( rc==2 ){
-    fossil_fatal("ambiguous command prefix: %s", g.argv[2]);
+    fossil_print("ambiguous command prefix: %s\nMatching commands:\n",
+                 g.argv[2]);
+    cmd_cmd_list(g.argv[2]);
+    fossil_exit(1);
   }
   z = aCmdHelp[idx];
   if( z==0 ){
@@ -839,7 +854,7 @@ static char *enter_chroot_jail(char *zRepo){
     setgid(sStat.st_gid);
     setuid(sStat.st_uid);
     if( g.db!=0 ){
-      db_close();
+      db_close(1);
       db_open_repository(zRepo);
     }
   }
@@ -1021,7 +1036,7 @@ void cmd_cgi(void){
       continue;
     }
     if( blob_eq(&key, "directory:") && blob_token(&line, &value) ){
-      db_close();
+      db_close(1);
       g.zRepositoryName = mprintf("%s", blob_str(&value));
       blob_reset(&value);
       continue;
@@ -1230,7 +1245,7 @@ void cmd_webserver(void){
 #endif
     zBrowserCmd = mprintf("%s http://localhost:%%d/ &", zBrowser);
   }
-  db_close();
+  db_close(1);
   if( cgi_http_server(iPort, mxPort, zBrowserCmd, flags) ){
     fossil_fatal("unable to listen on TCP socket %d", iPort);
   }
@@ -1250,7 +1265,7 @@ void cmd_webserver(void){
     zBrowser = db_get("web-browser", "start");
     zBrowserCmd = mprintf("%s http://127.0.0.1:%%d/", zBrowser);
   }
-  db_close();
+  db_close(1);
   win32_http_server(iPort, mxPort, zBrowserCmd, zStopperFile, zNotFound, flags);
 #endif
 }

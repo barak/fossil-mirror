@@ -73,30 +73,6 @@ int uuid_to_rid(const char *zUuid, int phantomize){
 }
 
 /*
-** Verify that an object is not a phantom.  If the object is
-** a phantom, output an error message and quick.
-*/
-static void vfile_verify_not_phantom(
-  int rid,                  /* The RID to verify */
-  const char *zFilename,    /* Filename.  Might be NULL */
-  const char *zUuid         /* UUID.  Might be NULL */
-){
-  if( db_int(-1, "SELECT size FROM blob WHERE rid=%d", rid)<0
-      && (zUuid==0 || !db_exists("SELECT 1 FROM shun WHERE uuid='%s'", zUuid)) ){
-    if( zFilename ){
-      fossil_fatal("content missing for %s", zFilename);
-    }else{
-      char *zUuid = db_text(0, "SELECT uuid FROM blob WHERE rid=%d", rid);
-      if( zUuid ){
-        fossil_fatal("content missing for [%.10s]", zUuid);
-      }else{
-        fossil_panic("bad object id: %d", rid);
-      }
-    }
-  }
-}
-
-/*
 ** Build a catalog of all files in a checkin.
 */
 void vfile_build(int vid){
@@ -106,7 +82,6 @@ void vfile_build(int vid){
   ManifestFile *pFile;
 
   db_begin_transaction();
-  vfile_verify_not_phantom(vid, 0, 0);
   p = manifest_get(vid, CFTYPE_MANIFEST);
   if( p==0 ) return;
   db_multi_exec("DELETE FROM vfile WHERE vid=%d", vid);
@@ -116,8 +91,12 @@ void vfile_build(int vid){
   db_bind_int(&ins, ":vid", vid);
   manifest_file_rewind(p);
   while( (pFile = manifest_file_next(p,0))!=0 ){
+    if( pFile->zUuid==0 || uuid_is_shunned(pFile->zUuid) ) continue;
     rid = uuid_to_rid(pFile->zUuid, 0);
-    vfile_verify_not_phantom(rid, pFile->zName, pFile->zUuid);
+    if( rid==0 || db_int(-1, "SELECT size FROM blob WHERE rid=%d", rid)<0 ){
+      fossil_warning("content missing for %s", pFile->zName);
+      continue;
+    }
     db_bind_int(&ins, ":id", rid);
     db_bind_text(&ins, ":name", pFile->zName);
     db_step(&ins);
@@ -536,6 +515,7 @@ void vfile_aggregate_checksum_manifest(int vid, Blob *pOut, Blob *pManOut){
   }
   manifest_file_rewind(pManifest);
   while( (pFile = manifest_file_next(pManifest,0))!=0 ){
+    if( pFile->zUuid==0 ) continue;
     fid = uuid_to_rid(pFile->zUuid, 0);
     md5sum_step_text(pFile->zName, -1);
     content_get(fid, &file);
