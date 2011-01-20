@@ -1,5 +1,5 @@
-C update\sdebian/changelog
-D 2011-01-20T12:03:56
+C pernicious\sgratuitous\strailing\swhitespace
+D 2011-01-20T12:12:58
 F BUILD.txt 58b010d4c2642615308f0f04cfa32eb884fdc982
 F COPYRIGHT-BSD2.txt c7dd1de9f9539a5a859c2b41fe4560604a774476
 F Makefile 93b752cf85c466f89444958e8e5e6e351ec3ffa9 x
@@ -85,7 +85,7 @@ F src/main.c 438c3009c4e3ff7110cd585efce87b0f06033e0b
 F src/main.mk 7b1fd574e66647f56dbbe8877ec8ce2a7b2e7d3a
 F src/makeheaders.c 66f7de56cdd0fdc07d9776e5d17b9795008fddf6
 F src/makeheaders.html 3c3db86a7666b26b001d63a0e2da83bd2cdacf77
-F src/makemake.tcl dfb4fb2aa85558341bd807a4fec4b4a773be486e x
+F src/makemake.tcl 9f66d82a17bd074d9a14ddae09487708b181d400 x
 F src/manifest.c e0c9be0237df268654d5012a7c0b6b4bc0b71668
 F src/md5.c 5f7f55a1e70ada8671134eb7fca456b5aa391d40
 F src/merge.c 6131cabe35fb8c8dd8d9b96ad2a66da3e4a5d5e0
@@ -196,7 +196,7 @@ F tools/cvs2fossil/symboltree 6c405827269eda1089a1ffe58e03b4657a7bdfa6
 F tools/encode_math.sh 86eb1215d85a3e796788b6a4c2354b3f096f5f88
 F tools/fossil_chat.tcl c673398270c85c8d0a2f06bb89815bb27cb6ffc6
 F win/Makefile.PellesCGMake 361bcd10369ef39e4ccf639c40877c4e333a83df
-F win/Makefile.dmc adefd457ade231b76392eab72eb3fbeab4f71636
+F win/Makefile.dmc 19fa86f8c603844ec7b05c95418691c5a5fe0f2f
 F win/Makefile.mingw d699f396d1cca60aa03876c228ba5644083a9758
 F win/Makefile.mingw32cross 3f22ae0c001081d0904c04df243f607a067f6b9c
 F win/Makefile.msc 011caa2c0014bcae041e77af065bb2ecbb8a54f9
@@ -300,8 +300,8 @@ F www/tech_overview.wiki 487503a4bf90dc6b42f23cdb0db76e1cd8e8c866
 F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/webui.wiki 41ab11efd9cc1423464d5482a0802935533f28b7
 F www/wikitheory.wiki f2136b3705cae41decfd2ed5783a65a52d9384b1
-P dde01ce9247d487382c01d286d6ca8a78ea9b7e0
-R f65c1cd7d01dea20d0f209d77544cdb7
+P dc4ed4bed12000d4a43be471d7385100a700a254
+R 8e857057ffd49d53da7c332b163e6b5f
 U barak
-Z 1e79b5b8f8ef5281e1174f854bf504f9
+Z 6ed8f973a374ab3a5a83ae52a59118aa
 # Remove this line to create a well-formed Fossil manifest.
