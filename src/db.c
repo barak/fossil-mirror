@@ -125,6 +125,7 @@ void db_end_transaction(int rollbackFlag){
   nBegin--;
   if( nBegin==0 ){
     int i;
+    if( doRollback==0 ) leaf_do_pending_checks();
     for(i=0; doRollback==0 && i<nCommitHook; i++){
       doRollback |= aHook[i].xHook();
     }
@@ -193,24 +194,34 @@ void db_commit_hook(int (*x)(void), int sequence){
 ** If the input string contains multiple SQL statements, only the first
 ** one is processed.  All statements beyond the first are silently ignored.
 */
-int db_vprepare(Stmt *pStmt, const char *zFormat, va_list ap){
+int db_vprepare(Stmt *pStmt, int errOk, const char *zFormat, va_list ap){
+  int rc;
   char *zSql;
   blob_zero(&pStmt->sql);
   blob_vappendf(&pStmt->sql, zFormat, ap);
   va_end(ap);
   zSql = blob_str(&pStmt->sql);
-  if( sqlite3_prepare_v2(g.db, zSql, -1, &pStmt->pStmt, 0)!=0 ){
+  rc = sqlite3_prepare_v2(g.db, zSql, -1, &pStmt->pStmt, 0);
+  if( rc!=0 && !errOk ){
     db_err("%s\n%s", sqlite3_errmsg(g.db), zSql);
   }
   pStmt->pNext = pStmt->pPrev = 0;
   pStmt->nStep = 0;
-  return 0;
+  return rc;
 }
 int db_prepare(Stmt *pStmt, const char *zFormat, ...){
   int rc;
   va_list ap;
   va_start(ap, zFormat);
-  rc = db_vprepare(pStmt, zFormat, ap);
+  rc = db_vprepare(pStmt, 0, zFormat, ap);
+  va_end(ap);
+  return rc;
+}
+int db_prepare_ignore_error(Stmt *pStmt, const char *zFormat, ...){
+  int rc;
+  va_list ap;
+  va_start(ap, zFormat);
+  rc = db_vprepare(pStmt, 1, zFormat, ap);
   va_end(ap);
   return rc;
 }
@@ -219,7 +230,7 @@ int db_static_prepare(Stmt *pStmt, const char *zFormat, ...){
   if( blob_size(&pStmt->sql)==0 ){
     va_list ap;
     va_start(ap, zFormat);
-    rc = db_vprepare(pStmt, zFormat, ap);
+    rc = db_vprepare(pStmt, 0, zFormat, ap);
     pStmt->pNext = pAllStmt;
     pStmt->pPrev = 0;
     if( pAllStmt ) pAllStmt->pPrev = pStmt;
@@ -446,7 +457,7 @@ i64 db_int64(i64 iDflt, const char *zSql, ...){
   Stmt s;
   i64 rc;
   va_start(ap, zSql);
-  db_vprepare(&s, zSql, ap);
+  db_vprepare(&s, 0, zSql, ap);
   va_end(ap);
   if( db_step(&s)!=SQLITE_ROW ){
     rc = iDflt;
@@ -461,7 +472,7 @@ int db_int(int iDflt, const char *zSql, ...){
   Stmt s;
   int rc;
   va_start(ap, zSql);
-  db_vprepare(&s, zSql, ap);
+  db_vprepare(&s, 0, zSql, ap);
   va_end(ap);
   if( db_step(&s)!=SQLITE_ROW ){
     rc = iDflt;
@@ -481,7 +492,7 @@ int db_exists(const char *zSql, ...){
   Stmt s;
   int rc;
   va_start(ap, zSql);
-  db_vprepare(&s, zSql, ap);
+  db_vprepare(&s, 0, zSql, ap);
   va_end(ap);
   if( db_step(&s)!=SQLITE_ROW ){
     rc = 0;
@@ -501,7 +512,7 @@ double db_double(double rDflt, const char *zSql, ...){
   Stmt s;
   double r;
   va_start(ap, zSql);
-  db_vprepare(&s, zSql, ap);
+  db_vprepare(&s, 0, zSql, ap);
   va_end(ap);
   if( db_step(&s)!=SQLITE_ROW ){
     r = rDflt;
@@ -520,7 +531,7 @@ void db_blob(Blob *pResult, const char *zSql, ...){
   va_list ap;
   Stmt s;
   va_start(ap, zSql);
-  db_vprepare(&s, zSql, ap);
+  db_vprepare(&s, 0, zSql, ap);
   va_end(ap);
   if( db_step(&s)==SQLITE_ROW ){
     blob_append(pResult, sqlite3_column_blob(s.pStmt, 0),
@@ -540,7 +551,7 @@ char *db_text(char *zDefault, const char *zSql, ...){
   Stmt s;
   char *z;
   va_start(ap, zSql);
-  db_vprepare(&s, zSql, ap);
+  db_vprepare(&s, 0, zSql, ap);
   va_end(ap);
   if( db_step(&s)==SQLITE_ROW ){
     z = mprintf("%s", sqlite3_column_text(s.pStmt, 0));
@@ -1054,9 +1065,9 @@ void db_create_default_users(int setupUserOnly, const char *zDefaultUser){
   if( !setupUserOnly ){
     db_multi_exec(
        "INSERT INTO user(login,pw,cap,info)"
-       "   VALUES('anonymous',hex(randomblob(8)),'ghmncz','Anon');"
+       "   VALUES('anonymous',hex(randomblob(8)),'hmncz','Anon');"
        "INSERT INTO user(login,pw,cap,info)"
-       "   VALUES('nobody','','jor','Nobody');"
+       "   VALUES('nobody','','gjor','Nobody');"
        "INSERT INTO user(login,pw,cap,info)"
        "   VALUES('developer','','dei','Dev');"
        "INSERT INTO user(login,pw,cap,info)"
@@ -1603,6 +1614,7 @@ struct stControlSettings {
 };
 #endif /* INTERFACE */
 struct stControlSettings const ctrlSettings[] = {
+  { "access-log",    0,                0, "off"                 },
   { "auto-captcha",  "autocaptcha",    0, "on"                  },
   { "auto-shun",     0,                0, "on"                  },
   { "autosync",      0,                0, "on"                  },
@@ -1617,6 +1629,7 @@ struct stControlSettings const ctrlSettings[] = {
   { "http-port",     0,               16, "8080"                },
   { "localauth",     0,                0, "off"                 },
   { "manifest",      0,                0, "off"                 },
+  { "max-upload",    0,               25, "250000"              },
   { "mtime-changes", 0,                0, "on"                  },
   { "pgp-command",   0,               32, "gpg --clearsign -o " },
   { "proxy",         0,               32, "off"                 },
@@ -1692,6 +1705,9 @@ struct stControlSettings const ctrlSettings[] = {
 **    manifest         If enabled, automatically create files "manifest" and
 **                     "manifest.uuid" in every checkout.  The SQLite and
 **                     Fossil repositories both require this.  Default: off.
+**
+**    max-upload       A limit on the size of uplink HTTP requests.  The
+**                     default is 250000 bytes.
 **
 **    mtime-changes    Use file modification times (mtimes) to detect when
 **                     files have been modified.  (Default "on".)

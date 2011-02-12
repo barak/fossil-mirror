@@ -95,7 +95,7 @@ static void stash_add_file_or_dir(int stashid, int vid, const char *zFName){
     db_bind_int(&ins, ":isadd", rid==0);
     db_bind_int(&ins, ":isrm", deleted);
 #ifdef _WIN32
-    db_bind_int(&ins, ":isexe", db_column_int(&q, 2));
+    db_bind_int(&ins, ":isexe", db_column_int(&q, 1));
 #endif
     db_bind_text(&ins, ":orig", zOrig);
     db_bind_text(&ins, ":new", zName);
@@ -147,6 +147,7 @@ static int stash_create(void){
   stashid = db_lget_int("stash-next", 1);
   db_lset_int("stash-next", stashid+1);
   vid = db_lget_int("checkout", 0);
+  vfile_check_signature(vid, 0, 0);
   db_multi_exec(
     "INSERT INTO stash(stashid,vid,comment,ctime)"
     "VALUES(%d,%d,%Q,julianday('now'))",
@@ -391,6 +392,7 @@ void stash_cmd(void){
       newArgv[0] = g.argv[0];
       g.argv = newArgv;
       g.argc = nFile+2;
+      if( nFile==0 ) return;
     }
     g.argv[1] = "revert";
     revert_cmd();

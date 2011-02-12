@@ -47,34 +47,12 @@ static void shorten_uuid(char *zDest, const char *zSrc){
 ** Generate a hyperlink to a version.
 */
 void hyperlink_to_uuid(const char *zUuid){
-  char zShortUuid[UUID_SIZE+1];
-  shorten_uuid(zShortUuid, zUuid);
+  char z[UUID_SIZE+1];
+  shorten_uuid(z, zUuid);
   if( g.okHistory ){
-    @ <a class="timelineHistLink" href="%s(g.zTop)/info/%s(zShortUuid)">
-    @ [%s(zShortUuid)]</a>
+    @ <a class="timelineHistLink" href="%s(g.zTop)/info/%s(z)">[%s(z)]</a>
   }else{
-    @ <span class="timelineHistDsp">[%s(zShortUuid)]</span>
-  }
-}
-
-/*
-** Generate a hyperlink that invokes javascript to highlight
-** a version on mouseover.
-*/
-void hyperlink_to_uuid_with_mouseover(
-  const char *zUuid,   /* The UUID to display */
-  const char *zIn,     /* Javascript proc for mouseover */
-  const char *zOut,    /* Javascript proc for mouseout */
-  int id               /* Argument to javascript procs */
-){
-  char zShortUuid[UUID_SIZE+1];
-  shorten_uuid(zShortUuid, zUuid);
-  if( g.okHistory ){
-    @ <a onmouseover='%s(zIn)("m%d(id)")' onmouseout='%s(zOut)("m%d(id)")'
-    @    href="%s(g.zTop)/vinfo/%s(zShortUuid)">[%s(zShortUuid)]</a>
-  }else{
-    @ <b onmouseover='%s(zIn)("m%d(id)")' onmouseout='%s(zOut)("m%d(id)")'>
-    @ [%s(zShortUuid)]</b>
+    @ <span class="timelineHistDsp">[%s(z)]</span>
   }
 }
 
@@ -173,6 +151,8 @@ int count_nonbranch_children(int pid){
 void www_print_timeline(
   Stmt *pQuery,          /* Query to implement the timeline */
   int tmFlags,           /* Flags controlling display behavior */
+  const char *zThisUser, /* Suppress links to this user */
+  const char *zThisTag,  /* Suppress links to this tag */
   void (*xExtra)(int)    /* Routine to call on each line of display */
 ){
   int wikiFlags;
@@ -182,6 +162,7 @@ void www_print_timeline(
   int suppressCnt = 0;
   char zPrevDate[20];
   GraphContext *pGraph = 0;
+  int prevWasDivider = 0;     /* True if previous output row was <hr> */
 
   zPrevDate[0] = 0;
   mxWikiLen = db_get_int("timeline-max-comment", 0);
@@ -230,9 +211,13 @@ void www_print_timeline(
       suppressCnt = 0;
     }
     if( fossil_strcmp(zType,"div")==0 ){
-      @ <tr><td colspan="3"><hr /></td></tr>
+      if( !prevWasDivider ){
+        @ <tr><td colspan="3"><hr /></td></tr>
+      }
+      prevWasDivider = 1;
       continue;
     }
+    prevWasDivider = 0;
     if( memcmp(zDate, zPrevDate, 10) ){
       sqlite3_snprintf(sizeof(zPrevDate), zPrevDate, "%.10s", zDate);
       @ <tr><td>
@@ -309,11 +294,50 @@ void www_print_timeline(
       wiki_convert(&comment, 0, wikiFlags);
     }
     blob_reset(&comment);
-    if( zTagList && zTagList[0] ){
-      @ (user: %h(zUser), tags: %h(zTagList))
+
+    /* Generate the "user: USERNAME" at the end of the comment, together
+    ** with a hyperlink to another timeline for that user.
+    */
+    if( zTagList && zTagList[0]==0 ) zTagList = 0;
+    if( g.okHistory && fossil_strcmp(zUser, zThisUser)!=0 ){
+      char *zLink = mprintf("%s/timeline?u=%h&c=%t&nd",
+                            g.zTop, zUser, zDate);
+      @ (user: <a href="%s(zLink)">%h(zUser)</a>%s(zTagList?",":"\051")
+      fossil_free(zLink);
     }else{
-      @ (user: %h(zUser))
+      @ (user: %h(zUser)%s(zTagList?",":"\051")
     }
+
+    /* Generate the "tags: TAGLIST" at the end of the comment, together
+    ** with hyperlinks to the tag list.
+    */
+    if( zTagList ){
+      if( g.okHistory ){
+        int i;
+        const char *z = zTagList;
+        Blob links;
+        blob_zero(&links);
+        while( z && z[0] ){
+          for(i=0; z[i] && (z[i]!=',' || z[i+1]!=' '); i++){}
+          if( zThisTag==0 || memcmp(z, zThisTag, i)!=0 || zThisTag[i]!=0 ){
+            blob_appendf(&links,
+                  "<a href=\"%s/timeline?r=%.*t&nd&c=%s\">%.*h</a>%.2s",
+                  g.zTop, i, z, zDate, i, z, &z[i]
+            );
+          }else{
+            blob_appendf(&links, "%.*h", i+2, z);
+          }
+          if( z[i]==0 ) break;
+          z += i+2;
+        }
+        @ tags: %s(blob_str(&links)))
+        blob_reset(&links);
+      }else{
+        @ tags: %h(zTagList))
+      }
+    }
+
+    /* Generate extra hyperlinks at the end of the comment */
     if( xExtra ){
       xExtra(rid);
     }
@@ -616,12 +640,7 @@ const char *timeline_query_for_www(void){
     @   datetime(event.mtime,'localtime') AS timestamp,
     @   coalesce(ecomment, comment),
     @   coalesce(euser, user),
-    @   NOT EXISTS(SELECT 1 FROM plink
-    @               WHERE pid=blob.rid
-    @                AND coalesce((SELECT value FROM tagxref
-    @                              WHERE tagid=%d AND rid=plink.pid), 'trunk')
-    @                  = coalesce((SELECT value FROM tagxref
-    @                              WHERE tagid=%d AND rid=plink.cid), 'trunk')),
+    @   blob.rid IN leaf,
     @   bgcolor,
     @   event.type,
     @   (SELECT group_concat(substr(tagname,5), ', ') FROM tag, tagxref
@@ -657,9 +676,17 @@ static void timeline_submenu(
 /*
 ** zDate is a localtime date.  Insert records into the
 ** "timeline" table to cause <hr> to be inserted before and after
-** entries of that date.
+** entries of that date.  If zDate==NULL then put dividers around
+** the event identified by rid.
 */
-static void timeline_add_dividers(const char *zDate){
+static void timeline_add_dividers(const char *zDate, int rid){
+  char *zToDel = 0;
+  if( zDate==0 ){
+    zToDel = db_text(0,"SELECT datetime(mtime,'localtime') FROM event"
+                       " WHERE objid=%d", rid);
+    zDate = zToDel;
+    if( zDate==0 ) zDate = "1";
+  }
   db_multi_exec(
     "INSERT INTO timeline(rid,sortby,etype)"
     "VALUES(-1,julianday(%Q,'utc')-5.0e-6,'div')",
@@ -670,6 +697,7 @@ static void timeline_add_dividers(const char *zDate){
     "VALUES(-2,julianday(%Q,'utc')+5.0e-6,'div')",
      zDate
   );
+  fossil_free(zToDel);
 }
 
 
@@ -690,6 +718,7 @@ static void timeline_add_dividers(const char *zDate){
 **    y=TYPE         'ci', 'w', 't', 'e'
 **    s=TEXT         string search (comment and brief)
 **    ng             Suppress the graph if present
+**    nd             Suppress "divider" lines
 **    f=RID          Show family (immediate parents and children) of RID
 **
 ** p= and d= can appear individually or together.  If either p= or d=
@@ -716,9 +745,12 @@ void page_timeline(void){
   const char *zTagName = P("t");     /* Show events with this tag */
   const char *zBrName = P("r");      /* Show events related to this tag */
   const char *zSearch = P("s");      /* Search string */
-  HQuery url;                        /* URL for various branch links */
+  int useDividers = P("nd")==0;      /* Show dividers if "nd" is missing */
   int tagid;                         /* Tag ID */
   int tmFlags;                       /* Timeline flags */
+  const char *zThisTag = 0;          /* Suppress links to this tag */
+  const char *zThisUser = 0;         /* Suppress links to this user */
+  HQuery url;                        /* URL for various branch links */
 
   /* To view the timeline, must have permission to read project data.
   */
@@ -726,8 +758,10 @@ void page_timeline(void){
   if( !g.okRead && !g.okRdTkt && !g.okRdWiki ){ login_needed(); return; }
   if( zTagName && g.okRead ){
     tagid = db_int(0, "SELECT tagid FROM tag WHERE tagname='sym-%q'", zTagName);
+    zThisTag = zTagName;
   }else if( zBrName && g.okRead ){
     tagid = db_int(0, "SELECT tagid FROM tag WHERE tagname='sym-%q'",zBrName);
+    zThisTag = zBrName;
   }else{
     tagid = 0;
   }
@@ -747,6 +781,8 @@ void page_timeline(void){
   blob_zero(&desc);
   blob_append(&sql, "INSERT OR IGNORE INTO timeline ", -1);
   blob_append(&sql, timeline_query_for_www(), -1);
+  url_initialize(&url, "timeline");
+  if( !useDividers ) url_add_parameter(&url, "nd", 0);
   if( (p_rid || d_rid) && g.okRead ){
     /* If p= or d= is present, ignore all other parameters other than n= */
     char *zUuid;
@@ -770,10 +806,7 @@ void page_timeline(void){
         db_multi_exec("%s", blob_str(&sql));
         blob_appendf(&desc, "%d descendant%s", nd,(1==nd)?"":"s");
       }
-      timeline_add_dividers(
-        db_text("1","SELECT datetime(mtime,'localtime') FROM event"
-                    " WHERE objid=%d", d_rid)
-      );
+      if( useDividers ) timeline_add_dividers(0, d_rid);
       db_multi_exec("DELETE FROM ok");
     }
     if( p_rid ){
@@ -784,12 +817,7 @@ void page_timeline(void){
         blob_appendf(&desc, "%d ancestors", np);
         db_multi_exec("%s", blob_str(&sql));
       }
-      if( d_rid==0 ){
-        timeline_add_dividers(  
-          db_text("1","SELECT datetime(mtime,'localtime') FROM event"
-                      " WHERE objid=%d", p_rid)
-        );
-      }
+      if( d_rid==0 && useDividers ) timeline_add_dividers(0, p_rid);
     }
     if( g.okHistory ){
       blob_appendf(&desc, " of <a href='%s/info/%s'>[%.10s]</a>",
@@ -809,10 +837,7 @@ void page_timeline(void){
     );
     blob_appendf(&sql, " AND event.objid IN ok");
     db_multi_exec("%s", blob_str(&sql));
-    timeline_add_dividers(
-      db_text("1","SELECT datetime(mtime,'localtime') FROM event"
-                  " WHERE objid=%d", f_rid)
-    );
+    if( useDividers ) timeline_add_dividers(0, f_rid);
     blob_appendf(&desc, "Parents and children of check-in ");
     zUuid = db_text("", "SELECT uuid FROM blob WHERE rid=%d", f_rid);
     if( g.okHistory ){
@@ -826,7 +851,6 @@ void page_timeline(void){
     const char *zEType = "timeline item";
     char *zDate;
     char *zNEntry = mprintf("%d", nEntry);
-    url_initialize(&url, "timeline");
     url_add_parameter(&url, "n", zNEntry);
     if( tagid>0 ){
       blob_appendf(&sql,
@@ -893,6 +917,7 @@ void page_timeline(void){
     if( zUser ){
       blob_appendf(&sql, " AND event.user=%Q", zUser);
       url_add_parameter(&url, "u", zUser);
+      zThisUser = zUser;
     }
     if ( zSearch ){
       blob_appendf(&sql,
@@ -938,7 +963,7 @@ void page_timeline(void){
             rCirca
         );
         nEntry -= (nEntry+1)/2;
-        timeline_add_dividers(zCirca);
+        if( useDividers ) timeline_add_dividers(zCirca, 0);
         url_add_parameter(&url, "c", zCirca);
       }else{
         zCirca = 0;
@@ -1021,7 +1046,7 @@ void page_timeline(void){
   db_prepare(&q, "SELECT * FROM timeline ORDER BY sortby DESC /*scan*/");
   @ <h2>%b(&desc)</h2>
   blob_reset(&desc);
-  www_print_timeline(&q, tmFlags, 0);
+  www_print_timeline(&q, tmFlags, zThisUser, zThisTag, 0);
   db_finalize(&q);
   style_footer();
 }
