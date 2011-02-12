@@ -1,5 +1,5 @@
-C guard\snew\ssqlite3\sfacilities\s(src/shell.c)
-D 2011-02-12T17:55:36.573
+C log\sguarding\snew\ssqlite3\sfacilities\s(debian/changelog)
+D 2011-02-12T17:56:42.562
 F BUILD.txt 58b010d4c2642615308f0f04cfa32eb884fdc982
 F COPYRIGHT-BSD2.txt c7dd1de9f9539a5a859c2b41fe4560604a774476
 F Makefile 93b752cf85c466f89444958e8e5e6e351ec3ffa9 x
@@ -30,7 +30,7 @@ F ci_cvs.txt 837df67f243330f601ed14e51761bc1528536dc1
 F ci_fossil.txt cf2b7a00fb594aa486f2bf953409d0d0429fd515
 F cvs2fossil.txt 3bce849e6e4a81eefd08fc28b6bbe806d2494b1a
 F debian/README.Debian c997854361309f585a17a22d44a46af180ecbf72
-F debian/changelog ae12d26c275120fdf23cbd62584f20a67e4934e4
+F debian/changelog 615bd15fa69bd5592da676fc7e173da61dc4c7ce
 F debian/compat 136571b41aa14adc10c5f3c987d43c02c8f5d498
 F debian/control 9f58c42e0a24e237dfc299341f86f6af8f865d52
 F debian/copyright cb6bd1a9b3c0b3bd2a8b0352b9e7f6d4ef864a2d
@@ -302,8 +302,8 @@ F www/tech_overview.wiki 487503a4bf90dc6b42f23cdb0db76e1cd8e8c866
 F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/webui.wiki d6f45339cf55d9e249afc46f062e1fd62519231f
 F www/wikitheory.wiki ac404a90fc9d210d80d5e7c1c2f24028d957dc4a
-P d292176592110cd24f8f72951951e620c5b5e68d
-R d9d0f7aa998f67ea88efff4ddce9da45
+P 1750dbbd2a506c0f21ab4beb9e816af8818e51f0
+R 435895ebd6ccbeaff9fff0bd1671762a
 U barak
-Z f3fafdd0dc6bd4a6dfb34e057d85d8a4
+Z 3560bb7a387226b49acfa5d9214bbe2e
 # Remove this line to create a well-formed Fossil manifest.

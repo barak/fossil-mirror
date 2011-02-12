@@ -1,6 +1,7 @@
 fossil (2011.02.08.125237-1) unstable; urgency=low
 
   * New upstream version
+  * Guard some invocations that use new sqlite3 API (src/shell.c)
 
  -- Barak A. Pearlmutter <bap@debian.org>  Sat, 12 Feb 2011 16:58:57 +0000
 
