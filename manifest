@@ -1,5 +1,5 @@
-C log\sguarding\snew\ssqlite3\sfacilities\s(debian/changelog)
-D 2011-02-12T17:56:42.562
+C guard\ssqlite3\srecent\sfunctionality\sand\slower\sbuild\sdependency\sto\s3.7.3
+D 2011-02-12T22:06:51.390
 F BUILD.txt 58b010d4c2642615308f0f04cfa32eb884fdc982
 F COPYRIGHT-BSD2.txt c7dd1de9f9539a5a859c2b41fe4560604a774476
 F Makefile 93b752cf85c466f89444958e8e5e6e351ec3ffa9 x
@@ -30,9 +30,9 @@ F ci_cvs.txt 837df67f243330f601ed14e51761bc1528536dc1
 F ci_fossil.txt cf2b7a00fb594aa486f2bf953409d0d0429fd515
 F cvs2fossil.txt 3bce849e6e4a81eefd08fc28b6bbe806d2494b1a
 F debian/README.Debian c997854361309f585a17a22d44a46af180ecbf72
-F debian/changelog 615bd15fa69bd5592da676fc7e173da61dc4c7ce
+F debian/changelog 521e74111b1a09b0670523311ae7b02ff9e3dc8b
 F debian/compat 136571b41aa14adc10c5f3c987d43c02c8f5d498
-F debian/control 9f58c42e0a24e237dfc299341f86f6af8f865d52
+F debian/control 13e5160162ea1db881e97a123a8bb2b2283af539
 F debian/copyright cb6bd1a9b3c0b3bd2a8b0352b9e7f6d4ef864a2d
 F debian/fossil.1 5c0f9c88ae2898f60b89d1b8a482b131c9c5af25
 F debian/fossil.install 8ae909034651ad9b0a72cd10460fed7b9e51f627
@@ -98,7 +98,7 @@ F src/popen.c 3108112a75a769f3c70c08a2698552d6811938e4
 F src/pqueue.c 4a43f2cdcc3e52a0922d1d15f338e327c41f9443
 F src/printf.c a0eea6c951f8d60ee3ecc08f5a828a6011cbc7dc
 F src/rebuild.c da068c837416babcfd98934761884685e39499a3
-F src/report.c f20ed0e8ffd4c7a8abfa9537db766d65989bb5bc
+F src/report.c fa426c1a7a7e78f16f49267f02c3efc1c3e412db
 F src/rss.c db44782246b1cb1963103cd60b0ef46d4f91a8d6
 F src/schema.c 9fb95983534ac4e38b062cc74f105e55b829e2fc
 F src/search.c 9d53c57393652eb2dcd63e1d1dd1d5de9335b7a0
@@ -302,8 +302,8 @@ F www/tech_overview.wiki 487503a4bf90dc6b42f23cdb0db76e1cd8e8c866
 F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/webui.wiki d6f45339cf55d9e249afc46f062e1fd62519231f
 F www/wikitheory.wiki ac404a90fc9d210d80d5e7c1c2f24028d957dc4a
-P 1750dbbd2a506c0f21ab4beb9e816af8818e51f0
-R 435895ebd6ccbeaff9fff0bd1671762a
+P a9e42c2779a87b81f812944fc4f1665ce532964c
+R d5f7263899e593f05d1e8037cfa38d31
 U barak
-Z 3560bb7a387226b49acfa5d9214bbe2e
+Z 39aa4e7f6e2b75c91d014541f6f01092
 # Remove this line to create a well-formed Fossil manifest.
