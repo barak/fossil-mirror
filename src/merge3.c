@@ -146,7 +146,7 @@ static int output_one_side(
 ** conflicts, the merge proceeds as best as it can and the number 
 ** of conflicts is returns
 */
-int blob_merge(Blob *pPivot, Blob *pV1, Blob *pV2, Blob *pOut){
+static int blob_merge(Blob *pPivot, Blob *pV1, Blob *pV2, Blob *pOut){
   int *aC1;              /* Changes from pPivot to pV1 */
   int *aC2;              /* Changes from pPivot to pV2 */
   int i1, i2;            /* Index into aC1[] and aC2[] */
@@ -170,8 +170,8 @@ int blob_merge(Blob *pPivot, Blob *pV1, Blob *pV2, Blob *pOut){
   ** pivot, and the third integer is the number of lines of text that are
   ** inserted.  The edit array ends with a triple of 0,0,0.
   */
-  aC1 = text_diff(pPivot, pV1, 0, 0, 1);
-  aC2 = text_diff(pPivot, pV2, 0, 0, 1);
+  aC1 = text_diff(pPivot, pV1, 0, 0, 0);
+  aC2 = text_diff(pPivot, pV2, 0, 0, 0);
   if( aC1==0 || aC2==0 ){
     free(aC1);
     free(aC2);
@@ -301,6 +301,8 @@ int blob_merge(Blob *pPivot, Blob *pV1, Blob *pV2, Blob *pOut){
 /*
 ** COMMAND:  test-3-way-merge
 **
+** Usage: %fossil test-3-way-merge PIVOT V1 V2 MERGED
+**
 ** Combine change in going from PIVOT->VERSION1 with the change going
 ** from PIVOT->VERSION2 and write the combined changes into MERGED.
 */
@@ -330,4 +332,112 @@ void delta_3waymerge_cmd(void){
   blob_reset(&v1);
   blob_reset(&v2);
   blob_reset(&merged);
+}
+
+/*
+** aSubst is an array of string pairs.  The first element of each pair is
+** a string that begins with %.  The second element is a replacement for that
+** string.
+**
+** This routine makes a copy of zInput into memory obtained from malloc and
+** performance all applicable substitutions on that string.
+*/
+char *string_subst(const char *zInput, int nSubst, const char **azSubst){
+  Blob x;
+  int i, j;
+  blob_zero(&x);
+  while( zInput[0] ){
+    for(i=0; zInput[i] && zInput[i]!='%'; i++){}
+    if( i>0 ){
+      blob_append(&x, zInput, i);
+      zInput += i;
+    }
+    if( zInput[0]==0 ) break;
+    for(j=0; j<nSubst; j+=2){
+      int n = strlen(azSubst[j]);
+      if( strncmp(zInput, azSubst[j], n)==0 ){
+        blob_append(&x, azSubst[j+1], -1);
+        zInput += n;
+        break;
+      }
+    }
+    if( j>=nSubst ){
+      blob_append(&x, "%", 1);
+      zInput++;
+    }
+  }
+  return blob_str(&x);
+}
+
+
+/*
+** This routine is a wrapper around blob_merge() with the following
+** enhancements:
+**
+**    (1) If the merge-command is defined, then use the external merging
+**        program specified instead of the built-in blob-merge to do the
+**        merging.  Panic if the external merger fails.
+**        ** Not currently implemented **
+**
+**    (2) If gmerge-command is defined and there are merge conflicts in
+**        blob_merge() then invoke the external graphical merger to resolve
+**        the conflicts.
+**
+**    (3) If a merge conflict occurs and gmerge-command is not defined,
+**        then write the pivot, original, and merge-in files to the
+**        filesystem.
+*/
+int merge_3way(
+  Blob *pPivot,       /* Common ancestor (older) */
+  const char *zV1,    /* Name of file for version merging into (mine) */
+  Blob *pV2,          /* Version merging from (yours) */
+  Blob *pOut          /* Output written here */
+){
+  Blob v1;            /* Content of zV1 */
+  int rc;             /* Return code of subroutines and this routine */
+
+  blob_read_from_file(&v1, zV1);
+  rc = blob_merge(pPivot, &v1, pV2, pOut);
+  if( rc>0 ){
+    char *zPivot;   /* Name of the pivot file */
+    char *zOrig;    /* Name of the original content file */
+    char *zOther;   /* Name of the merge file */
+    const char *zGMerge;   /* Name of the gmerge command */
+
+    zPivot = file_newname(zV1, "baseline", 1);
+    blob_write_to_file(pPivot, zPivot);
+    zOrig = file_newname(zV1, "original", 1);
+    blob_write_to_file(&v1, zOrig);
+    zOther = file_newname(zV1, "merge", 1);
+    blob_write_to_file(pV2, zOther);
+    zGMerge = db_get("gmerge-command", 0);
+    if( zGMerge && zGMerge[0] ){
+      char *zOut;     /* Temporary output file */
+      char *zCmd;     /* Command to invoke */
+      const char *azSubst[8];  /* Strings to be substituted */
+
+      zOut = file_newname(zV1, "output", 1);
+      azSubst[0] = "%baseline";  azSubst[1] = zPivot;
+      azSubst[2] = "%original";  azSubst[3] = zOrig;
+      azSubst[4] = "%merge";     azSubst[5] = zOther;
+      azSubst[6] = "%output";    azSubst[7] = zOut;
+      zCmd = string_subst(zGMerge, 8, azSubst);
+      printf("%s\n", zCmd); fflush(stdout);
+      fossil_system(zCmd);
+      if( file_size(zOut)>=0 ){
+        blob_read_from_file(pOut, zOut);
+        unlink(zPivot);
+        unlink(zOrig);
+        unlink(zOther);
+        unlink(zOut);
+      }
+      fossil_free(zCmd);
+      fossil_free(zOut);
+    }
+    fossil_free(zPivot);
+    fossil_free(zOrig);
+    fossil_free(zOther);
+  }
+  blob_reset(&v1);
+  return rc;
 }

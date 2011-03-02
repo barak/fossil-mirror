@@ -90,6 +90,7 @@ static struct sCommitHook {
   int sequence;        /* Call functions in sequence order */
 } aHook[5];
 static Stmt *pAllStmt = 0;  /* List of all unfinalized statements */
+static int nPrepare = 0;    /* Number of calls to sqlite3_prepare() */
 
 /*
 ** This routine is called by the SQLite commit-hook mechanism
@@ -201,6 +202,7 @@ int db_vprepare(Stmt *pStmt, int errOk, const char *zFormat, va_list ap){
   blob_vappendf(&pStmt->sql, zFormat, ap);
   va_end(ap);
   zSql = blob_str(&pStmt->sql);
+  nPrepare++;
   rc = sqlite3_prepare_v2(g.db, zSql, -1, &pStmt->pStmt, 0);
   if( rc!=0 && !errOk ){
     db_err("%s\n%s", sqlite3_errmsg(g.db), zSql);
@@ -738,6 +740,7 @@ static int isValidLocalDb(const char *zDbName){
   ** upgraded, this code can be safely deleted. 
   */
   rc = sqlite3_prepare(g.db, "SELECT isexe FROM vfile", -1, &pStmt, 0);
+  nPrepare++;
   sqlite3_finalize(pStmt);
   if( rc==SQLITE_ERROR ){
     sqlite3_exec(g.db, "ALTER TABLE vfile ADD COLUMN isexe BOOLEAN", 0, 0, 0);
@@ -968,36 +971,37 @@ void db_must_be_within_tree(void){
 void db_close(int reportErrors){
   sqlite3_stmt *pStmt;
   if( g.db==0 ) return;
-  if( g.fSqlTrace ){
+  if( g.fSqlStats ){
     int cur, hiwtr;
     sqlite3_db_status(g.db, SQLITE_DBSTATUS_LOOKASIDE_USED, &cur, &hiwtr, 0);
-    fprintf(stderr, "-- LOOKASIDE_USED %10d %10d\n", cur, hiwtr);
+    fprintf(stderr, "-- LOOKASIDE_USED         %10d %10d\n", cur, hiwtr);
 #ifdef SQLITE_DBSTATUS_LOOKASIDE_HIT
     sqlite3_db_status(g.db, SQLITE_DBSTATUS_LOOKASIDE_HIT, &cur, &hiwtr, 0);
-    fprintf(stderr, "-- LOOKASIDE_HIT             %10d\n", hiwtr);
+    fprintf(stderr, "-- LOOKASIDE_HIT                     %10d\n", hiwtr);
 #endif
 #ifdef SQLITE_DBSTATUS_LOOKASIDE_MISS_SIZE
     sqlite3_db_status(g.db, SQLITE_DBSTATUS_LOOKASIDE_MISS_SIZE, &cur,&hiwtr,0);
-    fprintf(stderr, "-- LOOKASIDE_MISS_SIZE       %10d\n", hiwtr);
+    fprintf(stderr, "-- LOOKASIDE_MISS_SIZE               %10d\n", hiwtr);
 #endif
 #ifdef SQLITE_DBSTATUS_LOOKASIDE_MISS_FULL
     sqlite3_db_status(g.db, SQLITE_DBSTATUS_LOOKASIDE_MISS_FULL, &cur,&hiwtr,0);
-    fprintf(stderr, "-- LOOKASIDE_MISS_FULL       %10d\n", hiwtr);
+    fprintf(stderr, "-- LOOKASIDE_MISS_FULL               %10d\n", hiwtr);
 #endif
     sqlite3_db_status(g.db, SQLITE_DBSTATUS_CACHE_USED, &cur, &hiwtr, 0);
-    fprintf(stderr, "-- CACHE_USED     %10d\n", cur);
+    fprintf(stderr, "-- CACHE_USED             %10d\n", cur);
     sqlite3_db_status(g.db, SQLITE_DBSTATUS_SCHEMA_USED, &cur, &hiwtr, 0);
-    fprintf(stderr, "-- SCHEMA_USED    %10d\n", cur);
+    fprintf(stderr, "-- SCHEMA_USED            %10d\n", cur);
     sqlite3_db_status(g.db, SQLITE_DBSTATUS_STMT_USED, &cur, &hiwtr, 0);
-    fprintf(stderr, "-- STMT_USED      %10d\n", cur);
+    fprintf(stderr, "-- STMT_USED              %10d\n", cur);
     sqlite3_status(SQLITE_STATUS_MEMORY_USED, &cur, &hiwtr, 0);
-    fprintf(stderr, "-- MEMORY_USED    %10d %10d\n", cur, hiwtr);
+    fprintf(stderr, "-- MEMORY_USED            %10d %10d\n", cur, hiwtr);
     sqlite3_status(SQLITE_STATUS_MALLOC_SIZE, &cur, &hiwtr, 0);
-    fprintf(stderr, "-- MALLOC_SIZE               %10d\n", hiwtr);
+    fprintf(stderr, "-- MALLOC_SIZE                       %10d\n", hiwtr);
     sqlite3_status(SQLITE_STATUS_MALLOC_COUNT, &cur, &hiwtr, 0);
-    fprintf(stderr, "-- MALLOC_COUNT   %10d %10d\n", cur, hiwtr);
+    fprintf(stderr, "-- MALLOC_COUNT           %10d %10d\n", cur, hiwtr);
     sqlite3_status(SQLITE_STATUS_PAGECACHE_OVERFLOW, &cur, &hiwtr, 0);
-    fprintf(stderr, "-- PCACHE_OVFLOW  %10d %10d\n", cur, hiwtr);
+    fprintf(stderr, "-- PCACHE_OVFLOW          %10d %10d\n", cur, hiwtr);
+    fprintf(stderr, "-- prepared statements    %10d\n", nPrepare);
   }
   while( pAllStmt ){
     db_finalize(pAllStmt);
@@ -1126,7 +1130,7 @@ void db_initial_setup(
     md5sum_blob(&manifest, &hash);
     blob_appendf(&manifest, "Z %b\n", &hash);
     blob_reset(&hash);
-    rid = content_put(&manifest, 0, 0, 0);
+    rid = content_put(&manifest);
     manifest_crosslink(rid, &manifest);
   }
 }
@@ -1516,7 +1520,7 @@ void db_record_repository_filename(const char *zName){
 /*
 ** COMMAND: open
 **
-** Usage: %fossil open FILENAME ?VERSION? ?--keep?
+** Usage: %fossil open FILENAME ?VERSION? ?--keep? ?--nested?
 **
 ** Open a connection to the local repository in FILENAME.  A checkout
 ** for the repository is created with its root at the working directory.
@@ -1530,13 +1534,16 @@ void cmd_open(void){
   Blob path;
   int vid;
   int keepFlag;
+  int allowNested;
   static char *azNewArgv[] = { 0, "checkout", "--prompt", "--latest", 0, 0 };
+
   url_proxy_options();
   keepFlag = find_option("keep",0,0)!=0;
+  allowNested = find_option("nested",0,0)!=0;
   if( g.argc!=3 && g.argc!=4 ){
     usage("REPOSITORY-FILENAME ?VERSION?");
   }
-  if( db_open_local() ){
+  if( !allowNested && db_open_local() ){
     fossil_panic("already within an open tree rooted at %s", g.zLocalRoot);
   }
   file_canonical_name(g.argv[2], &path);
@@ -1620,11 +1627,13 @@ struct stControlSettings const ctrlSettings[] = {
   { "autosync",      0,                0, "on"                  },
   { "binary-glob",   0,               32, ""                    },
   { "clearsign",     0,                0, "off"                 },
+  { "crnl-glob",     0,               16, ""                    },
   { "default-perms", 0,               16, "u"                   },
   { "diff-command",  0,               16, ""                    },
   { "dont-push",     0,                0, "off"                 },
   { "editor",        0,               16, ""                    },
   { "gdiff-command", 0,               16, "gdiff"               },
+  { "gmerge-command",0,               40, ""                    },
   { "ignore-glob",   0,               40, ""                    },
   { "http-port",     0,               16, "8080"                },
   { "localauth",     0,                0, "off"                 },
@@ -1675,6 +1684,10 @@ struct stControlSettings const ctrlSettings[] = {
 **                     with gpg.  When disabled (the default), commits will
 **                     be unsigned.  Default: off
 **
+**    crnl-glob        A comma-separated list of GLOB patterns for text files
+**                     in which it is ok to have CR+NL line endings.
+**                     Set to "*" to disable CR+NL checking.
+**
 **    default-perms    Permissions given automatically to new users.  For more
 **                     information on permissions see Users page in Server
 **                     Administration of the HTTP UI. Default: u.
@@ -1689,6 +1702,11 @@ struct stControlSettings const ctrlSettings[] = {
 **
 **    gdiff-command    External command to run when performing a graphical
 **                     diff. If undefined, text diff will be used.
+**
+**    gmerge-command   A graphical merge conflict resolver command operating
+**                     on four files.
+**                     Ex: kdiff3 "%baseline" "%original" "%merge" -o "%output"
+**                     Ex: xxdiff "%original" "%baseline" "%merge" -M "%output"
 **
 **    http-port        The TCP/IP port number to use by the "server"
 **                     and "ui" commands.  Default: 8080

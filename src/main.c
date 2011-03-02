@@ -54,7 +54,7 @@ struct Global {
   sqlite3 *dbConfig;      /* Separate connection for global_config table */
   int useAttach;          /* True if global_config is attached to repository */
   int configOpen;         /* True if the config database is open */
-  long long int now;      /* Seconds since 1970 */
+  sqlite3_int64 now;      /* Seconds since 1970 */
   int repositoryOpen;     /* True if the main repository database is open */
   char *zRepositoryName;  /* Name of the repository database */
   const char *zMainDbType;/* "configdb", "localdb", or "repository" */
@@ -62,7 +62,8 @@ struct Global {
   int localOpen;          /* True if the local database is open */
   char *zLocalRoot;       /* The directory holding the  local database */
   int minPrefix;          /* Number of digits needed for a distinct UUID */
-  int fSqlTrace;          /* True if -sqltrace flag is present */
+  int fSqlTrace;          /* True if --sqltrace flag is present */
+  int fSqlStats;          /* True if --sqltrace or --sqlstats are present */
   int fSqlPrint;          /* True if -sqlprint flag is present */
   int fQuiet;             /* True if -quiet flag is present */
   int fHttpTrace;         /* Trace outbound HTTP requests */
@@ -104,6 +105,7 @@ struct Global {
   int dontKeepUrl;        /* Do not persist the URL */
 
   const char *zLogin;     /* Login name.  "" if not logged in. */
+  int useLocalauth;       /* No login required if from 127.0.0.1 */
   int noPswd;             /* Logged in without password (on 127.0.0.1) */
   int userUid;            /* Integer user id */
 
@@ -134,6 +136,7 @@ struct Global {
   int okTktFmt;           /* t: create new ticket report formats */
   int okRdAddr;           /* e: read email addresses or other private data */
   int okZip;              /* z: download zipped artifact via /zip URL */
+  int okPrivate;          /* x: can send and receive private content */
 
   /* For defense against Cross-site Request Forgery attacks */
   char zCsrfToken[12];    /* Value of the anti-CSRF token */
@@ -241,6 +244,8 @@ int main(int argc, char **argv){
   }else{
     g.fQuiet = find_option("quiet", 0, 0)!=0;
     g.fSqlTrace = find_option("sqltrace", 0, 0)!=0;
+    g.fSqlStats = find_option("sqlstats", 0, 0)!=0;
+    if( g.fSqlTrace ) g.fSqlStats = 1;
     g.fSqlPrint = find_option("sqlprint", 0, 0)!=0;
     g.fHttpTrace = find_option("httptrace", 0, 0)!=0;
     g.zLogin = find_option("user", "U", 1);
@@ -885,7 +890,7 @@ static void process_one_web_page(const char *zNotFound){
   /* If the repository has not been opened already, then find the
   ** repository based on the first element of PATH_INFO and open it.
   */
-  zPathInfo = P("PATH_INFO");
+  zPathInfo = PD("PATH_INFO","");
   if( !g.repositoryOpen ){
     char *zRepo;
     const char *zOldScript = PD("SCRIPT_NAME", "");
@@ -1048,6 +1053,10 @@ void cmd_cgi(void){
       blob_reset(&value);
       continue;
     }
+    if( blob_eq(&key, "localauth") ){
+      g.useLocalauth = 1;
+      continue;
+    }
   }
   blob_reset(&config);
   if( g.db==0 && g.zRepositoryName==0 ){
@@ -1111,12 +1120,19 @@ static void find_server_repository(int disallowDir){
 ** The --host option can be used to specify the hostname for the server.
 ** The --https option indicates that the request came from HTTPS rather
 ** than HTTP.
+**
+** Other options:
+**
+**    --localauth      Password signin is not required if this is true and
+**                     the input comes from 127.0.0.1 and the "localauth"
+**                     setting is not disabled.
 */
 void cmd_http(void){
   const char *zIpAddr;
   const char *zNotFound;
   const char *zHost;
   zNotFound = find_option("notfound", 0, 1);
+  g.useLocalauth = find_option("localauth", 0, 0)!=0;
   if( find_option("https",0,0)!=0 ) cgi_replace_parameter("HTTPS","on");
   zHost = find_option("host", 0, 1);
   if( zHost ) cgi_replace_parameter("HTTP_HOST",zHost);
@@ -1203,6 +1219,12 @@ static int binaryOnPath(const char *zBinary){
 ** that contains one or more respositories with names ending in ".fossil".
 ** In that case, the first element of the URL is used to select among the
 ** various repositories.
+**
+** By default, the "ui" command provides full administrative access without
+** having to log in.  This can be disabled by setting turning off the
+** "localauth" setting.  Automatic login for the "server" command is available
+** if the --localauth option is present and the "localauth" setting is off
+** and the connection is from localhost.
 */
 void cmd_webserver(void){
   int iPort, mxPort;        /* Range of TCP ports allowed */
@@ -1219,6 +1241,7 @@ void cmd_webserver(void){
 #endif
 
   g.thTrace = find_option("th-trace", 0, 0)!=0;
+  g.useLocalauth = find_option("localauth", 0, 0)!=0;
   if( g.thTrace ){
     blob_zero(&g.thLog);
   }
@@ -1226,7 +1249,10 @@ void cmd_webserver(void){
   zNotFound = find_option("notfound", 0, 1);
   if( g.argc!=2 && g.argc!=3 ) usage("?REPOSITORY?");
   isUiCmd = g.argv[1][0]=='u';
-  if( isUiCmd ) flags |= HTTP_SERVER_LOCALHOST;
+  if( isUiCmd ){
+    flags |= HTTP_SERVER_LOCALHOST;
+    g.useLocalauth = 1;
+  }
   find_server_repository(isUiCmd);
   if( zPort ){
     iPort = mxPort = atoi(zPort);

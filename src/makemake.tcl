@@ -237,8 +237,10 @@ writeln "\$(OBJDIR)/sqlite3.o:\t\$(SRCDIR)/sqlite3.c"
 set opt {-DSQLITE_OMIT_LOAD_EXTENSION=1}
 append opt " -DSQLITE_THREADSAFE=0 -DSQLITE_DEFAULT_FILE_FORMAT=4"
 #append opt " -DSQLITE_ENABLE_FTS3=1"
+append opt " -DSQLITE_ENABLE_STAT2"
 append opt " -Dlocaltime=fossil_localtime"
 append opt " -DSQLITE_ENABLE_LOCKING_STYLE=0"
+set SQLITE_OPTIONS $opt
 writeln "\t\$(XTCC) $opt -c \$(SRCDIR)/sqlite3.c -o \$(OBJDIR)/sqlite3.o\n"
 
 writeln "\$(OBJDIR)/shell.o:\t\$(SRCDIR)/shell.c"
@@ -305,7 +307,7 @@ TCC = gcc -Os -Wall -DFOSSIL_I18N=0 -L$(ZLIBDIR)/lib -I$(ZLIBDIR)/include
 
 # With HTTPS support
 ifdef FOSSIL_ENABLE_SSL
-TCC += -DFOSSIL_ENABLE_SSL=1
+TCC += -static -DFOSSIL_ENABLE_SSL=1
 endif
 
 #### Extra arguments for linking the finished binary.  Fossil needs
@@ -315,16 +317,20 @@ endif
 #    chroot jail.
 #
 #LIB = -lz -lws2_32
-LIB = -lmingwex -lz -lws2_32
 # OpenSSL:
 ifdef FOSSIL_ENABLE_SSL
-LIB += -lcrypto -lssl
+LIB += -lssl -lcrypto -lgdi32
 endif
+LIB += -lmingwex -lz -lws2_32
 
 #### Tcl shell for use in running the fossil testsuite.  This is only
 #    used for testing.  If you do not run
 #
 TCLSH = tclsh
+
+#### Nullsoft installer makensis location
+#
+MAKENSIS = "c:\Program Files\NSIS\makensis.exe"
 
 #### Include a configuration file that can override any one of these settings.
 #
@@ -360,6 +366,9 @@ VERSION     = $(subst /,\\,$(OBJDIR)/version.exe)
 writeln {
 all:	$(OBJDIR) $(APPNAME)
 
+$(OBJDIR)/icon.o:	$(SRCDIR)/../win/icon.rc
+	cp $(SRCDIR)/../win/icon.rc $(OBJDIR)
+	windres $(OBJDIR)/icon.rc -o $(OBJDIR)/icon.o
 
 install:	$(APPNAME)
 	mv $(APPNAME) $(INSTALLDIR)
@@ -394,8 +403,8 @@ EXTRAOBJ = \
   $(OBJDIR)/th.o \
   $(OBJDIR)/th_lang.o
 
-$(APPNAME):	$(OBJDIR)/headers $(OBJ) $(EXTRAOBJ)
-	$(TCC) -o $(APPNAME) $(OBJ) $(EXTRAOBJ) $(LIB)
+$(APPNAME):	$(OBJDIR)/headers $(OBJ) $(EXTRAOBJ) $(OBJDIR)/icon.o
+	$(TCC) -o $(APPNAME) $(OBJ) $(EXTRAOBJ) $(LIB) $(OBJDIR)/icon.o
 
 # This rule prevents make from using its default rules to try build
 # an executable named "manifest" out of the file named "manifest.c"
@@ -409,6 +418,9 @@ $(SRCDIR)/../manifest:
 #
 clean:	
 	rm -rf $(OBJDIR) $(APPNAME)
+
+setup: $(OBJDIR) $(APPNAME)
+	$(MAKENSIS) ./fossil.nsi
 
 }
 
@@ -440,11 +452,7 @@ foreach s [lsort $src] {
 
 
 writeln "\$(OBJDIR)/sqlite3.o:\t\$(SRCDIR)/sqlite3.c"
-set opt {-DSQLITE_OMIT_LOAD_EXTENSION=1}
-append opt " -DSQLITE_THREADSAFE=0 -DSQLITE_DEFAULT_FILE_FORMAT=4"
-#append opt " -DSQLITE_ENABLE_FTS3=1"
-append opt " -Dlocaltime=fossil_localtime"
-append opt " -DSQLITE_ENABLE_LOCKING_STYLE=0"
+set opt $SQLITE_OPTIONS
 writeln "\t\$(XTCC) $opt -c \$(SRCDIR)/sqlite3.c -o \$(OBJDIR)/sqlite3.o\n"
 
 writeln "\$(OBJDIR)/shell.o:\t\$(SRCDIR)/shell.c"
@@ -497,6 +505,7 @@ BCC    = $(DMDIR)\bin\dmc $(CFLAGS)
 TCC    = $(DMDIR)\bin\dmc $(CFLAGS) $(DMCDEF) $(I18N) $(SSL) $(INCL)
 LIBS   = $(DMDIR)\extra\lib\ zlib wsock32
 }
+writeln "SQLITE_OPTIONS = $SQLITE_OPTIONS\n"
 writeln -nonewline "SRC   = "
 foreach s [lsort $src] {
   writeln -nonewline "${s}_.c "
@@ -506,7 +515,7 @@ writeln -nonewline "OBJ   = "
 foreach s [lsort $src] {
   writeln -nonewline "\$(OBJDIR)\\$s\$O "
 }
-writeln "\$(OBJDIR)\\shell\$O \$(OBJDIR)\\sqlcmd\$O \$(OBJDIR)\\sqlite3\$O \$(OBJDIR)\\th\$O \$(OBJDIR)\\th_lang\$O "
+writeln "\$(OBJDIR)\\shell\$O \$(OBJDIR)\\sqlite3\$O \$(OBJDIR)\\th\$O \$(OBJDIR)\\th_lang\$O "
 writeln {
 
 RC=$(DMDIR)\bin\rcc
@@ -528,7 +537,7 @@ writeln -nonewline "\t+echo "
 foreach s [lsort $src] {
   writeln -nonewline "$s "
 }
-writeln "shell sqlcmd sqlite3 th th_lang > \$@"
+writeln "shell sqlite3 th th_lang > \$@"
 writeln "\t+echo fossil >> \$@"
 writeln "\t+echo fossil >> \$@"
 writeln "\t+echo \$(LIBS) >> \$@"
@@ -549,13 +558,10 @@ version$E: $B\win\version.c
 	$(BCC) -o$@ $**
 
 $(OBJDIR)\shell$O : $(SRCDIR)\shell.c
-	$(TCC) -o$@ -c -Dmain=sqlite3_shell -DSQLITE_OMIT_LOAD_EXTENSION=1 -DSQLITE_THREADSAFE=0 -DSQLITE_DEFAULT_FILE_FORMAT=4 -Dlocaltime=fossil_localtime -DSQLITE_ENABLE_LOCKING_STYLE=0 $**
-
-$(OBJDIR)\sqlcmd$O : $(SRCDIR)\sqlcmd.c
-	$(TCC) -o$@ -c -DSQLITE_OMIT_LOAD_EXTENSION=1 -DSQLITE_THREADSAFE=0 -DSQLITE_DEFAULT_FILE_FORMAT=4 -Dlocaltime=fossil_localtime -DSQLITE_ENABLE_LOCKING_STYLE=0 $**
+	$(TCC) -o$@ -c -Dmain=sqlite3_shell $(SQLITE_OPTIONS) $**
 
 $(OBJDIR)\sqlite3$O : $(SRCDIR)\sqlite3.c
-	$(TCC) -o$@ -c -DSQLITE_OMIT_LOAD_EXTENSION=1 -DSQLITE_THREADSAFE=0 -DSQLITE_DEFAULT_FILE_FORMAT=4 -Dlocaltime=fossil_localtime -DSQLITE_ENABLE_LOCKING_STYLE=0 $**
+	$(TCC) -o$@ -c $(SQLITE_OPTIONS) $**
 
 $(OBJDIR)\th$O : $(SRCDIR)\th.c
 	$(TCC) -o$@ -c $**
@@ -611,6 +617,7 @@ writeln {# DO NOT EDIT
 B      = ..
 SRCDIR = $B\src
 OBJDIR = .
+OX     = .
 O      = .obj
 E      = .exe
 
@@ -642,6 +649,8 @@ TCC    = $(CC) -c $(CFLAGS) $(MSCDEF) $(I18N) $(SSL) $(INCL)
 LIBS   = $(ZLIB) ws2_32.lib $(SSLLIB)
 LIBDIR = -LIBPATH:$(MSCDIR)\extra\lib -LIBPATH:$(ZLIBDIR)
 }
+regsub -all {[-]D} $SQLITE_OPTIONS {/D} MSC_SQLITE_OPTIONS
+writeln "SQLITE_OPTIONS = $MSC_SQLITE_OPTIONS\n"
 writeln -nonewline "SRC   = "
 foreach s [lsort $src] {
   writeln -nonewline "${s}_.c "
@@ -649,20 +658,20 @@ foreach s [lsort $src] {
 writeln "\n"
 writeln -nonewline "OBJ   = "
 foreach s [lsort $src] {
-  writeln -nonewline "\$(OBJDIR)\\$s\$O "
+  writeln -nonewline "\$(OX)\\$s\$O "
 }
-writeln "\$(OBJDIR)\\sqlite3\$O \$(OBJDIR)\\th\$O \$(OBJDIR)\\th_lang\$O "
+writeln "\$(OX)\\shell\$O \$(OX)\\sqlite3\$O \$(OX)\\th\$O \$(OX)\\th_lang\$O "
 writeln {
 
-APPNAME = $(OBJDIR)\fossil$(E)
+APPNAME = $(OX)\fossil$(E)
 
-all: $(OBJDIR) $(APPNAME)
+all: $(OX) $(APPNAME)
 
-$(APPNAME) : translate$E mkindex$E headers $(OBJ) $(OBJDIR)\linkopts
-	cd $(OBJDIR) 
+$(APPNAME) : translate$E mkindex$E headers $(OBJ) $(OX)\linkopts
+	cd $(OX) 
 	link -LINK -OUT:$@ $(LIBDIR) @linkopts
 
-$(OBJDIR)\linkopts: $B\win\Makefile.msc}
+$(OX)\linkopts: $B\win\Makefile.msc}
 writeln -nonewline "\techo "
 foreach s [lsort $src] {
   writeln -nonewline "$s "
@@ -672,7 +681,7 @@ writeln "\techo \$(LIBS) >> \$@\n\n"
 
 writeln {
 
-$(OBJDIR):
+$(OX):
 	@-mkdir $@
 
 translate$E: $(SRCDIR)\translate.c
@@ -687,13 +696,16 @@ mkindex$E: $(SRCDIR)\mkindex.c
 version$E: $B\win\version.c
 	$(BCC) $**
 
-$(OBJDIR)\sqlite3$O : $(SRCDIR)\sqlite3.c
-	$(TCC) /Fo$@ -c -DSQLITE_OMIT_LOAD_EXTENSION=1 -DSQLITE_THREADSAFE=0 -DSQLITE_DEFAULT_FILE_FORMAT=4 -Dlocaltime=fossil_localtime -DSQLITE_ENABLE_LOCKING_STYLE=0 $**
+$(OX)\shell$O : $(SRCDIR)\shell.c
+	$(TCC) /Fo$@ /Dmain=sqlite3_shell $(SQLITE_OPTIONS) -c shell_.c
 
-$(OBJDIR)\th$O : $(SRCDIR)\th.c
+$(OX)\sqlite3$O : $(SRCDIR)\sqlite3.c
+	$(TCC) /Fo$@ -c $(SQLITE_OPTIONS) $**
+
+$(OX)\th$O : $(SRCDIR)\th.c
 	$(TCC) /Fo$@ -c $**
 
-$(OBJDIR)\th_lang$O : $(SRCDIR)\th_lang.c
+$(OX)\th_lang$O : $(SRCDIR)\th_lang.c
 	$(TCC) /Fo$@ -c $**
 
 VERSION.h : version$E $B\manifest.uuid $B\manifest
@@ -703,7 +715,7 @@ page_index.h: mkindex$E $(SRC)
 	$** > $@
 
 clean:
-	-del $(OBJDIR)\*.obj
+	-del $(OX)\*.obj
 	-del *.obj *_.c *.h *.map
 	-del headers linkopts
 
@@ -712,7 +724,7 @@ realclean:
 
 }
 foreach s [lsort $src] {
-  writeln "\$(OBJDIR)\\$s\$O : ${s}_.c ${s}.h"
+  writeln "\$(OX)\\$s\$O : ${s}_.c ${s}.h"
   writeln "\t\$(TCC) /Fo\$@ -c ${s}_.c\n"
   writeln "${s}_.c : \$(SRCDIR)\\$s.c"
   writeln "\ttranslate\$E \$** > \$@\n"

@@ -150,8 +150,9 @@ static void add_one_file(
 #endif
     else{
       db_multi_exec(
-        "INSERT INTO vfile(vid,deleted,rid,mrid,pathname)"
-        "VALUES(%d,0,0,0,%Q)", vid, zPath);
+        "INSERT INTO vfile(vid,deleted,rid,mrid,pathname,isexe)"
+        "VALUES(%d,0,0,0,%Q,%d)",
+        vid, zPath,file_isexe(zName));
     }
     printf("ADDED  %s\n", zPath);
   }
@@ -190,8 +191,8 @@ void add_directory_content(const char *zDir, Stmt *pIgnore){
       }
       blob_resize(&path, origSize);
     }
+    closedir(d);
   }
-  closedir(d);
   blob_reset(&path);
 }
 
@@ -323,8 +324,8 @@ void del_directory_content(const char *zDir){
       }
       blob_resize(&path, origSize);
     }
+    closedir(d);
   }
-  closedir(d);
   blob_reset(&path);
 }
 

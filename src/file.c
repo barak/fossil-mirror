@@ -124,6 +124,31 @@ int file_isdir(const char *zFilename){
 }
 
 /*
+** Find an unused filename similar to zBase with zSuffix appended.
+**
+** Make the name relative to the working directory if relFlag is true.
+**
+** Space to hold the new filename is obtained form mprintf() and should
+** be freed by the caller.
+*/
+char *file_newname(const char *zBase, const char *zSuffix, int relFlag){
+  char *z = 0;
+  int cnt = 0;
+  z = mprintf("%s-%s", zBase, zSuffix);
+  while( file_size(z)>=0 ){
+    fossil_free(z);
+    z = mprintf("%s-%s-%d", zBase, zSuffix, cnt++);
+  }
+  if( relFlag ){
+    Blob x;
+    file_relative_name(z, &x);
+    fossil_free(z);
+    z = blob_str(&x);
+  }
+  return z;
+}
+
+/*
 ** Return the tail of a file pathname.  The tail is the last component
 ** of the path.  For example, the tail of "/a/b/c.d" is "c.d".
 */
@@ -155,22 +180,27 @@ void file_copy(const char *zFrom, const char *zTo){
 }
 
 /*
-** Set or clear the execute bit on a file.
+** Set or clear the execute bit on a file.  Return true if a change
+** occurred and false if this routine is a no-op.
 */
-void file_setexe(const char *zFilename, int onoff){
+int file_setexe(const char *zFilename, int onoff){
+  int rc = 0;
 #if !defined(_WIN32)
   struct stat buf;
-  if( stat(zFilename, &buf)!=0 ) return;
+  if( stat(zFilename, &buf)!=0 ) return 0;
   if( onoff ){
     if( (buf.st_mode & 0111)!=0111 ){
       chmod(zFilename, buf.st_mode | 0111);
+      rc = 1;
     }
   }else{
     if( (buf.st_mode & 0111)!=0 ){
       chmod(zFilename, buf.st_mode & ~0111);
+      rc = 1;
     }
   }
 #endif /* _WIN32 */
+  return rc;
 }
 
 /*

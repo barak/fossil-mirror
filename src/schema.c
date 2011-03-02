@@ -42,7 +42,7 @@ const char zConfigSchema[] =
 ** the aux schema changes, all we need to do is rebuild the database.
 */
 #define CONTENT_SCHEMA  "1"
-#define AUX_SCHEMA      "2011-01-28"
+#define AUX_SCHEMA      "2011-02-25 14:52"
 
 #endif /* INTERFACE */
 
@@ -202,7 +202,8 @@ const char zRepositorySchema2[] =
 @   pid INTEGER REFERENCES blob,        -- File ID in parent manifest
 @   fid INTEGER REFERENCES blob,        -- Changed file ID in this manifest
 @   fnid INTEGER REFERENCES filename,   -- Name of the file
-@   pfnid INTEGER REFERENCES filename   -- Previous name. 0 if unchanged
+@   pfnid INTEGER REFERENCES filename,  -- Previous name. 0 if unchanged
+@   mperm INTEGER                       -- File permissions.  1==exec
 @ );
 @ CREATE INDEX mlink_i1 ON mlink(mid);
 @ CREATE INDEX mlink_i2 ON mlink(fnid);
@@ -307,6 +308,7 @@ const char zRepositorySchema2[] =
 @ INSERT INTO tag VALUES(7, 'cluster');         -- TAG_CLUSTER
 @ INSERT INTO tag VALUES(8, 'branch');          -- TAG_BRANCH
 @ INSERT INTO tag VALUES(9, 'closed');          -- TAG_CLOSED
+@ INSERT INTO tag VALUES(10,'parent');          -- TAG_PARENT
 @
 @ -- Assignments of tags to baselines.  Note that we allow tags to
 @ -- have values assigned to them.  So we are not really dealing with
@@ -315,7 +317,7 @@ const char zRepositorySchema2[] =
 @ --
 @ CREATE TABLE tagxref(
 @   tagid INTEGER REFERENCES tag,   -- The tag that added or removed
-@   tagtype INTEGER,                -- 0:cancel  1:single  2:branch
+@   tagtype INTEGER,                -- 0:-,cancel  1:+,single  2:*,propagate
 @   srcid INTEGER REFERENCES blob,  -- Artifact of tag. 0 for propagated tags
 @   origid INTEGER REFERENCES blob, -- check-in holding propagated tag
 @   value TEXT,                     -- Value of the tag.  Might be NULL.
@@ -392,9 +394,10 @@ const char zRepositorySchema2[] =
 # define TAG_CLUSTER    7     /* A cluster */
 # define TAG_BRANCH     8     /* Value is name of the current branch */
 # define TAG_CLOSED     9     /* Do not display this check-in as a leaf */
+# define TAG_PARENT     10    /* Change to parentage on a checkin */
 #endif
 #if EXPORT_INTERFACE
-# define MAX_INT_TAG    9     /* The largest pre-assigned tag id */
+# define MAX_INT_TAG    16    /* The largest pre-assigned tag id */
 #endif
 
 /*

@@ -138,7 +138,7 @@ void branch_new(void){
     }
   }
 
-  brid = content_put(&branch, 0, 0, 0);
+  brid = content_put(&branch);
   if( brid==0 ){
     fossil_panic("trouble committing manifest: %s", g.zErrMsg);
   }
@@ -146,6 +146,7 @@ void branch_new(void){
   if( manifest_crosslink(brid, &branch)==0 ){
     fossil_panic("unable to install new manifest");
   }
+  assert( blob_is_reset(&branch) );
   content_deltify(rootid, brid, 0);
   zUuid = db_text(0, "SELECT uuid FROM blob WHERE rid=%d", brid);
   printf("New branch: %s\n", zUuid);

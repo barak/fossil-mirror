@@ -481,12 +481,13 @@ static int submitTicketCmd(
              "}<br />\n",
        blob_str(&tktchng));
   }else{
-    rid = content_put(&tktchng, 0, 0, 0);
+    rid = content_put(&tktchng);
     if( rid==0 ){
       fossil_panic("trouble committing ticket: %s", g.zErrMsg);
     }
     manifest_crosslink_begin();
     manifest_crosslink(rid, &tktchng);
+    assert( blob_is_reset(&tktchng) );
     manifest_crosslink_end();
   }
   return TH_RETURN;
@@ -1057,13 +1058,14 @@ void ticket_cmd(void){
         blob_appendf(&tktchng, "U %F\n", g.zLogin);
         md5sum_blob(&tktchng, &cksum);
         blob_appendf(&tktchng, "Z %b\n", &cksum);
-        rid = content_put(&tktchng, 0, 0, 0);
+        rid = content_put(&tktchng);
         if( rid==0 ){
           fossil_panic("trouble committing ticket: %s", g.zErrMsg);
         }
         manifest_crosslink_begin();
         manifest_crosslink(rid, &tktchng);
         manifest_crosslink_end();
+        assert( blob_is_reset(&tktchng) );
 	printf("ticket %s succeeded for UID %s\n",
 	       (eCmd==set?"set":"add"),zTktUuid);
       }

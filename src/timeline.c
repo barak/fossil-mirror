@@ -534,9 +534,17 @@ void timeline_output_graph_javascript(GraphContext *pGraph){
     @   for(var i=0; i<n; i+=2){
     @     var x1 = p.au[i]*20 + left;
     @     var x0 = x1>p.x ? p.x+7 : p.x-6;
-    @     drawBox("black",x0,p.y,x1,p.y+1);
     @     var u = rowinfo[p.au[i+1]-1];
-    @     drawUpArrow(x1, u.y+6, p.y);
+    @     if(u.id<p.id){
+    @       drawBox("black",x0,p.y,x1,p.y+1);
+    @       drawUpArrow(x1, u.y+6, p.y);
+    @     }else{
+    @       drawBox("#600000",x0,p.y,x1,p.y+1);
+    @       drawBox("#600000",x1-1,p.y,x1,u.y+1);
+    @       drawBox("#600000",x1,u.y,u.x-6,u.y+1);
+    @       drawBox("#600000",u.x-9,u.y-1,u.x-8,u.y+2);
+    @       drawBox("#600000",u.x-11,u.y-2,u.x-10,u.y+3);
+    @     }
     @   }
     @   for(var j in p.mi){
     @     var y0 = p.y+5;
@@ -1314,4 +1322,66 @@ struct tm *fossil_localtime(const time_t *clock){
   }else{
     return localtime(clock);
   }
+}
+
+
+/*
+** COMMAND: test-timewarp-list
+**
+** Usage: %fossil test-timewarp-list ?--detail?
+**
+** Display all instances of child checkins that appear earlier in time
+** than their parent.  If the --detail option is provided, both the
+** parent and child checking and their times are shown.
+*/
+void test_timewarp_cmd(void){
+  Stmt q;
+  int showDetail;
+
+  db_find_and_open_repository(0, 0);
+  showDetail = find_option("detail", 0, 0)!=0;
+  db_prepare(&q,
+     "SELECT (SELECT uuid FROM blob WHERE rid=p.cid),"
+     "       (SELECT uuid FROM blob WHERE rid=c.cid),"
+     "       datetime(p.mtime), datetime(c.mtime)"
+     "  FROM plink p, plink c"
+     " WHERE p.cid=c.pid  AND p.mtime>c.mtime"
+  );
+  while( db_step(&q)==SQLITE_ROW ){
+    if( !showDetail ){
+      printf("%s\n", db_column_text(&q, 1));
+    }else{
+      printf("%.14s -> %.14s   %s -> %s\n",
+         db_column_text(&q, 0),
+         db_column_text(&q, 1),
+         db_column_text(&q, 2),
+         db_column_text(&q, 3));
+    }
+  }
+  db_finalize(&q);
+}
+
+/*
+** WEBPAGE: test_timewarps
+*/
+void test_timewarp_page(void){
+  Stmt q;
+
+  login_check_credentials();
+  if( !g.okRead || !g.okHistory ){ login_needed(); return; }
+  style_header("Instances of timewarp");
+  @ <ul>
+  db_prepare(&q,
+     "SELECT blob.uuid "
+     "  FROM plink p, plink c, blob"
+     " WHERE p.cid=c.pid  AND p.mtime>c.mtime"
+     "   AND blob.rid=c.cid"
+  );
+  while( db_step(&q)==SQLITE_ROW ){
+    const char *zUuid = db_column_text(&q, 0);
+    @ <li>
+    @ <a href="%s(g.zTop)/timeline?p=%S(zUuid)&amp;d=%S(zUuid)">%S(zUuid)</a>
+  }
+  db_finalize(&q);
+  style_footer();
 }

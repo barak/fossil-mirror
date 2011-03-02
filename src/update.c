@@ -199,6 +199,7 @@ void update_cmd(void){
     "  chnged BOOLEAN,"           /* True if current version has been edited */
     "  ridv INTEGER,"             /* Record ID for current version */
     "  ridt INTEGER,"             /* Record ID for target */
+    "  isexe BOOLEAN,"            /* Does target have execute permission? */
     "  fnt TEXT"                  /* Filename of same file on target version */
     ");"
   );
@@ -206,8 +207,9 @@ void update_cmd(void){
   /* Add files found in the current version
   */
   db_multi_exec(
-    "INSERT OR IGNORE INTO fv(fn,fnt,idv,idt,ridv,ridt,chnged)"
-    " SELECT pathname, pathname, id, 0, rid, 0, chnged FROM vfile WHERE vid=%d",
+    "INSERT OR IGNORE INTO fv(fn,fnt,idv,idt,ridv,ridt,isexe,chnged)"
+    " SELECT pathname, pathname, id, 0, rid, 0, isexe, chnged"
+    "   FROM vfile WHERE vid=%d",
     vid
   );
 
@@ -231,8 +233,8 @@ void update_cmd(void){
   ** version V.
   */
   db_multi_exec(
-    "INSERT OR IGNORE INTO fv(fn,fnt,idv,idt,ridv,ridt,chnged)"
-    " SELECT pathname, pathname, 0, 0, 0, 0, 0 FROM vfile"
+    "INSERT OR IGNORE INTO fv(fn,fnt,idv,idt,ridv,ridt,isexe,chnged)"
+    " SELECT pathname, pathname, 0, 0, 0, 0, isexe, 0 FROM vfile"
     "  WHERE vid=%d"
     "    AND pathname NOT IN (SELECT fnt FROM fv)",
     tid
@@ -250,14 +252,15 @@ void update_cmd(void){
 
   if( debugFlag ){
     db_prepare(&q,
-       "SELECT rowid, fn, fnt, chnged, ridv, ridt FROM fv"
+       "SELECT rowid, fn, fnt, chnged, ridv, ridt, isexe FROM fv"
     );
     while( db_step(&q)==SQLITE_ROW ){
-       printf("%3d: ridv=%-4d ridt=%-4d chnged=%d\n",
+       printf("%3d: ridv=%-4d ridt=%-4d chnged=%d isexe=%d\n",
           db_column_int(&q, 0),
           db_column_int(&q, 4),
           db_column_int(&q, 5),
-          db_column_int(&q, 3));
+          db_column_int(&q, 3),
+          db_column_int(&q, 6));
        printf("     fnv = [%s]\n", db_column_text(&q, 1));
        printf("     fnt = [%s]\n", db_column_text(&q, 2));
     }
@@ -301,7 +304,7 @@ void update_cmd(void){
   ** target
   */
   db_prepare(&q, 
-    "SELECT fn, idv, ridv, idt, ridt, chnged, fnt FROM fv ORDER BY 1"
+    "SELECT fn, idv, ridv, idt, ridt, chnged, fnt, isexe FROM fv ORDER BY 1"
   );
   db_prepare(&mtimeXfer,
     "UPDATE vfile SET mtime=(SELECT mtime FROM vfile WHERE id=:idv)"
@@ -318,6 +321,7 @@ void update_cmd(void){
     int ridt = db_column_int(&q, 4);            /* RecordID for target */
     int chnged = db_column_int(&q, 5);          /* Current is edited */
     const char *zNewName = db_column_text(&q,6);/* New filename */
+    int isexe = db_column_int(&q, 6);           /* EXE perm for new file */
     char *zFullPath;                            /* Full pathname of the file */
     char *zFullNewPath;                         /* Full pathname of dest */
     char nameChng;                              /* True if the name changed */
@@ -364,7 +368,7 @@ void update_cmd(void){
       }
     }else if( idt>0 && idv>0 && ridt!=ridv && chnged ){
       /* Merge the changes in the current tree into the target version */
-      Blob e, r, t, v;
+      Blob r, t, v;
       int rc;
       if( nameChng ){
         printf("MERGE %s -> %s\n", zName, zNewName);
@@ -374,23 +378,26 @@ void update_cmd(void){
       undo_save(zName);
       content_get(ridt, &t);
       content_get(ridv, &v);
-      blob_zero(&e);
-      blob_read_from_file(&e, zFullPath);
-      rc = blob_merge(&v, &e, &t, &r);
+      rc = merge_3way(&v, zFullPath, &t, &r);
       if( rc>=0 ){
-        if( !nochangeFlag ) blob_write_to_file(&r, zFullNewPath);
+        if( !nochangeFlag ){
+          blob_write_to_file(&r, zFullNewPath);
+          file_setexe(zFullNewPath, isexe);
+        }
         if( rc>0 ){
           printf("***** %d merge conflicts in %s\n", rc, zNewName);
           nConflict++;
         }
       }else{
-        if( !nochangeFlag ) blob_write_to_file(&t, zFullNewPath);
+        if( !nochangeFlag ){
+          blob_write_to_file(&t, zFullNewPath);
+          file_setexe(zFullNewPath, isexe);
+        }
         printf("***** Cannot merge binary file %s\n", zNewName);
         nConflict++;
       }
       if( nameChng && !nochangeFlag ) unlink(zFullPath);
       blob_reset(&v);
-      blob_reset(&e);
       blob_reset(&t);
       blob_reset(&r);
     }else{
@@ -454,6 +461,7 @@ int historical_version_of_file(
   const char *revision,    /* The checkin containing the file */
   const char *file,        /* Full treename of the file */
   Blob *content,           /* Put the content here */
+  int *pIsExe,             /* Set to true if file is executable */
   int errCode              /* Error code if file not found.  Panic if 0. */
 ){
   Manifest *pManifest;
@@ -472,19 +480,21 @@ int historical_version_of_file(
   pManifest = manifest_get(rid, CFTYPE_MANIFEST);
   
   if( pManifest ){
-    manifest_file_rewind(pManifest);
-    while( (pFile = manifest_file_next(pManifest,0))!=0 ){
-      if( fossil_strcmp(pFile->zName, file)==0 ){
-        rid = uuid_to_rid(pFile->zUuid, 0);
-        manifest_destroy(pManifest);
-        return content_get(rid, content);
-      }
+    pFile = manifest_file_seek(pManifest, file);
+    if( pFile ){
+      rid = uuid_to_rid(pFile->zUuid, 0);
+      if( pIsExe ) *pIsExe = manifest_file_mperm(pFile);
+      manifest_destroy(pManifest);
+      return content_get(rid, content);
     }
     manifest_destroy(pManifest);
     if( errCode<=0 ){
       fossil_fatal("file %s does not exist in checkin: %s", file, revision);
     }
   }else if( errCode<=0 ){
+    if( revision==0 ){
+      revision = db_text("current", "SELECT uuid FROM blob WHERE rid=%d", rid);
+    }
     fossil_panic("could not parse manifest for checkin: %s", revision);
   }
   return errCode;
@@ -511,7 +521,6 @@ void revert_cmd(void){
   Blob record;
   int i;
   int errCode;
-  int rid = 0;
   Stmt q;
 
   undo_capture_command_line();  
@@ -551,40 +560,42 @@ void revert_cmd(void){
   }
   blob_zero(&record);
   db_prepare(&q, "SELECT name FROM torevert");
+  if( zRevision==0 ){
+    int vid = db_lget_int("checkout", 0);
+    zRevision = db_text(0, "SELECT uuid FROM blob WHERE rid=%d", vid);
+  }
   while( db_step(&q)==SQLITE_ROW ){
+    int isExe = 0;
+    char *zFull;
     zFile = db_column_text(&q, 0);
-    if( zRevision!=0 ){
-      errCode = historical_version_of_file(zRevision, zFile, &record, 2);
-    }else{
-      rid = db_int(0, "SELECT rid FROM vfile WHERE pathname=%Q", zFile);
-      if( rid==0 ){
-        errCode = 2;
-      }else{
-        content_get(rid, &record);
-        errCode = 0;
-      }
-    }
-
+    zFull = mprintf("%/%/", g.zLocalRoot, zFile);
+    errCode = historical_version_of_file(zRevision, zFile, &record, &isExe,2);
     if( errCode==2 ){
-      fossil_warning("file not in repository: %s", zFile);
+      if( db_int(0, "SELECT rid FROM vfile WHERE pathname=%Q", zFile)==0 ){
+        printf("UNMANAGE: %s\n", zFile);
+      }else{
+        undo_save(zFile);
+        unlink(zFull);
+        printf("DELETE: %s\n", zFile);
+      }
+      db_multi_exec("DELETE FROM vfile WHERE pathname=%Q", zFile);
     }else{
-      char *zFull = mprintf("%/%/", g.zLocalRoot, zFile);
+      sqlite3_int64 mtime;
       undo_save(zFile);
       blob_write_to_file(&record, zFull);
+      file_setexe(zFull, isExe);
       printf("REVERTED: %s\n", zFile);
-      if( zRevision==0 ){
-        sqlite3_int64 mtime = file_mtime(zFull);
-        db_multi_exec(
-           "UPDATE vfile"
-           "   SET mtime=%lld, chnged=0, deleted=0,"
-           "       pathname=coalesce(origname,pathname), origname=NULL"     
-           " WHERE pathname=%Q",
-           mtime, zFile
-        );
-      }
-      free(zFull);
+      mtime = file_mtime(zFull);
+      db_multi_exec(
+         "UPDATE vfile"
+         "   SET mtime=%lld, chnged=0, deleted=0, isexe=%d, mrid=rid,"
+         "       pathname=coalesce(origname,pathname), origname=NULL"     
+         " WHERE pathname=%Q",
+         mtime, isExe, zFile
+      );
     }
     blob_reset(&record);
+    free(zFull);
   }
   db_finalize(&q);
   undo_finish();
