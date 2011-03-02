@@ -1,15 +1,10 @@
-fossil (2011.03.01.190432-1) UNRELEASED; urgency=low
+fossil (2011.03.01.190432-1) unstable; urgency=low
 
   * New upstream version
-
- -- Barak A. Pearlmutter <bap@debian.org>  Wed, 02 Mar 2011 08:58:32 +0000
-
-fossil (2011.02.08.125237-2) UNRELEASED; urgency=low
-
   * sqlite3 recent functionality guards to allow version 3.7.3,
     and lower corresponding build dependency
 
- -- Barak A. Pearlmutter <bap@debian.org>  Sat, 12 Feb 2011 22:06:16 +0000
+ -- Barak A. Pearlmutter <bap@debian.org>  Wed, 02 Mar 2011 08:58:32 +0000
 
 fossil (2011.02.08.125237-1) unstable; urgency=low
 
