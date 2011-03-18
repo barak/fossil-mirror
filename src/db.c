@@ -907,19 +907,27 @@ const char *db_name(const char *zDb){
 }
 
 /*
+** Return TRUE if the schema is out-of-date
+*/
+int db_schema_is_outofdate(void){
+  return db_exists("SELECT 1 FROM config"
+                   " WHERE name='aux-schema'"
+                   "   AND value<>'%s'", AUX_SCHEMA);
+}
+
+/*
 ** Verify that the repository schema is correct.  If it is not correct,
 ** issue a fatal error and die.
 */
 void db_verify_schema(void){
-  if( db_exists("SELECT 1 FROM config"
-                " WHERE name='aux-schema'"
-                "   AND value<>'%s'", AUX_SCHEMA) ){
+  if( db_schema_is_outofdate() ){
     fossil_warning("incorrect repository schema version");
     fossil_warning("you have version \"%s\" but you need version \"%s\"",
           db_get("aux-schema",0), AUX_SCHEMA);
     fossil_fatal("run \"fossil rebuild\" to fix this problem");
   }
 }
+
 
 /*
 ** COMMAND: test-move-repository
@@ -1535,7 +1543,7 @@ void cmd_open(void){
   int vid;
   int keepFlag;
   int allowNested;
-  static char *azNewArgv[] = { 0, "checkout", "--prompt", "--latest", 0, 0 };
+  static char *azNewArgv[] = { 0, "checkout", "--prompt", 0, 0, 0 };
 
   url_proxy_options();
   keepFlag = find_option("keep",0,0)!=0;
@@ -1562,9 +1570,11 @@ void cmd_open(void){
     db_lset_int("checkout", vid);
     azNewArgv[0] = g.argv[0];
     g.argv = azNewArgv;
-    g.argc = 4;
+    g.argc = 3;
     if( oldArgc==4 ){
       azNewArgv[g.argc-1] = oldArgv[3];
+    }else{
+      azNewArgv[g.argc-1] = db_get("main-branch", "trunk");
     }
     if( keepFlag ){
       azNewArgv[g.argc++] = "--keep";
@@ -1637,6 +1647,7 @@ struct stControlSettings const ctrlSettings[] = {
   { "ignore-glob",   0,               40, ""                    },
   { "http-port",     0,               16, "8080"                },
   { "localauth",     0,                0, "off"                 },
+  { "main-branch",   0,               40, "trunk"               },
   { "manifest",      0,                0, "off"                 },
   { "max-upload",    0,               25, "250000"              },
   { "mtime-changes", 0,                0, "on"                  },
@@ -1707,6 +1718,7 @@ struct stControlSettings const ctrlSettings[] = {
 **                     on four files.
 **                     Ex: kdiff3 "%baseline" "%original" "%merge" -o "%output"
 **                     Ex: xxdiff "%original" "%baseline" "%merge" -M "%output"
+**                     Ex: meld "%baseline" "%original" "%merge" "%output"
 **
 **    http-port        The TCP/IP port number to use by the "server"
 **                     and "ui" commands.  Default: 8080
@@ -1719,6 +1731,8 @@ struct stControlSettings const ctrlSettings[] = {
 **                     127.0.0.1 be authenticated by password.  If
 **                     false, all HTTP requests from localhost have
 **                     unrestricted access to the repository.
+**
+**    main-branch      The primary branch for the project.  Default: trunk
 **
 **    manifest         If enabled, automatically create files "manifest" and
 **                     "manifest.uuid" in every checkout.  The SQLite and

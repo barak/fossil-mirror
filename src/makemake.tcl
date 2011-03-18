@@ -48,6 +48,7 @@ set src {
   file
   finfo
   graph
+  gzip
   http
   http_socket
   http_transport
@@ -61,6 +62,7 @@ set src {
   merge
   merge3
   name
+  path
   pivot
   popen
   pqueue
@@ -80,6 +82,7 @@ set src {
   style
   sync
   tag
+  tar
   th_main
   timeline
   tkt

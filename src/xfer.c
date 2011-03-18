@@ -812,6 +812,10 @@ void page_xfer(void){
   memset(&xfer, 0, sizeof(xfer));
   blobarray_zero(xfer.aToken, count(xfer.aToken));
   cgi_set_content_type(g.zContentType);
+  if( db_schema_is_outofdate() ){
+    @ error database\sschema\sis\out-of-date\son\sthe\sserver.
+    return;
+  }
   blob_zero(&xfer.err);
   xfer.pIn = &g.cgiIn;
   xfer.pOut = cgi_output_blob();
@@ -1428,12 +1432,15 @@ int client_sync(
           sqlite3_snprintf(sizeof(zTime), zTime, "%.19s", &zLine[12]);
           rDiff = db_double(9e99, "SELECT julianday('%q') - %.17g",
                             zTime, rArrivalTime);
-          if( rDiff<0.0 ) rDiff = -rDiff;
-          if( rDiff>9e98 ) rDiff = 0.0;
-          if( (rDiff*24.0*3600.0)>=60.0 ){
-            fossil_warning("*** time skew *** server time differs by %s",
-                           db_timespan_name(rDiff));
-            g.clockSkewSeen = 1;
+          if( rDiff>9e98 || rDiff<-9e98 ) rDiff = 0.0;
+          if( (rDiff*24.0*3600.0) > 10.0 ){
+             fossil_warning("*** time skew *** server is fast by %s",
+                            db_timespan_name(rDiff));
+             g.clockSkewSeen = 1;
+          }else if( rDiff*24.0*3600.0 < -(blob_size(&recv)/5000.0 + 20.0) ){
+             fossil_warning("*** time skew *** server is slow by %s",
+                            db_timespan_name(-rDiff));
+             g.clockSkewSeen = 1;
           }
         }
         continue;
@@ -1625,6 +1632,15 @@ int client_sync(
         char *zMsg = blob_terminate(&xfer.aToken[1]);
         defossilize(zMsg);
         if( zMsg ) fossil_print("\rServer says: %s\n", zMsg);
+      }else
+
+      /*    pragma NAME VALUE...
+      **
+      ** The server can send pragmas to try to convey meta-information to
+      ** the client.  These are informational only.  Unknown pragmas are 
+      ** silently ignored.
+      */
+      if( blob_eq(&xfer.aToken[0], "pragma") && xfer.nToken>=2 ){
       }else
 
       /*   error MESSAGE

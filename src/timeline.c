@@ -256,7 +256,7 @@ void www_print_timeline(
       }else{
         zBr = "trunk";
       }
-      gidx = graph_add_row(pGraph, rid, nParent, aParent, zBr, zBgClr);
+      gidx = graph_add_row(pGraph, rid, nParent, aParent, zBr, zBgClr, isLeaf);
       db_reset(&qbranch);
       @ <div id="m%d(gidx)"></div>
     }
@@ -364,14 +364,14 @@ void www_print_timeline(
     }
   }
   @ </table>
-  timeline_output_graph_javascript(pGraph);
+  timeline_output_graph_javascript(pGraph, (tmFlags & TIMELINE_DISJOINT)!=0);
 }
 
 /*
 ** Generate all of the necessary javascript to generate a timeline
 ** graph.
 */
-void timeline_output_graph_javascript(GraphContext *pGraph){
+void timeline_output_graph_javascript(GraphContext *pGraph, int omitDescenders){
   if( pGraph && pGraph->nErr==0 ){
     GraphRow *pRow;
     int i;
@@ -390,38 +390,44 @@ void timeline_output_graph_javascript(GraphContext *pGraph){
     **        rail is 0 and the number increases to the right.
     **    d:  True if there is a "descender" - an arrow coming from the bottom
     **        of the page straight up to this node.
-    **   mo:  "merge-out".  If non-zero, this is one more than the rail on which
-    **        a merge arrow travels upward.  The merge arrow is drawn upwards
+    **   mo:  "merge-out".  If non-zero, this is one more than the x-coordinate
+    **        for the upward portion of a merge arrow.  The merge arrow goes up
     **        to the row identified by mu:.  If this value is zero then
     **        node has no merge children and no merge-out line is drawn.
     **   mu:  The id of the row which is the top of the merge-out arrow.
-    **   md:  A bitmask of rails on which merge-arrow descenders should be
-    **        drawn from this row to the bottom of the page.  The least
-    **        significant bit (1) corresponds to rail 0.  The 2-bit corresponds
-    **        to rail 1.  And so forth.  This value is 0 if there are no
-    **        merge-arrow descenders.
-    **    u:  Draw a think child-line out of the top of this node and up to
+    **    u:  Draw a thick child-line out of the top of this node and up to
     **        the node with an id equal to this value.  0 if there is no
     **        thick-line riser.
+    **    f:  0x01: a leaf node.
     **   au:  An array of integers that define thick-line risers for branches.
     **        The integers are in pairs.  For each pair, the first integer is
     **        is the rail on which the riser should run and the second integer
     **        is the id of the node upto which the riser should run.
-    **   mi:  "merge-in".  An array of integer rail numbers from which
-    **        merge arrows should be drawn into this node.
+    **   mi:  "merge-in".  An array of integer x-coordinates from which
+    **        merge arrows should be drawn into this node.  If the value is
+    **        negative, then the x-coordinate is the absolute value of mi[]
+    **        and a thin merge-arrow descender is drawn to the bottom of
+    **        the screen.
     */
     cgi_printf("var rowinfo = [\n");
     for(pRow=pGraph->pFirst; pRow; pRow=pRow->pNext){
-      cgi_printf("{id:%d,bg:\"%s\",r:%d,d:%d,mo:%d,mu:%d,md:%u,u:%d,au:",
-        pRow->idx,
-        pRow->zBgClr,
-        pRow->iRail,
-        pRow->bDescender,
-        pRow->mergeOut+1,
-        pRow->mergeUpto,
-        pRow->mergeDown,
-        pRow->aiRiser[pRow->iRail]
+      int mo = pRow->mergeOut;
+      if( mo<0 ){
+        mo = 0;
+      }else{
+        mo = (mo/4)*20 - 3 + 4*(mo&3);
+      }
+      cgi_printf("{id:%d,bg:\"%s\",r:%d,d:%d,mo:%d,mu:%d,u:%d,f:%d,au:",
+        pRow->idx,                      /* id */
+        pRow->zBgClr,                   /* bg */
+        pRow->iRail,                    /* r */
+        pRow->bDescender,               /* d */
+        mo,                             /* mo */
+        pRow->mergeUpto,                /* mu */
+        pRow->aiRiser[pRow->iRail],     /* u */
+        pRow->isLeaf ? 1 : 0            /* f */
       );
+      /* u */
       cSep = '[';
       for(i=0; i<GR_MAX_RAIL; i++){
         if( i==pRow->iRail ) continue;
@@ -432,10 +438,13 @@ void timeline_output_graph_javascript(GraphContext *pGraph){
       }
       if( cSep=='[' ) cgi_printf("[");
       cgi_printf("],mi:");
+      /* mi */
       cSep = '[';
       for(i=0; i<GR_MAX_RAIL; i++){
-        if( pRow->mergeIn & (1<<i) ){
-          cgi_printf("%c%d", cSep, i);
+        if( pRow->mergeIn[i] ){
+          int mi = i*20 - 8 + 4*pRow->mergeIn[i];
+          if( pRow->mergeDown & (1<<i) ) mi = -mi;
+          cgi_printf("%c%d", cSep, mi);
           cSep = ',';
         }
       }
@@ -510,21 +519,20 @@ void timeline_output_graph_javascript(GraphContext *pGraph){
     @ function drawNode(p, left, btm){
     @   drawBox("black",p.x-5,p.y-5,p.x+6,p.y+6);
     @   drawBox(p.bg,p.x-4,p.y-4,p.x+5,p.y+5);
-    @   if( p.u>0 ){
-    @     var u = rowinfo[p.u-1];
-    @     drawUpArrow(p.x, u.y+6, p.y-5);
-    @   }
-    @   if( p.d ){
-    @     drawUpArrow(p.x, p.y+6, btm);
-    @   } 
+    @   if( p.u>0 ) drawUpArrow(p.x, rowinfo[p.u-1].y+6, p.y-5);
+    if( !omitDescenders ){
+      @   if( p.u==0 ) drawUpArrow(p.x, 0, p.y-5);
+      @   if( p.f&1 ) drawBox("black",p.x-1,p.y-1,p.x+2,p.y+2);
+      @   if( p.d ) drawUpArrow(p.x, p.y+6, btm);
+    } 
     @   if( p.mo>0 ){
-    @     var x1 = (p.mo-1)*20 + left;
+    @     var x1 = p.mo + left - 1;
     @     var y1 = p.y-3;
     @     var x0 = x1>p.x ? p.x+7 : p.x-6;
     @     var u = rowinfo[p.mu-1];
     @     var y0 = u.y+5;
-    @     if( x1==p.x ){
-    @       y1 -= 2;
+    @     if( x1>=p.x-5 && x1<=p.x+5 ){
+    @       y1 = p.y-5;
     @     }else{
     @       drawThinLine(x0,y1,x1,y1);
     @     }
@@ -548,14 +556,17 @@ void timeline_output_graph_javascript(GraphContext *pGraph){
     @   }
     @   for(var j in p.mi){
     @     var y0 = p.y+5;
-    @     var mx = p.mi[j]*20 + left;
+    @     var mx = p.mi[j];
+    @     if( mx<0 ){
+    @       mx = left-mx;
+    @       drawThinLine(mx,y0,mx,btm);
+    @     }else{
+    @       mx += left;
+    @     }
     @     if( mx>p.x ){
     @       drawThinArrow(y0,mx,p.x+6);
     @     }else{
     @       drawThinArrow(y0,mx,p.x-5);
-    @     }
-    @     if( (1<<p.mi[j])&p.md ){
-    @       drawThinLine(mx,y0,mx,btm);
     @     }
     @   }
     @ }
@@ -728,6 +739,9 @@ static void timeline_add_dividers(const char *zDate, int rid){
 **    ng             Suppress the graph if present
 **    nd             Suppress "divider" lines
 **    f=RID          Show family (immediate parents and children) of RID
+**    from=RID       Path from...
+**    to=RID           ... to this
+**    nomerge          ... avoid merge links on the path
 **
 ** p= and d= can appear individually or together.  If either p= or d=
 ** appear, then u=, y=, a=, and b= are ignored.
@@ -759,6 +773,11 @@ void page_timeline(void){
   const char *zThisTag = 0;          /* Suppress links to this tag */
   const char *zThisUser = 0;         /* Suppress links to this user */
   HQuery url;                        /* URL for various branch links */
+  int from_rid = name_to_rid(P("from"));  /* from= for path timelines */
+  int to_rid = name_to_rid(P("to"));      /* to= for path timelines */
+  int noMerge = P("nomerge")!=0;          /* Do not follow merge links */
+  int me_rid = name_to_rid(P("me"));    /* me= for common ancestory path */
+  int you_rid = name_to_rid(P("you"));/* you= for common ancst path */
 
   /* To view the timeline, must have permission to read project data.
   */
@@ -791,7 +810,46 @@ void page_timeline(void){
   blob_append(&sql, timeline_query_for_www(), -1);
   url_initialize(&url, "timeline");
   if( !useDividers ) url_add_parameter(&url, "nd", 0);
-  if( (p_rid || d_rid) && g.okRead ){
+  if( ((from_rid && to_rid) || (me_rid && you_rid)) && g.okRead ){
+    /* If from= and to= are present, display all nodes on a path connecting
+    ** the two */
+    PathNode *p = 0;
+    const char *zFrom = 0;
+    const char *zTo = 0;
+
+    if( from_rid && to_rid ){
+      p = path_shortest(from_rid, to_rid, noMerge);
+      zFrom = P("from");
+      zTo = P("to");
+    }else{
+      if( path_common_ancestor(me_rid, you_rid) ){
+        p = path_first();
+      }
+      zFrom = P("me");
+      zTo = P("you");
+    }
+    blob_append(&sql, " AND event.objid IN (0", -1);
+    while( p ){
+      blob_appendf(&sql, ",%d", p->rid);
+      p = p->u.pTo;
+    }
+    blob_append(&sql, ")", -1);
+    path_reset();
+    blob_append(&desc, "All nodes on the path from ", -1);
+    if( g.okHistory ){
+      blob_appendf(&desc, "<a href='%s/info/%h'>[%h]</a>",  g.zTop,zFrom,zFrom);
+    }else{
+      blob_appendf(&desc, "[%h]", zFrom);
+    }
+    blob_append(&desc, " and ", -1);
+    if( g.okHistory ){
+      blob_appendf(&desc, "<a href='%s/info/%h'>[%h]</a>.",  g.zTop, zTo, zTo);
+    }else{
+      blob_appendf(&desc, "[%h].", zTo);
+    }
+    tmFlags |= TIMELINE_DISJOINT;
+    db_multi_exec("%s", blob_str(&sql));
+  }else if( (p_rid || d_rid) && g.okRead ){
     /* If p= or d= is present, ignore all other parameters other than n= */
     char *zUuid;
     int np, nd;
@@ -855,6 +913,7 @@ void page_timeline(void){
       blob_appendf(&desc, "[%.10s]", zUuid);
     }
   }else{
+    /* Otherwise, a timeline based on a span of time */
     int n;
     const char *zEType = "timeline item";
     char *zDate;
