@@ -1,5 +1,5 @@
-C build-time\srm\szombie\sfiles\ssrc/sqlite3.{c,h}\sjust\sin\scase\s(debian/rules)
-D 2011-03-18T11:41:17.738
+C The\sDead\sshall\sremain\sDead!\s\sPut\ssrc/sqlite3.{c,h}\sin\sdebian/clean
+D 2011-03-18T17:54:37.522
 F BUILD.txt 58b010d4c2642615308f0f04cfa32eb884fdc982
 F COPYRIGHT-BSD2.txt c7dd1de9f9539a5a859c2b41fe4560604a774476
 F Makefile 93b752cf85c466f89444958e8e5e6e351ec3ffa9 x
@@ -31,6 +31,7 @@ F ci_fossil.txt cf2b7a00fb594aa486f2bf953409d0d0429fd515
 F cvs2fossil.txt 3bce849e6e4a81eefd08fc28b6bbe806d2494b1a
 F debian/README.Debian c997854361309f585a17a22d44a46af180ecbf72
 F debian/changelog 4c233a7f9ca36ea026252e994aece60e271606ac
+F debian/clean f1926859d4517b6d462fb24a1aef6e73cf20f0ed
 F debian/compat 136571b41aa14adc10c5f3c987d43c02c8f5d498
 F debian/control 13e5160162ea1db881e97a123a8bb2b2283af539
 F debian/copyright cb6bd1a9b3c0b3bd2a8b0352b9e7f6d4ef864a2d
@@ -311,8 +312,8 @@ F www/tech_overview.wiki 487503a4bf90dc6b42f23cdb0db76e1cd8e8c866
 F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/webui.wiki d6f45339cf55d9e249afc46f062e1fd62519231f
 F www/wikitheory.wiki ac404a90fc9d210d80d5e7c1c2f24028d957dc4a
-P de7f94a4f3a089dbf55e5c005f9290f485cbd32f
-R 1e5fbbebc62c736d28888fdc7d4119dd
+P f6400d86091e45d1ea5234584925beeffefc686d
+R fe3a1205fd483c7b61f6c9c95fe8e384
 U barak
-Z 93ecaaca2f93f18bcf3c3952776e463d
+Z 737e05719d6085fa8954358d461229c1
 # Remove this line to create a well-formed Fossil manifest.
