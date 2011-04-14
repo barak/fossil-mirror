@@ -1,5 +1,5 @@
 /*
-** Copyright (c) 2007 D. Richard Hipp
+** Copyright (c) 2011 D. Richard Hipp
 **
 ** This program is free software; you can redistribute it and/or
 ** modify it under the terms of the Simplified BSD License (also
@@ -15,7 +15,7 @@
 **
 *******************************************************************************
 **
-** This file contains code used to generate ZIP archives.
+** This file contains code used to generate tarballs.
 */
 #include <assert.h>
 #include <zlib.h>
@@ -311,10 +311,18 @@ void tarball_page(void){
   nName = strlen(zName);
   zRid = mprintf("%s", PD("uuid",""));
   nRid = strlen(zRid);
-  for(nName=strlen(zName)-1; nName>5; nName--){
-    if( zName[nName]=='.' ){
-      zName[nName] = 0;
-      break;
+  if( nName>7 && strcmp(&zName[nName-7], ".tar.gz")==0 ){
+    /* Special case:  Remove the ".tar.gz" suffix.  */
+    nName -= 7;
+    zName[nName] = 0;
+  }else{
+    /* If the file suffix is not ".tar.gz" then just remove the
+    ** suffix up to and including the last "." */
+    for(nName=strlen(zName)-1; nName>5; nName--){
+      if( zName[nName]=='.' ){
+        zName[nName] = 0;
+        break;
+      }
     }
   }
   rid = name_to_rid(nRid?zRid:zName);

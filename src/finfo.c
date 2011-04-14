@@ -41,20 +41,19 @@
 ** stdout.
 */
 void finfo_cmd(void){
-  int vid;
-
   db_must_be_within_tree();
-  vid = db_lget_int("checkout", 0);
-  if( vid==0 ){
-    fossil_panic("no checkout to finfo files in");
-  }
-  vfile_check_signature(vid, 1, 0);
   if (find_option("status","s",0)) {
     Stmt q;
     Blob line;
     Blob fname;
+    int vid;
 
     if( g.argc!=3 ) usage("-s|--status FILENAME");
+    vid = db_lget_int("checkout", 0);
+    if( vid==0 ){
+      fossil_panic("no checkout to finfo files in");
+    }
+    vfile_check_signature(vid, 1, 0);
     file_tree_name(g.argv[2], &fname, 1);
     db_prepare(&q,
         "SELECT pathname, deleted, rid, chnged, coalesce(origname!=pathname,0)"
@@ -144,8 +143,9 @@ void finfo_cmd(void){
         "SELECT b.uuid, ci.uuid, date(event.mtime,'localtime'),"
         "       coalesce(event.ecomment, event.comment),"
         "       coalesce(event.euser, event.user)"
-        "  FROM mlink, blob b, event, blob ci"
-        " WHERE mlink.fnid=(SELECT fnid FROM filename WHERE name=%Q)"
+        "  FROM mlink, blob b, event, blob ci, filename"
+        " WHERE filename.name=%Q"
+        "   AND mlink.fnid=filename.fnid"
         "   AND b.rid=mlink.fid"
         "   AND event.objid=mlink.mid"
         "   AND event.objid=ci.rid"

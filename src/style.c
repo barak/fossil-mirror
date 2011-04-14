@@ -737,6 +737,15 @@ const struct strctCssDefaults {
     "format for artifact lines beeing shunned",
     @   color: blue;
   },
+  { "span.brokenlink",
+    "a broken hyperlink",
+    @   color: red;
+  },
+  { "ul.filelist",
+    "List of files in a timeline",
+    @   margin-top: 3px;
+    @   line-height: 100%;
+  },
   { 0,
     0,
     0
@@ -793,6 +802,7 @@ void page_style_css(void){
 ** WEBPAGE: test_env
 */
 void page_test_env(void){
+  login_check_credentials();
   style_header("Environment Test");
 #if !defined(_WIN32)
   @ uid=%d(getuid()), gid=%d(getgid())<br />
@@ -800,5 +810,9 @@ void page_test_env(void){
   @ g.zBaseURL = %h(g.zBaseURL)<br />
   @ g.zTop = %h(g.zTop)<br />
   cgi_print_all();
+  if( g.okSetup ){
+    const char *zRedir = P("redirect");
+    if( zRedir ) cgi_redirect(zRedir);
+  }
   style_footer();
 }

@@ -291,7 +291,7 @@ static void append_file_change_line(
     }else if( zOld==0 ){
       @ <p>Added %h(zName)</p>
     }else if( fossil_strcmp(zNew, zOld)==0 ){
-      @ <p>Execute permission %s(mperm?"set":"cleared") for %h(zName)
+      @ <p>Execute permission %s(mperm?"set":"cleared") for %h(zName)</p>
     }else{
       @ <p>Changes to %h(zName)</p>
     }
@@ -1364,6 +1364,7 @@ void info_page(void){
   const char *zName;
   Blob uuid;
   int rid;
+  int rc;
   
   zName = P("name");
   if( zName==0 ) fossil_redirect_home();
@@ -1378,8 +1379,16 @@ void info_page(void){
     }
   }
   blob_set(&uuid, zName);
-  if( name_to_uuid(&uuid, 1) ){
-    fossil_redirect_home();
+  rc = name_to_uuid(&uuid, -1);
+  if( rc==1 ){
+    style_header("No Such Object");
+    @ <p>No such object: %h(zName)</p>
+    style_footer();
+    return;
+  }else if( rc==2 ){
+    cgi_set_parameter("src","info");
+    ambiguous_page();
+    return;
   }
   zName = blob_str(&uuid);
   rid = db_int(0, "SELECT rid FROM blob WHERE uuid='%s'", zName);
@@ -1435,7 +1444,6 @@ void render_color_chooser(
      { "#d0d0d0", 0 },
      { "#e0e0e0", 0 },
 
-     { "#c0ffc0", 0 },
      { "#c0fff0", 0 },
      { "#c0f0ff", 0 },
      { "#d0c0ff", 0 },
@@ -1443,6 +1451,7 @@ void render_color_chooser(
      { "#ffc0d0", 0 },
      { "#fff0c0", 0 },
      { "#f0ffc0", 0 },
+     { "#c0ffc0", 0 },
 
      { "#a8d3c0", 0 },
      { "#a8c7d3", 0 },
@@ -1461,6 +1470,16 @@ void render_color_chooser(
      { "#b2988e", 0 },
      { "#b0b28e", 0 },
      { "#95b28e", 0 },
+
+     { "#80d6b0", 0 }, 
+     { "#80bbd6", 0 },
+     { "#8680d6", 0 },
+     { "#c680d6", 0 },
+     { "#d680a6", 0 },
+     { "#d69b80", 0 },
+     { "#d1d680", 0 },
+     { "#91d680", 0 },
+    
 
      { "custom",  "##" },
   };

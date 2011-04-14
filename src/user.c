@@ -117,7 +117,7 @@ void prompt_for_password(
     prompt_for_passphrase(zPrompt, pPassphrase);
     if( verify==0 ) break;
     if( verify==1 && blob_size(pPassphrase)==0 ) break;
-    prompt_for_passphrase("Again: ", &secondTry);
+    prompt_for_passphrase("Retype new password: ", &secondTry);
     if( blob_compare(pPassphrase, &secondTry) ){
       printf("Passphrases do not match.  Try again...\n");
     }else{
@@ -204,7 +204,7 @@ void user_cmd(void){
     }else{
       prompt_for_password("password: ", &passwd, 1);
     }
-    zPw = sha1_shared_secret(blob_str(&passwd), blob_str(&login));
+    zPw = sha1_shared_secret(blob_str(&passwd), blob_str(&login), 0);
     db_multi_exec(
       "INSERT INTO user(login,pw,cap,info)"
       "VALUES(%B,%Q,%B,%B)",
@@ -244,13 +244,13 @@ void user_cmd(void){
     if( g.argc==5 ){
       blob_init(&pw, g.argv[4], -1);
     }else{
-      zPrompt = mprintf("new passwd for %s: ", g.argv[3]);
+      zPrompt = mprintf("New password for %s: ", g.argv[3]);
       prompt_for_password(zPrompt, &pw, 1);
     }
     if( blob_size(&pw)==0 ){
       printf("password unchanged\n");
     }else{
-      char *zSecret = sha1_shared_secret(blob_str(&pw), g.argv[3]);
+      char *zSecret = sha1_shared_secret(blob_str(&pw), g.argv[3], 0);
       db_multi_exec("UPDATE user SET pw=%Q WHERE uid=%d", zSecret, uid);
       free(zSecret);
     }
@@ -350,23 +350,6 @@ void user_select(void){
   }
 }
 
-/*
-** Compute the shared secret for a user.
-*/
-static void user_sha1_shared_secret_func(
-  sqlite3_context *context,
-  int argc,
-  sqlite3_value **argv
-){
-  char *zPw;
-  char *zLogin;
-  assert( argc==2 );
-  zPw = (char*)sqlite3_value_text(argv[0]);
-  zLogin = (char*)sqlite3_value_text(argv[1]);
-  if( zPw && zLogin ){ 
-    sqlite3_result_text(context, sha1_shared_secret(zPw, zLogin), -1, free);
-  }
-}
 
 /*
 ** COMMAND: test-hash-passwords
@@ -380,10 +363,10 @@ static void user_sha1_shared_secret_func(
 void user_hash_passwords_cmd(void){
   if( g.argc!=3 ) usage("REPOSITORY");
   db_open_repository(g.argv[2]);
-  sqlite3_create_function(g.db, "sha1_shared_secret", 2, SQLITE_UTF8, 0,
-                          user_sha1_shared_secret_func, 0, 0);
+  sqlite3_create_function(g.db, "shared_secret", 2, SQLITE_UTF8, 0,
+                          sha1_shared_secret_sql_function, 0, 0);
   db_multi_exec(
-    "UPDATE user SET pw=sha1_shared_secret(pw,login)"
+    "UPDATE user SET pw=shared_secret(pw,login)"
     " WHERE length(pw)>0 AND length(pw)!=40"
   );
 }
