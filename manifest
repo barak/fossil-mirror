@@ -1,5 +1,5 @@
-C merge\supstream_2011.05.12.145652
-D 2011-05-15T08:08:41.574
+C update\sdebian/changelog
+D 2011-05-15T08:08:53.135
 F BUILD.txt 58b010d4c2642615308f0f04cfa32eb884fdc982
 F COPYRIGHT-BSD2.txt c7dd1de9f9539a5a859c2b41fe4560604a774476
 F Makefile 93b752cf85c466f89444958e8e5e6e351ec3ffa9 x
@@ -30,7 +30,7 @@ F ci_cvs.txt 837df67f243330f601ed14e51761bc1528536dc1
 F ci_fossil.txt cf2b7a00fb594aa486f2bf953409d0d0429fd515
 F cvs2fossil.txt 3bce849e6e4a81eefd08fc28b6bbe806d2494b1a
 F debian/README.Debian c997854361309f585a17a22d44a46af180ecbf72
-F debian/changelog 89c7d7f3ff2880b92a66c3d80bd2cd2fe53e250f
+F debian/changelog b3ef78358bb968bc8a229c1a0c03d73a18f98800
 F debian/clean f1926859d4517b6d462fb24a1aef6e73cf20f0ed
 F debian/compat 136571b41aa14adc10c5f3c987d43c02c8f5d498
 F debian/control 13e5160162ea1db881e97a123a8bb2b2283af539
@@ -313,8 +313,8 @@ F www/tech_overview.wiki 487503a4bf90dc6b42f23cdb0db76e1cd8e8c866
 F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/webui.wiki d6f45339cf55d9e249afc46f062e1fd62519231f
 F www/wikitheory.wiki ac404a90fc9d210d80d5e7c1c2f24028d957dc4a
-P 26406122a7aacd84bf64f2df14a58172140e38b3 d8221b98636b76cfd99cb6ccce0e24f5baaafe51
-R 2196e1b82cdc85f64b6c170ea0b5f402
+P 8507e6629d63c348417231170094f36f174437a7
+R 9f4d9047093e19dd0892eb508796559a
 U barak
-Z c68eef2091cdd2e124a875f3fb7e68bd
+Z cda6cea4ea8a3870b9d8bd747021a7e2
 # Remove this line to create a well-formed Fossil manifest.
