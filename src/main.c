@@ -405,7 +405,7 @@ void fossil_warning(const char *zFormat, ...){
 ** Malloc and free routines that cannot fail
 */
 void *fossil_malloc(size_t n){
-  void *p = malloc(n);
+  void *p = malloc(n==0 ? 1 : n);
   if( p==0 ) fossil_panic("out of memory");
   return p;
 }
@@ -808,7 +808,7 @@ void set_base_url(void){
   zCur = PD("SCRIPT_NAME","/");
   i = strlen(zCur);
   while( i>0 && zCur[i-1]=='/' ) i--;
-  if( strcmp(zMode,"on")==0 ){
+  if( fossil_stricmp(zMode,"on")==0 ){
     g.zBaseURL = mprintf("https://%s%.*s", zHost, i, zCur);
     g.zTop = &g.zBaseURL[8+strlen(zHost)];
   }else{
@@ -903,7 +903,7 @@ static void process_one_web_page(const char *zNotFound){
     int j, k;
     i64 szFile;
 
-    i = 1;
+    i = zPathInfo[0]!=0;
     while( 1 ){
       while( zPathInfo[i] && zPathInfo[i]!='/' ){ i++; }
       zRepo = zToFree = mprintf("%s%.*s.fossil",g.zRepositoryName,i,zPathInfo);
@@ -911,7 +911,7 @@ static void process_one_web_page(const char *zNotFound){
       /* To avoid mischief, make sure the repository basename contains no
       ** characters other than alphanumerics, "-", "/", and "_".
       */
-      for(j=strlen(g.zRepositoryName)+1, k=0; k<i-1; j++, k++){
+      for(j=strlen(g.zRepositoryName)+1, k=0; zRepo[j] && k<i-1; j++, k++){
         if( !fossil_isalnum(zRepo[j]) && zRepo[j]!='-' && zRepo[j]!='/' ){
           zRepo[j] = '_';
         }
@@ -1003,6 +1003,7 @@ static void process_one_web_page(const char *zNotFound){
         }else{
           zUser = "nobody";
         }
+        if( g.zLogin==0 ) zUser = "nobody";
         if( zAltRepo[0]!='/' ){
           zAltRepo = mprintf("%s/../%s", g.zRepositoryName, zAltRepo);
           file_simplify_name(zAltRepo, -1);
@@ -1303,7 +1304,7 @@ void cmd_http(void){
 ** Works like the http command but gives setup permission to all users.
 */
 void cmd_test_http(void){
-  login_set_capabilities("s");
+  login_set_capabilities("s", 0);
   g.httpIn = stdin;
   g.httpOut = stdout;
   find_server_repository(0);

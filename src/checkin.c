@@ -202,60 +202,6 @@ void ls_cmd(void){
 }
 
 /*
-** Construct and return a string which is an SQL expression that will
-** be TRUE if value zVal matches any of the GLOB expressions in the list
-** zGlobList.  For example:
-**
-**    zVal:       "x"
-**    zGlobList:  "*.o,*.obj"
-**
-**    Result:     "(x GLOB '*.o' OR x GLOB '*.obj')"
-**
-** Each element of the GLOB list may optionally be enclosed in either '...'
-** or "...".  This allows commas in the expression.  Whitespace at the
-** beginning and end of each GLOB pattern is ignored, except when enclosed
-** within '...' or "...".
-**
-** This routine makes no effort to free the memory space it uses.
-*/
-char *glob_expr(const char *zVal, const char *zGlobList){
-  Blob expr;
-  char *zSep = "(";
-  int nTerm = 0;
-  int i;
-  int cTerm;
-
-  if( zGlobList==0 || zGlobList[0]==0 ) return "0";
-  blob_zero(&expr);
-  while( zGlobList[0] ){
-    while( fossil_isspace(zGlobList[0]) || zGlobList[0]==',' ) zGlobList++;
-    if( zGlobList[0]==0 ) break;
-    if( zGlobList[0]=='\'' || zGlobList[0]=='"' ){
-      cTerm = zGlobList[0];
-      zGlobList++;
-    }else{
-      cTerm = ',';
-    }
-    for(i=0; zGlobList[i] && zGlobList[i]!=cTerm; i++){}
-    if( cTerm==',' ){
-      while( i>0 && fossil_isspace(zGlobList[i-1]) ){ i--; }
-    }
-    blob_appendf(&expr, "%s%s GLOB '%.*q'", zSep, zVal, i, zGlobList);
-    zSep = " OR ";
-    if( cTerm!=',' && zGlobList[i] ) i++;
-    zGlobList += i;
-    if( zGlobList[0] ) zGlobList++;
-    nTerm++;
-  }
-  if( nTerm ){
-    blob_appendf(&expr, ")");
-    return blob_str(&expr);
-  }else{
-    return "0";
-  }
-}
-
-/*
 ** COMMAND: extras
 ** Usage: %fossil extras ?--dotfiles? ?--ignore GLOBPATTERN?
 **
@@ -277,6 +223,7 @@ void extra_cmd(void){
   const char *zIgnoreFlag = find_option("ignore",0,1);
   int allFlag = find_option("dotfiles",0,0)!=0;
   int outputManifest;
+  Glob *pIgnore;
 
   db_must_be_within_tree();
   outputManifest = db_get_boolean("manifest",0);
@@ -286,14 +233,14 @@ void extra_cmd(void){
   if( zIgnoreFlag==0 ){
     zIgnoreFlag = db_get("ignore-glob", 0);
   }
-  vfile_scan(0, &path, blob_size(&path), allFlag);
+  pIgnore = glob_create(zIgnoreFlag);
+  vfile_scan(&path, blob_size(&path), allFlag, pIgnore);
+  glob_free(pIgnore);
   db_prepare(&q, 
       "SELECT x FROM sfile"
       " WHERE x NOT IN (%s)"
-      "   AND NOT %s"
       " ORDER BY 1",
-      fossil_all_reserved_names(),
-      glob_expr("x", zIgnoreFlag)
+      fossil_all_reserved_names()
   );
   if( file_tree_name(g.zRepositoryName, &repo, 0) ){
     db_multi_exec("DELETE FROM sfile WHERE x=%B", &repo);
@@ -331,6 +278,8 @@ void clean_cmd(void){
   Blob path, repo;
   Stmt q;
   int n;
+  Glob *pIgnore;
+
   allFlag = find_option("force","f",0)!=0;
   dotfilesFlag = find_option("dotfiles",0,0)!=0;
   zIgnoreFlag = find_option("ignore",0,1);
@@ -341,12 +290,14 @@ void clean_cmd(void){
   db_multi_exec("CREATE TEMP TABLE sfile(x TEXT PRIMARY KEY)");
   n = strlen(g.zLocalRoot);
   blob_init(&path, g.zLocalRoot, n-1);
-  vfile_scan(0, &path, blob_size(&path), dotfilesFlag);
+  pIgnore = glob_create(zIgnoreFlag);
+  vfile_scan(&path, blob_size(&path), dotfilesFlag, pIgnore);
+  glob_free(pIgnore);
   db_prepare(&q, 
       "SELECT %Q || x FROM sfile"
-      " WHERE x NOT IN (%s) AND NOT %s"
+      " WHERE x NOT IN (%s)"
       " ORDER BY 1",
-      g.zLocalRoot, fossil_all_reserved_names(), glob_expr("x",zIgnoreFlag)
+      g.zLocalRoot, fossil_all_reserved_names()
   );
   if( file_tree_name(g.zRepositoryName, &repo, 0) ){
     db_multi_exec("DELETE FROM sfile WHERE x=%B", &repo);
@@ -515,24 +466,6 @@ void select_commit_files(void){
     }
     g.aCommitFile[ii-2] = 0;
   }
-}
-
-/*
-** Return true if the check-in with RID=rid is a leaf.
-** A leaf has no children in the same branch. 
-*/
-int is_a_leaf(int rid){
-  int rc;
-  static const char zSql[] = 
-    @ SELECT 1 FROM plink
-    @  WHERE pid=%d
-    @    AND coalesce((SELECT value FROM tagxref
-    @                   WHERE tagid=%d AND rid=plink.pid), 'trunk')
-    @       =coalesce((SELECT value FROM tagxref
-    @                   WHERE tagid=%d AND rid=plink.cid), 'trunk')
-  ;
-  rc = db_int(0, zSql, rid, TAG_BRANCH, TAG_BRANCH);
-  return rc==0;
 }
 
 /*
@@ -778,8 +711,9 @@ static void cr_warning(const Blob *p, const char *zFilename){
     char c;
     file_relative_name(zFilename, &fname);
     blob_zero(&ans);
-    zMsg = mprintf("%s contains CR/NL line endings; commit anyhow (y/N/a)?", 
-                   blob_str(&fname));
+    zMsg = mprintf(
+         "%s contains CR/NL line endings; commit anyhow (yes/no/all)?", 
+         blob_str(&fname));
     prompt_user(zMsg, &ans);
     fossil_free(zMsg);
     c = blob_str(&ans)[0];

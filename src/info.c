@@ -370,7 +370,7 @@ void ci_page(void){
     " WHERE plink.cid=%d AND blob.rid=plink.pid AND plink.isprim",
     rid
   );
-  isLeaf = !db_exists("SELECT 1 FROM plink WHERE pid=%d", rid);
+  isLeaf = is_a_leaf(rid);
   db_prepare(&q, 
      "SELECT uuid, datetime(mtime, 'localtime'), user, comment,"
      "       datetime(omtime, 'localtime')"
@@ -802,6 +802,10 @@ void object_description(
     @ - %w(zCom) by 
     hyperlink_to_user(zUser,zDate," on");
     hyperlink_to_date(zDate,".");
+    if( g.okHistory ){
+      @ <a href="%s(g.zTop)/annotate?checkin=%S(zVers)&filename=%T(zName)">
+      @ [annotate]</a>
+    }
     cnt++;
     if( pDownloadName && blob_size(pDownloadName)==0 ){
       blob_append(pDownloadName, zName, -1);
@@ -947,12 +951,16 @@ void diff_page(void){
   int v1, v2;
   int isPatch;
   Blob c1, c2, diff, *pOut;
+  char *zV1;
+  char *zV2;
 
   login_check_credentials();
   if( !g.okRead ){ login_needed(); return; }
   v1 = name_to_rid_www("v1");
   v2 = name_to_rid_www("v2");
   if( v1==0 || v2==0 ) fossil_redirect_home();
+  zV1 = db_text(0, "SELECT uuid FROM blob WHERE rid=%d", v1);
+  zV2 = db_text(0, "SELECT uuid FROM blob WHERE rid=%d", v2);
   isPatch = P("patch")!=0;
   if( isPatch ){
     pOut = cgi_output_blob();
@@ -970,11 +978,12 @@ void diff_page(void){
     style_header("Diff");
     style_submenu_element("Patch", "Patch", "%s/fdiff?v1=%T&v2=%T&patch",
                           g.zTop, P("v1"), P("v2"));
-    @ <h2>Differences From:</h2>
+    @ <h2>Differences From
+    @ Artifact <a href="%s(g.zTop)/artifact/%S(zV1)">[%S(zV1)]</a>:</h2>
     @ <blockquote><p>
     object_description(v1, 1, 0);
     @ </p></blockquote>
-    @ <h2>To:</h2>
+    @ <h2>To Artifact <a href="%s(g.zTop)/artifact/%S(zV2)">[%S(zV2)]</a>:</h2>
     @ <blockquote><p>
     object_description(v2, 1, 0);
     @ </p></blockquote>
@@ -1581,25 +1590,25 @@ void ci_edit_page(void){
   zUser = db_text(0, "SELECT coalesce(euser,user)"
                      "  FROM event WHERE objid=%d", rid);
   if( zUser==0 ) fossil_redirect_home();
-  zNewUser = PD("u",zUser);
+  zNewUser = PDT("u",zUser);
   zDate = db_text(0, "SELECT datetime(mtime)"
                      "  FROM event WHERE objid=%d", rid);
   if( zDate==0 ) fossil_redirect_home();
-  zNewDate = PD("dt",zDate);
+  zNewDate = PDT("dt",zDate);
   zColor = db_text("", "SELECT bgcolor"
                         "  FROM event WHERE objid=%d", rid);
-  zNewColor = PD("clr",zColor);
+  zNewColor = PDT("clr",zColor);
   if( fossil_strcmp(zNewColor,"##")==0 ){
-    zNewColor = P("clrcust");
+    zNewColor = PT("clrcust");
   }
   fPropagateColor = db_int(0, "SELECT tagtype FROM tagxref"
                               " WHERE rid=%d AND tagid=%d",
                               rid, TAG_BGCOLOR)==2;
   fNewPropagateColor = P("clr")!=0 ? P("pclr")!=0 : fPropagateColor;
   zNewTagFlag = P("newtag") ? " checked" : "";
-  zNewTag = PD("tagname","");
+  zNewTag = PDT("tagname","");
   zNewBrFlag = P("newbr") ? " checked" : "";
-  zNewBranch = PD("brname","");
+  zNewBranch = PDT("brname","");
   zCloseFlag = P("close") ? " checked" : "";
   if( P("apply") ){
     Blob ctrl;
@@ -1653,10 +1662,10 @@ void ci_edit_page(void){
     if( zCloseFlag[0] ){
       db_multi_exec("REPLACE INTO newtags VALUES('closed','+',NULL)");
     }
-    if( zNewTagFlag[0] ){
+    if( zNewTagFlag[0] && zNewTag[0] ){
       db_multi_exec("REPLACE INTO newtags VALUES('sym-%q','+',NULL)", zNewTag);
     }
-    if( zNewBrFlag[0] ){
+    if( zNewBrFlag[0] && zNewBranch[0] ){
       db_multi_exec(
         "REPLACE INTO newtags "
         " SELECT tagname, '-', NULL FROM tagxref, tag"
