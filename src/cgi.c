@@ -4,7 +4,7 @@
 ** This program is free software; you can redistribute it and/or
 ** modify it under the terms of the Simplified BSD License (also
 ** known as the "2-Clause License" or "FreeBSD License".)
-
+**
 ** This program is distributed in the hope that it will be useful,
 ** but without any warranty; without even the implied warranty of
 ** merchantability or fitness for a particular purpose.
@@ -193,16 +193,20 @@ void cgi_set_cookie(
   const char *zPath,    /* Path cookie applies to.  NULL means "/" */
   int lifetime          /* Expiration of the cookie in seconds from now */
 ){
+  char *zSecure = "";
   if( zPath==0 ) zPath = g.zTop;
+  if( g.zBaseURL!=0 && strncmp(g.zBaseURL, "https:", 6)==0 ){
+    zSecure = " secure;";
+  }
   if( lifetime>0 ){
     lifetime += (int)time(0);
     blob_appendf(&extraHeader,
-       "Set-Cookie: %s=%t; Path=%s; expires=%z; Version=1\r\n",
-        zName, zValue, zPath, cgi_rfc822_datestamp(lifetime));
+       "Set-Cookie: %s=%t; Path=%s; expires=%z; HttpOnly;%s Version=1\r\n",
+        zName, zValue, zPath, cgi_rfc822_datestamp(lifetime), zSecure);
   }else{
     blob_appendf(&extraHeader,
-       "Set-Cookie: %s=%t; Path=%s; Version=1\r\n",
-       zName, zValue, zPath);
+       "Set-Cookie: %s=%t; Path=%s; HttpOnly;%s Version=1\r\n",
+       zName, zValue, zPath, zSecure);
   }
 }
 
@@ -1118,7 +1122,7 @@ int cgi_http_server(int mnPort, int mxPort, char *zBrowser, int flags){
   if( iPort>mxPort ) return 1;
   listen(listener,10);
   if( iPort>mnPort ){
-    printf("Listening for HTTP requests on TCP port %d\n", iPort);
+    fossil_print("Listening for HTTP requests on TCP port %d\n", iPort);
     fflush(stdout);
   }
   if( zBrowser ){

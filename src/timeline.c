@@ -728,19 +728,19 @@ static void timeline_submenu(
 static void timeline_add_dividers(const char *zDate, int rid){
   char *zToDel = 0;
   if( zDate==0 ){
-    zToDel = db_text(0,"SELECT datetime(mtime,'localtime') FROM event"
+    zToDel = db_text(0,"SELECT julianday(mtime,'localtime') FROM event"
                        " WHERE objid=%d", rid);
     zDate = zToDel;
     if( zDate==0 ) zDate = "1";
   }
   db_multi_exec(
     "INSERT INTO timeline(rid,sortby,etype)"
-    "VALUES(-1,julianday(%Q,'utc')-5.0e-6,'div')",
+    "VALUES(-1,julianday(%Q,'utc')-1.0e-5,'div')",
     zDate
   );
   db_multi_exec(
     "INSERT INTO timeline(rid,sortby,etype)"
-    "VALUES(-2,julianday(%Q,'utc')+5.0e-6,'div')",
+    "VALUES(-2,julianday(%Q,'utc')+1.0e-5,'div')",
      zDate
   );
   fossil_free(zToDel);
@@ -1205,12 +1205,12 @@ void print_timeline(Stmt *q, int mxLine){
     
     sqlite3_snprintf(sizeof(zUuid), zUuid, "%.10s", zId);
     if( memcmp(zDate, zPrevDate, 10) ){
-      printf("=== %.10s ===\n", zDate);
+      fossil_print("=== %.10s ===\n", zDate);
       memcpy(zPrevDate, zDate, 10);
       nLine++;
     }
     if( zCom==0 ) zCom = "";
-    printf("%.8s ", &zDate[11]);
+    fossil_print("%.8s ", &zDate[11]);
     zPrefix[0] = 0;
     if( nParent>1 ){
       sqlite3_snprintf(sizeof(zPrefix), zPrefix, "*MERGE* ");
@@ -1455,9 +1455,9 @@ void test_timewarp_cmd(void){
   );
   while( db_step(&q)==SQLITE_ROW ){
     if( !showDetail ){
-      printf("%s\n", db_column_text(&q, 1));
+      fossil_print("%s\n", db_column_text(&q, 1));
     }else{
-      printf("%.14s -> %.14s   %s -> %s\n",
+      fossil_print("%.14s -> %.14s   %s -> %s\n",
          db_column_text(&q, 0),
          db_column_text(&q, 1),
          db_column_text(&q, 2),

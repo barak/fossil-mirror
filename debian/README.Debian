@@ -34,7 +34,8 @@ Brief "cheat sheet" of relevant fossil commands.
  uscan --rename
  VER=xxx
  DEBVER=1
- fossil tag add upstream_${VER} X (where X is commit id; see fossil timeline)
+ ID=fossil-commit-id # find via: fossil timeline -t ci -n 400 | more
+ fossil tag add upstream_${VER} ${ID}
  fossil merge upstream_${VER}
  fossil commit -m "merge upstream_${VER}"
  debchange --newversion=${VER}-${DEBVER} New upstream version
@@ -87,4 +88,4 @@ Brief "cheat sheet" of relevant fossil commands.
  fossil co trunk
  tar --exclude _FOSSIL_ -C .. -zcf fossil_${VER}.orig.tar.gz fossil
 
- -- Barak A. Pearlmutter <bap@debian.org>, Tue, 21 Dec 2010 21:58:51 -0500
+ -- Barak A. Pearlmutter <bap@debian.org>, Mon, 30 May 2011 10:34:45 +0100
