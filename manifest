@@ -1,5 +1,5 @@
-C bump\sstandard\sin\sdebian/control\sand\supdate\sdebian/changelog
-D 2011-05-30T09:37:33.085
+C guard\suse\sof\sSQLITE_CONFIG_URI
+D 2011-05-30T09:45:41.754
 F BUILD.txt 58b010d4c2642615308f0f04cfa32eb884fdc982
 F COPYRIGHT-BSD2.txt c7dd1de9f9539a5a859c2b41fe4560604a774476
 F Makefile 3754290726754b695f7e29cb8d62a5946a998a2c x
@@ -108,7 +108,7 @@ F src/schema.c cd67fe706044ad622c9ecc919d7afd17ea0b5a50
 F src/search.c 9d53c57393652eb2dcd63e1d1dd1d5de9335b7a0
 F src/setup.c 0ddd7e38ea4e9eb3fdd831720896df8b8a32fa6f
 F src/sha1.c 2302f92df963dd21ccd703f5657e6a3a0e56107f
-F src/shell.c 8cfbd216e513bd1fc9a7d7c60507947dcec19b07
+F src/shell.c 958e836f14caf62bb9b6566372831d9db2d7e435
 F src/shun.c 2239175928cb6814ca8ec589eb4ceda0aa6252e6
 F src/skins.c 405331b790f44c7a71058b0f613c7f6a3f2beedd
 F src/sqlcmd.c 41357470cd8b147dcea8c684ed131ebf29643650
@@ -313,8 +313,8 @@ F www/tech_overview.wiki 487503a4bf90dc6b42f23cdb0db76e1cd8e8c866
 F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/webui.wiki d6f45339cf55d9e249afc46f062e1fd62519231f
 F www/wikitheory.wiki ac404a90fc9d210d80d5e7c1c2f24028d957dc4a
-P edaabfdc026bb196b31673d09d0728e483d07308
-R fde3fbb27a3f8c8de2d0eb8b87fb685b
+P a1e19f16a25296c0acb7d02d56f5bf80f0221e73
+R 44bdcac458aa9de43f522f1d34d4fcd8
 U barak
-Z 6b45e9ed5d0d2d1cdb38c900833cd93f
+Z c6609a5053b2160ca4339518d7209b36
 # Remove this line to create a well-formed Fossil manifest.
