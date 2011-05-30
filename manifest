@@ -1,5 +1,5 @@
-C merge\supstream_2011.05.23.151112
-D 2011-05-30T09:35:55.098
+C bump\sstandard\sin\sdebian/control\sand\supdate\sdebian/changelog
+D 2011-05-30T09:37:33.085
 F BUILD.txt 58b010d4c2642615308f0f04cfa32eb884fdc982
 F COPYRIGHT-BSD2.txt c7dd1de9f9539a5a859c2b41fe4560604a774476
 F Makefile 3754290726754b695f7e29cb8d62a5946a998a2c x
@@ -30,10 +30,10 @@ F ci_cvs.txt 837df67f243330f601ed14e51761bc1528536dc1
 F ci_fossil.txt cf2b7a00fb594aa486f2bf953409d0d0429fd515
 F cvs2fossil.txt 3bce849e6e4a81eefd08fc28b6bbe806d2494b1a
 F debian/README.Debian ee9471f5c88ceab3e44e934d5b8f32d58304d718
-F debian/changelog b3ef78358bb968bc8a229c1a0c03d73a18f98800
+F debian/changelog 6aa50146d4c7f3f097201bce92c372b5775c7581
 F debian/clean f1926859d4517b6d462fb24a1aef6e73cf20f0ed
 F debian/compat 136571b41aa14adc10c5f3c987d43c02c8f5d498
-F debian/control 13e5160162ea1db881e97a123a8bb2b2283af539
+F debian/control f997764cacc5f6e862d8c0f4e2348285e610bd75
 F debian/copyright 29b63bf8e972b563d99210f6f37a86d2b1208fe7
 F debian/fossil.1 e032f73ea44849cb063bb0b577e39749af511dbe
 F debian/fossil.install 8ae909034651ad9b0a72cd10460fed7b9e51f627
@@ -313,8 +313,8 @@ F www/tech_overview.wiki 487503a4bf90dc6b42f23cdb0db76e1cd8e8c866
 F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/webui.wiki d6f45339cf55d9e249afc46f062e1fd62519231f
 F www/wikitheory.wiki ac404a90fc9d210d80d5e7c1c2f24028d957dc4a
-P a715ee532e69bd56da430b7525eb8b4798ded5a7 474850cff598d76f4e23f7df1f2ea26e93478c45
-R 6e6a8991b12a4c1ca510e24224c61556
+P edaabfdc026bb196b31673d09d0728e483d07308
+R fde3fbb27a3f8c8de2d0eb8b87fb685b
 U barak
-Z 4da71ba156392927780c2a2962c08814
+Z 6b45e9ed5d0d2d1cdb38c900833cd93f
 # Remove this line to create a well-formed Fossil manifest.
