@@ -2,8 +2,9 @@ fossil (2011.05.23.151112-1) unstable; urgency=low
 
   * New upstream version
   * Bump debian standard version
+  * Guard use of SQLITE_CONFIG_URI
 
- -- Barak A. Pearlmutter <bap@debian.org>  Mon, 30 May 2011 10:36:54 +0100
+ -- Barak A. Pearlmutter <bap@debian.org>  Mon, 30 May 2011 10:45:56 +0100
 
 fossil (2011.05.12.145652-1) unstable; urgency=low
 
