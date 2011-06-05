@@ -909,10 +909,10 @@ rep_not_found:
 ** Return the name of the database "localdb", "configdb", or "repository".
 */
 const char *db_name(const char *zDb){
-  assert( strcmp(zDb,"localdb")==0
-       || strcmp(zDb,"configdb")==0
-       || strcmp(zDb,"repository")==0 );
-  if( strcmp(zDb, g.zMainDbType)==0 ) zDb = "main";
+  assert( fossil_strcmp(zDb,"localdb")==0
+       || fossil_strcmp(zDb,"configdb")==0
+       || fossil_strcmp(zDb,"repository")==0 );
+  if( fossil_strcmp(zDb, g.zMainDbType)==0 ) zDb = "main";
   return zDb;
 }
 
@@ -1220,7 +1220,9 @@ static void db_sql_print(
 }
 static void db_sql_trace(void *notUsed, const char *zSql){
   int n = strlen(zSql);
-  fprintf(stderr, "%s%s\n", zSql, (n>0 && zSql[n-1]==';') ? "" : ";");
+  char *zMsg = mprintf("%s%s\n", zSql, (n>0 && zSql[n-1]==';') ? "" : ";");
+  fossil_puts(zMsg, 1);
+  fossil_free(zMsg);
 }
 
 /*

@@ -67,6 +67,7 @@ struct Global {
   int fSqlPrint;          /* True if -sqlprint flag is present */
   int fQuiet;             /* True if -quiet flag is present */
   int fHttpTrace;         /* Trace outbound HTTP requests */
+  int fSystemTrace;       /* Trace calls to fossil_system(), --systemtrace */
   int fNoSync;            /* Do not do an autosync even.  --nosync */
   char *zPath;            /* Name of webpage being served */
   char *zExtra;           /* Extra path information past the webpage name */
@@ -197,7 +198,7 @@ static int name_search(
   while( lwr<=upr ){
     int mid, c;
     mid = (upr+lwr)/2;
-    c = strcmp(zName, aMap[mid].zName);
+    c = fossil_strcmp(zName, aMap[mid].zName);
     if( c==0 ){
       *pIndex = mid;
       return 0;
@@ -247,6 +248,7 @@ int main(int argc, char **argv){
     g.fQuiet = find_option("quiet", 0, 0)!=0;
     g.fSqlTrace = find_option("sqltrace", 0, 0)!=0;
     g.fSqlStats = find_option("sqlstats", 0, 0)!=0;
+    g.fSystemTrace = find_option("systemtrace", 0, 0)!=0;
     if( g.fSqlTrace ) g.fSqlStats = 1;
     g.fSqlPrint = find_option("sqlprint", 0, 0)!=0;
     g.fHttpTrace = find_option("httptrace", 0, 0)!=0;
@@ -433,30 +435,17 @@ int fossil_system(const char *zOrigCmd){
   */
   char *zNewCmd = mprintf("\"%s\"", zOrigCmd);
   char *zMbcs = fossil_utf8_to_mbcs(zNewCmd);
+  if( g.fSystemTrace ) fprintf(stderr, "SYSTEM: %s\n", zMbcs);
   rc = system(zMbcs);
   fossil_mbcs_free(zMbcs);
   free(zNewCmd);
 #else
   /* On unix, evaluate the command directly.
   */
+  if( g.fSystemTrace ) fprintf(stderr, "SYSTEM: %s\n", zOrigCmd);
   rc = system(zOrigCmd);
 #endif 
   return rc; 
-}
-
-/*
-** Like strcmp() except that it accepts NULL pointers.  NULL sorts before
-** all non-NULL string pointers.
-*/
-int fossil_strcmp(const char *zA, const char *zB){
-  if( zA==0 ){
-    if( zB==0 ) return 0;
-    return -1;
-  }else if( zB==0 ){
-    return +1;
-  }else{
-    return strcmp(zA,zB);
-  }
 }
 
 /*
@@ -926,7 +915,7 @@ static void process_one_web_page(const char *zNotFound){
 
       szFile = file_size(zRepo);
       if( zPathInfo[i]=='/' && szFile<0 ){
-        assert( strcmp(&zRepo[j], ".fossil")==0 );
+        assert( fossil_strcmp(&zRepo[j], ".fossil")==0 );
         zRepo[j] = 0;
         if( file_isdir(zRepo)==1 ){
           fossil_free(zToFree);
@@ -1185,7 +1174,7 @@ void redirect_web_page(int nRedirect, char **azRedirect){
   }
   if( zName && validate16(zName, strlen(zName)) ){
     for(i=0; i<nRedirect; i++){
-      if( strcmp(azRedirect[i*2],"*")==0 ){
+      if( fossil_strcmp(azRedirect[i*2],"*")==0 ){
         zNotFound = azRedirect[i*2+1];
         continue;
       }
