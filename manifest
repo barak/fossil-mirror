@@ -1,5 +1,8 @@
-C update\sdebian/changelog
-D 2011-06-05T15:36:54.914
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+C silence\slintian\swarning
+D 2011-07-07T08:50:13
 F BUILD.txt 58b010d4c2642615308f0f04cfa32eb884fdc982
 F COPYRIGHT-BSD2.txt c7dd1de9f9539a5a859c2b41fe4560604a774476
 F Makefile 3754290726754b695f7e29cb8d62a5946a998a2c x
@@ -30,7 +33,7 @@ F ci_cvs.txt 837df67f243330f601ed14e51761bc1528536dc1
 F ci_fossil.txt cf2b7a00fb594aa486f2bf953409d0d0429fd515
 F cvs2fossil.txt 3bce849e6e4a81eefd08fc28b6bbe806d2494b1a
 F debian/README.Debian ee9471f5c88ceab3e44e934d5b8f32d58304d718
-F debian/changelog e3d8b1accbf11d7c418a190533258bb1a330863f
+F debian/changelog 25a801fa199f848697de3823ec24c302393c6449
 F debian/clean f1926859d4517b6d462fb24a1aef6e73cf20f0ed
 F debian/compat 136571b41aa14adc10c5f3c987d43c02c8f5d498
 F debian/control f997764cacc5f6e862d8c0f4e2348285e610bd75
@@ -40,6 +43,8 @@ F debian/fossil.install 8ae909034651ad9b0a72cd10460fed7b9e51f627
 F debian/fossil.manpages a54d8f1ffdace2473552a7903f51d059edc38a07
 F debian/rules 7d800516b9514fc1e0541ddc1c0368634a752b2f x
 F debian/source/format 1064dc0ce263680c076a1005f35ec906a5cf5a32
+F debian/source/local-options 58a65fc3dfe4bbb8692c99e80334fba1e913f072
+F debian/source/patch-header cc9c5d455e74f2cb75b716fb8cab2c2d31c6fe4e
 F debian/watch ef89439bf0d6920682338c97e49e4199f9e0164b
 F fossil.nsi 7d2f5e7424fdc4e35d609228dd4b92e019c6d5d6
 F kktodo.wiki 9fccabf05735653d8937ba9c635e1341b3a2a311
@@ -313,8 +318,15 @@ F www/tech_overview.wiki 487503a4bf90dc6b42f23cdb0db76e1cd8e8c866
 F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/webui.wiki d6f45339cf55d9e249afc46f062e1fd62519231f
 F www/wikitheory.wiki ac404a90fc9d210d80d5e7c1c2f24028d957dc4a
-P 2c7392da0d0360cbe5421095a1067ff717129f0e
-R 80de5add0d9201d9ddbe54a16166f3fa
+P 6e44d16656a1cdebe40989156c21681a13880238
+R 429e307f21aa0f1d6ea14306422cbb85
 U barak
-Z cc97ae53e62b47cfd4abf7be427d6ba0
+Z 5bbda09fba67d6d29d7e3d76d457e8f9
 # Remove this line to create a well-formed Fossil manifest.
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+
+iEYEARECAAYFAk4Vc0UACgkQLz4Gnv7CP7IlIQCfS3ywInY8g2BjUCQHlwtICCuE
+9EEAoN4huntfiVv9AEItafd5X+OmaT/F
+=m+tf
+-----END PGP SIGNATURE-----
