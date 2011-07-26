@@ -1,5 +1,5 @@
-C merge\supstream_2011.07.13.230341\sAKA\sversion-1.18
-D 2011-07-26T16:31:15.296
+C update\sdebian/changelog
+D 2011-07-26T16:32:54.141
 F BUILD.txt 3311ec2f396c020da63e54afa219027942f82e5a
 F COPYRIGHT-BSD2.txt c7dd1de9f9539a5a859c2b41fe4560604a774476
 F GNUmakefile.in c53cbdff2117abfdf912e234809143d2faafa270
@@ -46,7 +46,7 @@ F ci_fossil.txt cf2b7a00fb594aa486f2bf953409d0d0429fd515
 F configure c4f809c7a144e75b764636c3a89cb437f6e0c4a0 x
 F cvs2fossil.txt 3bce849e6e4a81eefd08fc28b6bbe806d2494b1a
 F debian/README.Debian ee9471f5c88ceab3e44e934d5b8f32d58304d718
-F debian/changelog 25a801fa199f848697de3823ec24c302393c6449
+F debian/changelog a75d0bcafdf3c85082c5ef73ec7abc17b3508534
 F debian/clean f1926859d4517b6d462fb24a1aef6e73cf20f0ed
 F debian/compat 136571b41aa14adc10c5f3c987d43c02c8f5d498
 F debian/control f997764cacc5f6e862d8c0f4e2348285e610bd75
@@ -113,7 +113,7 @@ F src/md5.c 0fca446a55f2caafe282b0e1fb8ea7ad8cb9a810
 F src/merge.c bc479ffc711649392971cc1d50c2f4c13bbba22e
 F src/merge3.c 68dfedf02c61695dcf9656b76bf4f4c0292ba21a
 F src/mkindex.c 065c4163bd31fceca75f9e974f78ccfd53e5b77f
-F src/mkversion.c f2a3e37f7fd400ffa48dbd4d8d2ee5f283c58809 w win/version.c
+F src/mkversion.c f2a3e37f7fd400ffa48dbd4d8d2ee5f283c58809
 F src/name.c 04392f102f791c62d47ff84ca65d7a1433d9fe39
 F src/path.c acae303e1948b06c17c24dc22e5eace7c593f4a7
 F src/pivot.c 01042d5f6f97e9a306678ece011e6333aeb18d91
@@ -332,8 +332,8 @@ F www/tech_overview.wiki 487503a4bf90dc6b42f23cdb0db76e1cd8e8c866
 F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/webui.wiki d6f45339cf55d9e249afc46f062e1fd62519231f
 F www/wikitheory.wiki ac404a90fc9d210d80d5e7c1c2f24028d957dc4a
-P aa85020070864e4a1938c967cd00dd368b0841e2 df9da91ba8fe406f283761a44989e3c2066655bb
-R 2e04c455e96749b86cb6aecff51f143d
+P dfbfe8935ef1a8e1751a5c346766b61c71ddb246
+R 7ea8f46556067beb3ce192e716c5ad32
 U barak
-Z 1a9964ec81b2a6626e8b62898c2a9829
+Z 7530eddb5a0f67036b6d42d1e13c5cb9
 # Remove this line to create a well-formed Fossil manifest.
