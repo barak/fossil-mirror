@@ -344,7 +344,7 @@ static Manifest *manifest_parse(Blob *pContent, int rid){
   /* Every control artifact ends with a '\n' character.  Exit early
   ** if that is not the case for this artifact.
   */
-  z = blob_buffer(pContent);
+  z = blob_materialize(pContent);
   n = blob_size(pContent);
   if( n<=0 || z[n-1]!='\n' ){
     blob_reset(pContent);
@@ -922,7 +922,7 @@ Manifest *manifest_get_by_name(const char *zName, int *pRid){
   int rid;
   Manifest *p;
 
-  rid = name_to_rid(zName);
+  rid = name_to_typed_rid(zName, "ci");
   if( !is_a_version(rid) ){
     fossil_fatal("no such checkin: %s", zName);
   }
@@ -1325,7 +1325,7 @@ static void add_mlink(int pid, Manifest *pParent, int cid, Manifest *pChild){
                       isPublic, manifest_file_mperm(pChildFile));
       }
     }
-  }else if( pChild->zBaseline==0 ){
+  }else if( pChild->zBaseline==0 && pParent->zBaseline!=0 ){
     /* Parent is a delta but pChild is a baseline.  Look for files that are
     ** present in pParent but which are missing from pChild and mark them
     ** has having been deleted. */

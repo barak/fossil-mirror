@@ -60,7 +60,7 @@ makeheaders$E: $(SRCDIR)\makeheaders.c
 mkindex$E: $(SRCDIR)\mkindex.c
 	$(BCC) -o$@ $**
 
-version$E: $B\win\version.c
+version$E: $B\src\mkversion.c
 	$(BCC) -o$@ $**
 
 $(OBJDIR)\shell$O : $(SRCDIR)\shell.c
@@ -75,7 +75,7 @@ $(OBJDIR)\th$O : $(SRCDIR)\th.c
 $(OBJDIR)\th_lang$O : $(SRCDIR)\th_lang.c
 	$(TCC) -o$@ -c $**
 
-VERSION.h : version$E $B\manifest.uuid $B\manifest
+VERSION.h : version$E $B\manifest.uuid $B\manifest $B\VERSION
 	+$** > $@
 
 page_index.h: mkindex$E $(SRC) 

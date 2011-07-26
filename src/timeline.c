@@ -302,11 +302,11 @@ void www_print_timeline(
           for(i=0; z[i] && (z[i]!=',' || z[i+1]!=' '); i++){}
           if( zThisTag==0 || memcmp(z, zThisTag, i)!=0 || zThisTag[i]!=0 ){
             blob_appendf(&links,
-                  "<a href=\"%s/timeline?r=%.*t&nd&c=%s\">%.*h</a>%.2s",
+                  "<a href=\"%s/timeline?r=%#t&nd&c=%s\">%#h</a>%.2s",
                   g.zTop, i, z, zDate, i, z, &z[i]
             );
           }else{
-            blob_appendf(&links, "%.*h", i+2, z);
+            blob_appendf(&links, "%#h", i+2, z);
           }
           if( z[i]==0 ) break;
           z += i+2;
@@ -335,7 +335,7 @@ void www_print_timeline(
           "       (SELECT uuid FROM blob WHERE rid=pid)"
           "  FROM mlink"
           " WHERE mid=:mid AND pid!=fid"
-          " ORDER BY 3"
+          " ORDER BY 3 /*sort*/"
         );
         fchngQueryInit = 1;
       }
@@ -784,9 +784,9 @@ void page_timeline(void){
   Blob sql;                          /* text of SQL used to generate timeline */
   Blob desc;                         /* Description of the timeline */
   int nEntry = atoi(PD("n","20"));   /* Max number of entries on timeline */
-  int p_rid = name_to_rid(P("p"));   /* artifact p and its parents */
-  int d_rid = name_to_rid(P("d"));   /* artifact d and its descendants */
-  int f_rid = name_to_rid(P("f"));   /* artifact f and immediate family */
+  int p_rid = name_to_typed_rid(P("p"),"ci");  /* artifact p and its parents */
+  int d_rid = name_to_typed_rid(P("d"),"ci");  /* artifact d and descendants */
+  int f_rid = name_to_typed_rid(P("f"),"ci");  /* artifact f and close family */
   const char *zUser = P("u");        /* All entries by this user if not NULL */
   const char *zType = PD("y","all"); /* Type of events.  All if NULL */
   const char *zAfter = P("a");       /* Events after this time */
@@ -801,11 +801,11 @@ void page_timeline(void){
   const char *zThisTag = 0;          /* Suppress links to this tag */
   const char *zThisUser = 0;         /* Suppress links to this user */
   HQuery url;                        /* URL for various branch links */
-  int from_rid = name_to_rid(P("from"));  /* from= for path timelines */
-  int to_rid = name_to_rid(P("to"));      /* to= for path timelines */
+  int from_rid = name_to_typed_rid(P("from"),"ci"); /* from= for paths */
+  int to_rid = name_to_typed_rid(P("to"),"ci");    /* to= for path timelines */
   int noMerge = P("nomerge")!=0;          /* Do not follow merge links */
-  int me_rid = name_to_rid(P("me"));    /* me= for common ancestory path */
-  int you_rid = name_to_rid(P("you"));/* you= for common ancst path */
+  int me_rid = name_to_typed_rid(P("me"),"ci");  /* me= for common ancestory */
+  int you_rid = name_to_typed_rid(P("you"),"ci");/* you= for common ancst */
 
   /* To view the timeline, must have permission to read project data.
   */
@@ -1363,7 +1363,7 @@ void timeline_cmd(void){
     }
     objid = db_lget_int("checkout",0);
     zDate = mprintf("(SELECT mtime FROM plink WHERE cid=%d)", objid);
-  }else if( name_to_uuid(&uuid, 0)==0 ){
+  }else if( name_to_uuid(&uuid, 0, "*")==0 ){
     objid = db_int(0, "SELECT rid FROM blob WHERE uuid=%B", &uuid);
     zDate = mprintf("(SELECT mtime FROM plink WHERE cid=%d)", objid);
   }else{

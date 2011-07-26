@@ -192,7 +192,7 @@ static void showTags(int rid, const char *zNotGlob){
     "       (SELECT uuid FROM blob WHERE rid=tagxref.origid AND rid!=%d)"
     "  FROM tagxref JOIN tag ON tagxref.tagid=tag.tagid"
     " WHERE tagxref.rid=%d AND tagname NOT GLOB '%s'"
-    " ORDER BY tagname", rid, rid, rid, zNotGlob
+    " ORDER BY tagname /*sort*/", rid, rid, rid, zNotGlob
   );
   while( db_step(&q)==SQLITE_ROW ){
     const char *zTagname = db_column_text(&q, 1);
@@ -282,6 +282,7 @@ static void append_file_change_line(
   const char *zName,    /* Name of the file that has changed */
   const char *zOld,     /* blob.uuid before change.  NULL for added files */
   const char *zNew,     /* blob.uuid after change.  NULL for deletes */
+  const char *zOldName, /* Prior name.  NULL if no name change. */
   int showDiff,         /* Show edit diffs if true */
   int mperm             /* EXE permission for zNew */
 ){
@@ -290,6 +291,8 @@ static void append_file_change_line(
       @ <p>Deleted %h(zName)</p>
     }else if( zOld==0 ){
       @ <p>Added %h(zName)</p>
+    }else if( zOldName!=0 && fossil_strcmp(zName,zOldName)!=0 ){
+      @ <p>Name change from %h(zOldName) to %h(zName)
     }else if( fossil_strcmp(zNew, zOld)==0 ){
       @ <p>Execute permission %s(mperm?"set":"cleared") for %h(zName)</p>
     }else{
@@ -306,6 +309,10 @@ static void append_file_change_line(
         @ <p>Modified <a href="%s(g.zTop)/finfo?name=%T(zName)">%h(zName)</a>
         @ from <a href="%s(g.zTop)/artifact/%s(zOld)">[%S(zOld)]</a>
         @ to <a href="%s(g.zTop)/artifact/%s(zNew)">[%S(zNew)].</a>
+      }else if( zOldName!=0 && fossil_strcmp(zName,zOldName)!=0 ){
+        @ <p>Name change from
+        @ from <a href="%s(g.zTop)/finfo?name=%T(zOldName)">%h(zOldName)</a>
+        @ to <a href="%s(g.zTop)/finfo?name=%T(zName)">%h(zName)</a>.
       }else{
         @ <p>Execute permission %s(mperm?"set":"cleared") for
         @ <a href="%s(g.zTop)/finfo?name=%T(zName)">%h(zName)</a>
@@ -321,7 +328,7 @@ static void append_file_change_line(
       @ <blockquote><pre>
       append_diff(zOld, zNew);
       @ </pre></blockquote>
-    }else if( zOld && zNew ){
+    }else if( zOld && zNew && fossil_strcmp(zOld,zNew)!=0 ){
       @ &nbsp;&nbsp;
       @ <a href="%s(g.zTop)/fdiff?v1=%S(zOld)&amp;v2=%S(zNew)">[diff]</a>
     }
@@ -513,12 +520,14 @@ void ci_page(void){
     @ &nbsp;&nbsp;
     @ <a href="%s(g.zTop)/vpatch?from=%S(zParent)&to=%S(zUuid)">[patch]</a><br/>
     db_prepare(&q,
-       "SELECT name, mperm,"
+       "SELECT name,"
+       "       mperm,"
        "       (SELECT uuid FROM blob WHERE rid=mlink.pid),"
-       "       (SELECT uuid FROM blob WHERE rid=mlink.fid)"
+       "       (SELECT uuid FROM blob WHERE rid=mlink.fid),"
+       "       (SELECT name FROM filename WHERE filename.fnid=mlink.pfnid)"
        "  FROM mlink JOIN filename ON filename.fnid=mlink.fnid"
        " WHERE mlink.mid=%d"
-       " ORDER BY name",
+       " ORDER BY name /*sort*/",
        rid
     );
     while( db_step(&q)==SQLITE_ROW ){
@@ -526,7 +535,8 @@ void ci_page(void){
       int mperm = db_column_int(&q, 1);
       const char *zOld = db_column_text(&q,2);
       const char *zNew = db_column_text(&q,3);
-      append_file_change_line(zName, zOld, zNew, showDiff, mperm);
+      const char *zOldName = db_column_text(&q, 4);
+      append_file_change_line(zName, zOld, zNew, zOldName, showDiff, mperm);
     }
     db_finalize(&q);
   }
@@ -717,11 +727,11 @@ void vdiff_page(void){
     }
     if( cmp<0 ){
       append_file_change_line(pFileFrom->zName, 
-                              pFileFrom->zUuid, 0, 0, 0);
+                              pFileFrom->zUuid, 0, 0, 0, 0);
       pFileFrom = manifest_file_next(pFrom, 0);
     }else if( cmp>0 ){
       append_file_change_line(pFileTo->zName, 
-                              0, pFileTo->zUuid, 0,
+                              0, pFileTo->zUuid, 0, 0,
                               manifest_file_mperm(pFileTo));
       pFileTo = manifest_file_next(pTo, 0);
     }else if( fossil_strcmp(pFileFrom->zUuid, pFileTo->zUuid)==0 ){
@@ -731,7 +741,7 @@ void vdiff_page(void){
     }else{
       append_file_change_line(pFileFrom->zName, 
                               pFileFrom->zUuid,
-                              pFileTo->zUuid, showDetail,
+                              pFileTo->zUuid, 0, showDetail,
                               manifest_file_mperm(pFileTo));
       pFileFrom = manifest_file_next(pFrom, 0);
       pFileTo = manifest_file_next(pTo, 0);
@@ -1205,8 +1215,14 @@ static void output_text_with_line_numbers(
 
 /*
 ** WEBPAGE: artifact
-** URL: /artifact?name=ARTIFACTID
+** URL: /artifact/ARTIFACTID
 ** URL: /artifact?ci=CHECKIN&filename=PATH
+**
+** Additional query parameters:
+**
+**   ln              - show line numbers
+**   ln=N            - highlight line number N
+**   ln=M-N          - highlight lines M through N inclusive
 ** 
 ** Show the complete content of a file identified by ARTIFACTID
 ** as preformatted text.
@@ -1252,20 +1268,20 @@ void artifact_page(void){
     if( fossil_strcmp(zMime, "text/html")==0 ){
       if( P("txt") ){
         style_submenu_element("Html", "Html",
-                              "%s/artifact?name=%s", g.zTop, zUuid);
+                              "%s/artifact/%s", g.zTop, zUuid);
       }else{
         renderAsHtml = 1;
         style_submenu_element("Text", "Text",
-                              "%s/artifact?name=%s&amp;txt=1", g.zTop, zUuid);
+                              "%s/artifact/%s?txt=1", g.zTop, zUuid);
       }
     }else if( fossil_strcmp(zMime, "application/x-fossil-wiki")==0 ){
       if( P("txt") ){
         style_submenu_element("Wiki", "Wiki",
-                              "%s/artifact?name=%s", g.zTop, zUuid);
+                              "%s/artifact/%s", g.zTop, zUuid);
       }else{
         renderAsWiki = 1;
         style_submenu_element("Text", "Text",
-                              "%s/artifact?name=%s&amp;txt=1", g.zTop, zUuid);
+                              "%s/artifact/%s?txt=1", g.zTop, zUuid);
       }
     }
   }
@@ -1388,7 +1404,7 @@ void info_page(void){
     }
   }
   blob_set(&uuid, zName);
-  rc = name_to_uuid(&uuid, -1);
+  rc = name_to_uuid(&uuid, -1, "*");
   if( rc==1 ){
     style_header("No Such Object");
     @ <p>No such object: %h(zName)</p>
@@ -1578,7 +1594,7 @@ void ci_edit_page(void){
   
   login_check_credentials();
   if( !g.okWrite ){ login_needed(); return; }
-  rid = name_to_rid(P("r"));
+  rid = name_to_typed_rid(P("r"), "ci");
   zUuid = db_text(0, "SELECT uuid FROM blob WHERE rid=%d", rid);
   zComment = db_text(0, "SELECT coalesce(ecomment,comment)"
                         "  FROM event WHERE objid=%d", rid);
@@ -1782,7 +1798,7 @@ void ci_edit_page(void){
      "SELECT tag.tagid, tagname FROM tagxref, tag"
      " WHERE tagxref.rid=%d AND tagtype>0 AND tagxref.tagid=tag.tagid"
      " ORDER BY CASE WHEN tagname GLOB 'sym-*' THEN substr(tagname,5)"
-     "               ELSE tagname END",
+     "               ELSE tagname END /*sort*/",
      rid
   );
   while( db_step(&q)==SQLITE_ROW ){

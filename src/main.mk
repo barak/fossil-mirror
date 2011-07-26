@@ -283,16 +283,17 @@ $(OBJDIR)/makeheaders:	$(SRCDIR)/makeheaders.c
 $(OBJDIR)/mkindex:	$(SRCDIR)/mkindex.c
 	$(BCC) -o $(OBJDIR)/mkindex $(SRCDIR)/mkindex.c
 
+$(OBJDIR)/mkversion:	$(SRCDIR)/mkversion.c
+	$(BCC) -o $(OBJDIR)/mkversion $(SRCDIR)/mkversion.c
+
 # WARNING. DANGER. Running the testsuite modifies the repository the
 # build is done from, i.e. the checkout belongs to. Do not sync/push
 # the repository after running the tests.
 test:	$(APPNAME)
 	$(TCLSH) test/tester.tcl $(APPNAME)
 
-$(OBJDIR)/VERSION.h:	$(SRCDIR)/../manifest.uuid $(SRCDIR)/../manifest
-	awk '{ printf "#define MANIFEST_UUID \"%s\"\n", $$1}'  $(SRCDIR)/../manifest.uuid >$(OBJDIR)/VERSION.h
-	awk '{ printf "#define MANIFEST_VERSION \"[%.10s]\"\n", $$1}'  $(SRCDIR)/../manifest.uuid >>$(OBJDIR)/VERSION.h
-	awk '$$1=="D"{printf "#define MANIFEST_DATE \"%s %s\"\n", substr($$2,1,10),substr($$2,12,8)}'  $(SRCDIR)/../manifest >>$(OBJDIR)/VERSION.h
+$(OBJDIR)/VERSION.h:	$(SRCDIR)/../manifest.uuid $(SRCDIR)/../manifest $(SRCDIR)/../VERSION $(OBJDIR)/mkversion
+	$(OBJDIR)/mkversion $(SRCDIR)/../manifest.uuid  $(SRCDIR)/../manifest  $(SRCDIR)/../VERSION >$(OBJDIR)/VERSION.h
 
 EXTRAOBJ =  $(OBJDIR)/shell.o  $(OBJDIR)/th.o  $(OBJDIR)/th_lang.o
 
@@ -893,7 +894,7 @@ $(OBJDIR)/zip.h:	$(OBJDIR)/headers
 $(OBJDIR)/sqlite3.o:	$(SRCDIR)/sqlite3.c
 	$(XTCC) -DSQLITE_OMIT_LOAD_EXTENSION=1 -DSQLITE_THREADSAFE=0 -DSQLITE_DEFAULT_FILE_FORMAT=4 -DSQLITE_ENABLE_STAT2 -Dlocaltime=fossil_localtime -DSQLITE_ENABLE_LOCKING_STYLE=0 -c $(SRCDIR)/sqlite3.c -o $(OBJDIR)/sqlite3.o
 
-$(OBJDIR)/shell.o:	$(SRCDIR)/shell.c
+$(OBJDIR)/shell.o:	$(SRCDIR)/shell.c $(SRCDIR)/sqlite3.h
 	$(XTCC) -Dmain=sqlite3_shell -DSQLITE_OMIT_LOAD_EXTENSION=1 -c $(SRCDIR)/shell.c -o $(OBJDIR)/shell.o
 
 $(OBJDIR)/th.o:	$(SRCDIR)/th.c

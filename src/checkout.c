@@ -62,7 +62,7 @@ int load_vfile(const char *zName){
   int vid;
 
   blob_init(&uuid, zName, -1);
-  if( name_to_uuid(&uuid, 1) ){
+  if( name_to_uuid(&uuid, 1, "ci") ){
     fossil_panic(g.zErrMsg);
   }
   vid = db_int(0, "SELECT rid FROM blob WHERE uuid=%B", &uuid);
@@ -74,16 +74,6 @@ int load_vfile(const char *zName){
   }
   load_vfile_from_rid(vid);
   return vid;
-}
-
-/*
-** Load a vfile from a record ID.
-*/
-void load_vfile_from_rid(int vid){
-  if( db_exists("SELECT 1 FROM vfile WHERE vid=%d", vid) ){
-    return;
-  }
-  vfile_build(vid);
 }
 
 /*
