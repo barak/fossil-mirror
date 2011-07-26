@@ -1,5 +1,5 @@
-C update\sdebian/changelog
-D 2011-07-26T16:32:54.141
+C flush\sdependency\son\slocal\scopy\sof\ssqlite3.h
+D 2011-07-26T17:37:59.125
 F BUILD.txt 3311ec2f396c020da63e54afa219027942f82e5a
 F COPYRIGHT-BSD2.txt c7dd1de9f9539a5a859c2b41fe4560604a774476
 F GNUmakefile.in c53cbdff2117abfdf912e234809143d2faafa270
@@ -104,10 +104,10 @@ F src/info.c 22d1aa9a3019ad531df16b8ee7b3127ed1fa3c12
 F src/leaf.c 7746adfcb013ec9886da259ffe5a87270d44e406
 F src/login.c 925509ebd7107a1302882293745fa63feed8882e
 F src/main.c 3df1e45af9b13f50ec4544ab0204c3c8afa612a8
-F src/main.mk 870387804b0683938a5391888e1a214eb39fb152
+F src/main.mk 9c200179e5ee1b7a9793c774cf0f07dc346b3020
 F src/makeheaders.c 3766cf4cd0ca63ebca38f9e99ef5dac505a35060
 F src/makeheaders.html 4428f89f94c3b333b106171fe63f2c175d0ee53b
-F src/makemake.tcl b716e4e594968f42e18bde9d600ab2d1a18f60c0 x
+F src/makemake.tcl c33a14908449761d5152e9fdeba40e9ef2827d16 x
 F src/manifest.c 8ebc92c0dec9f5270413de3f3445e3b03a411055
 F src/md5.c 0fca446a55f2caafe282b0e1fb8ea7ad8cb9a810
 F src/merge.c bc479ffc711649392971cc1d50c2f4c13bbba22e
@@ -332,8 +332,8 @@ F www/tech_overview.wiki 487503a4bf90dc6b42f23cdb0db76e1cd8e8c866
 F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/webui.wiki d6f45339cf55d9e249afc46f062e1fd62519231f
 F www/wikitheory.wiki ac404a90fc9d210d80d5e7c1c2f24028d957dc4a
-P dfbfe8935ef1a8e1751a5c346766b61c71ddb246
-R 7ea8f46556067beb3ce192e716c5ad32
+P 4490fd9744c7133122f3aeffb97e9ec6b553f2bd
+R 615b65127c84450bfccb51fc49f98c2e
 U barak
-Z 7530eddb5a0f67036b6d42d1e13c5cb9
+Z 429547dcaf4946b9e676ce2ea6eb3086
 # Remove this line to create a well-formed Fossil manifest.
