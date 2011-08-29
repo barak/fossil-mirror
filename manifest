@@ -1,5 +1,5 @@
-C flush\sdependency\son\slocal\scopy\sof\ssqlite3.h
-D 2011-07-26T17:37:59.125
+C really\sdo\sneed\snew\sversion\sof\ssqlite3
+D 2011-08-29T11:21:45.122
 F BUILD.txt 3311ec2f396c020da63e54afa219027942f82e5a
 F COPYRIGHT-BSD2.txt c7dd1de9f9539a5a859c2b41fe4560604a774476
 F GNUmakefile.in c53cbdff2117abfdf912e234809143d2faafa270
@@ -49,7 +49,7 @@ F debian/README.Debian ee9471f5c88ceab3e44e934d5b8f32d58304d718
 F debian/changelog a75d0bcafdf3c85082c5ef73ec7abc17b3508534
 F debian/clean f1926859d4517b6d462fb24a1aef6e73cf20f0ed
 F debian/compat 136571b41aa14adc10c5f3c987d43c02c8f5d498
-F debian/control f997764cacc5f6e862d8c0f4e2348285e610bd75
+F debian/control 91064f92fcc7795db85ccdc12ba0b379b30f9bc3
 F debian/copyright 29b63bf8e972b563d99210f6f37a86d2b1208fe7
 F debian/fossil.1 e032f73ea44849cb063bb0b577e39749af511dbe
 F debian/fossil.install 8ae909034651ad9b0a72cd10460fed7b9e51f627
@@ -332,8 +332,8 @@ F www/tech_overview.wiki 487503a4bf90dc6b42f23cdb0db76e1cd8e8c866
 F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/webui.wiki d6f45339cf55d9e249afc46f062e1fd62519231f
 F www/wikitheory.wiki ac404a90fc9d210d80d5e7c1c2f24028d957dc4a
-P 4490fd9744c7133122f3aeffb97e9ec6b553f2bd
-R 615b65127c84450bfccb51fc49f98c2e
+P 5ba91fff34cea9d6d61a1352a8b7ecf14a71ddea
+R 59ba5a9fce694eb20dbce96a377a887d
 U barak
-Z 429547dcaf4946b9e676ce2ea6eb3086
+Z e7b0941f0fd88f84fe0ca7bad3024671
 # Remove this line to create a well-formed Fossil manifest.
