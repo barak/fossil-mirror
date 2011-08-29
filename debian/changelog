@@ -1,9 +1,11 @@
 fossil (2011.07.13.230341-1) unstable; urgency=low
 
-  * silence lintian debian-patch warning
+  * Silence lintian debian-patch warning
   * New upstream version (aka version-1.18)
+  * Add dependency on libsqlite3-dev 3.7.7.1
+  * Include upstream changelog in docs
 
- -- Barak A. Pearlmutter <bap@debian.org>  Tue, 26 Jul 2011 17:31:35 +0100
+ -- Barak A. Pearlmutter <bap@debian.org>  Mon, 29 Aug 2011 12:29:07 +0100
 
 fossil (2011.05.28.185122-1) unstable; urgency=low
 
