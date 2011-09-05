@@ -2,10 +2,7 @@
 %:
 	dh $@ --parallel
 
-override_dh_auto_build:
-	@echo remove local copy of sqlite3 in case of deletion reversion
-	rm -f src/sqlite3.h || echo WARNING: re-deleting src/sqlite3.h
-	rm -f src/sqlite3.c || echo WARNING: re-deleting src/sqlite3.c
-	dh_auto_build
+override_dh_auto_configure:
+	dh_auto_configure -- --disable-internal-sqlite
 
 override_dh_auto_install:

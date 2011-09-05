@@ -1,5 +1,5 @@
-C revert\ssqlite3-related\sdebian\schanges:\supstream\snow\ssupports\ssystem\slib
-D 2011-09-05T13:42:59.246
+C update\sdebian\spackaging\sto\suse\supstream\ssystem\ssqlite3\sbuild\soption
+D 2011-09-05T13:53:21.028
 F BUILD.txt 8ebfd7f92eff1922aaf28ebcce6639a39fcb5cdd
 F COPYRIGHT-BSD2.txt c7dd1de9f9539a5a859c2b41fe4560604a774476
 F Makefile.classic 610ce9eedc0d35e35692fb8b0fc2fdd8359a04fd x
@@ -50,13 +50,13 @@ F debian/README.Debian ee9471f5c88ceab3e44e934d5b8f32d58304d718
 F debian/changelog f09b92096b784681b4c71dc3d45e636ed1066d16
 F debian/clean f1926859d4517b6d462fb24a1aef6e73cf20f0ed
 F debian/compat 136571b41aa14adc10c5f3c987d43c02c8f5d498
-F debian/control 91064f92fcc7795db85ccdc12ba0b379b30f9bc3
+F debian/control 428dbeb7b255831139844bf4208e51fca744430b
 F debian/copyright 29b63bf8e972b563d99210f6f37a86d2b1208fe7
 F debian/fossil.1 e032f73ea44849cb063bb0b577e39749af511dbe
 F debian/fossil.docs 45a770a8534b1a439a32546145737975a9217b30
 F debian/fossil.install 8ae909034651ad9b0a72cd10460fed7b9e51f627
 F debian/fossil.manpages a54d8f1ffdace2473552a7903f51d059edc38a07
-F debian/rules 7d800516b9514fc1e0541ddc1c0368634a752b2f x
+F debian/rules da40bc9774912cc46f6c2dfe338c19ad42b78bde x
 F debian/source/format 1064dc0ce263680c076a1005f35ec906a5cf5a32
 F debian/source/local-options 58a65fc3dfe4bbb8692c99e80334fba1e913f072
 F debian/source/patch-header cc9c5d455e74f2cb75b716fb8cab2c2d31c6fe4e
@@ -339,8 +339,8 @@ F www/tech_overview.wiki 487503a4bf90dc6b42f23cdb0db76e1cd8e8c866
 F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/webui.wiki d6f45339cf55d9e249afc46f062e1fd62519231f
 F www/wikitheory.wiki ac404a90fc9d210d80d5e7c1c2f24028d957dc4a
-P 693f80be92c460bbde190f7e15d51db6278f1847
-R 849bdd20fb5ce1b52390efd50a113d70
+P 503e2974d09d3c821fe567ff574dd02153c0271b
+R c438fd43235401609d78c38ba8645f41
 U barak
-Z 941534ad7c5a1b568d8d9416ae0eb97d
+Z 9a4fb8353d97c3b304a57c42cdfb6da4
 # Remove this line to create a well-formed Fossil manifest.
