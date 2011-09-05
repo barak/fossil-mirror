@@ -1,4 +1,4 @@
-fossil (2011.09.01.182519-1) unstable; urgency=low
+fossil (1:1.19-1) unstable; urgency=low
 
   * Silence lintian debian-patch warning
   * Include upstream changelog in docs
