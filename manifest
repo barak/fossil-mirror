@@ -1,8 +1,8 @@
-C merge\supstream_2011.09.01.182519,\smanually\sresolve\sand\srun\ssrc/makemake.tcl
-D 2011-09-05T13:35:00.818
+C revert\ssqlite3-related\sdebian\schanges:\supstream\snow\ssupports\ssystem\slib
+D 2011-09-05T13:42:59.246
 F BUILD.txt 8ebfd7f92eff1922aaf28ebcce6639a39fcb5cdd
 F COPYRIGHT-BSD2.txt c7dd1de9f9539a5a859c2b41fe4560604a774476
-F Makefile.classic 01d774a68eda8a8713be6225750efa08f554a94d w Makefile
+F Makefile.classic 610ce9eedc0d35e35692fb8b0fc2fdd8359a04fd x
 F Makefile.in 9a2731764494d7b0982bac6f237261d1677bf28a
 F VERSION 0692e0195f1ca1b23325eca386d57950145a63d5
 F art/CollRev1.dia 186c7bb7a88c533ab226431bbd7c4835bb6ac2a0
@@ -82,7 +82,7 @@ F src/comformat.c 4c6ab3776e9c591937c70ac4b88b7e816021e314
 F src/config.h 81b52b466de531509b9dcbefa66d0d2ea33f30c9
 F src/configure.c 0b592a384968c82558dc7f28a95a2eb1953f6e37
 F src/content.c 391824951f587bfa192e811dab2e241bf5852b80
-F src/db.c ee102d7bb85e1885047f7af4833095a6937096a4
+F src/db.c 8ff47f4c10a8d86e97087857d2459e763011a541
 F src/delta.c e3dfb31289b71aa446b61fc6e9d09a3fcdd92710
 F src/deltacmd.c 08f55239e28aa9530f3f53006f7b69b03fb51ede
 F src/descendants.c d05ff92998e4a927e5824fb24701cb3507ed17b2
@@ -106,10 +106,10 @@ F src/info.c 8e82e9e0b13d67b40fbeeb8893a1fc878332bd0a
 F src/leaf.c 7746adfcb013ec9886da259ffe5a87270d44e406
 F src/login.c 925509ebd7107a1302882293745fa63feed8882e
 F src/main.c f285e31aba6e34f81067497dd46bd8a5b0221e07
-F src/main.mk 3071077c8221bc3b26709f8811f57345d9576444
+F src/main.mk 5b8a5a6da4b805333c7dc74e2ba0af0538156da4
 F src/makeheaders.c 3766cf4cd0ca63ebca38f9e99ef5dac505a35060
 F src/makeheaders.html 4428f89f94c3b333b106171fe63f2c175d0ee53b
-F src/makemake.tcl ca56e07b22c9f59ea223e38f5c81b204f154c7d1 x
+F src/makemake.tcl 76cca78a37c4b528861e1d32f7c31ef6067ea2b1
 F src/manifest.c 84abfbe3f5b3bbf03a8c8def234d8dfd9c979790
 F src/md5.c 0fca446a55f2caafe282b0e1fb8ea7ad8cb9a810
 F src/merge.c ae9bc9306a48a460734c17ec16da48f42cbc7219
@@ -123,16 +123,18 @@ F src/popen.c bb42b2da7e7815804428537ddb690862e7d99e0b
 F src/pqueue.c 49f71680db21a8757c891bd5ddd37a821fbce6bf
 F src/printf.c f36e734f45de0921a18349b3067a59f27a5ccd4e
 F src/rebuild.c 694ed85b9cacaa9497afb2675051f01d28130086
-F src/report.c 604fdc9012809c644267e476c275bf597e204ec6
+F src/report.c b8bf42a664aed64433cf54ee94d727b75021c46f
 F src/rss.c db44782246b1cb1963103cd60b0ef46d4f91a8d6
 F src/schema.c cd67fe706044ad622c9ecc919d7afd17ea0b5a50
 F src/search.c f1190efdee2a704205e7c7253af5ca7ed62a1047
 F src/setup.c d14162f2cf22807594376a599c27cdf184274bd9
 F src/sha1.c eb55ba1fe2b84321327b195ab1d0be439f61f4cc
-F src/shell.c 549a878fc838ddf25e72df2a137e186bfe2efe34
+F src/shell.c e09ba953604a23f1b459f0cb2dd0d960c0f0df5e
 F src/shun.c 2239175928cb6814ca8ec589eb4ceda0aa6252e6
 F src/skins.c 681fdf82f962335d33fa00b014a6afa382754b94
 F src/sqlcmd.c 41357470cd8b147dcea8c684ed131ebf29643650
+F src/sqlite3.c d79f1dec6f14f59ba317928041a620e342baaf78
+F src/sqlite3.h eaa02deb90dae019d8c22a807704ae1e94e001bc
 F src/stash.c a2b7fa2b833ed9cc8ffe34c285c7d549de31c915
 F src/stat.c 59aea0e1c8cf0b40d4b5b2062bcf9614a9363a10
 F src/style.c 21e3a0c7fbc15ea76ce52a1a8c59b7fca26ce81d
@@ -337,8 +339,8 @@ F www/tech_overview.wiki 487503a4bf90dc6b42f23cdb0db76e1cd8e8c866
 F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/webui.wiki d6f45339cf55d9e249afc46f062e1fd62519231f
 F www/wikitheory.wiki ac404a90fc9d210d80d5e7c1c2f24028d957dc4a
-P 8e96b978885ed673a15f95adf709bbce67a3a0b7 6517b5c857fe389e17f93efb8c3583af99ddd842
-R 19fc2a84effc5c80490e0be375116c14
+P 693f80be92c460bbde190f7e15d51db6278f1847
+R 849bdd20fb5ce1b52390efd50a113d70
 U barak
-Z 3707599e723096171079f7a0a3d78f05
+Z 941534ad7c5a1b568d8d9416ae0eb97d
 # Remove this line to create a well-formed Fossil manifest.

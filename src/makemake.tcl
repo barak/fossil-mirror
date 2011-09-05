@@ -201,6 +201,7 @@ SQLITE3_OBJ.0 = $(OBJDIR)/sqlite3.o
 SQLITE3_OBJ.  = $(SQLITE3_OBJ.0)
 
 EXTRAOBJ = \
+  $(SQLITE3_OBJ.$(USE_SYSTEM_SQLITE)) \
   $(OBJDIR)/shell.o \
   $(OBJDIR)/th.o \
   $(OBJDIR)/th_lang.o
@@ -224,6 +225,7 @@ foreach s [lsort $src] {
   append mhargs " \$(OBJDIR)/${s}_.c:\$(OBJDIR)/$s.h"
   set extra_h($s) {}
 }
+append mhargs " \$(SRCDIR)/sqlite3.h"
 append mhargs " \$(SRCDIR)/th.h"
 append mhargs " \$(OBJDIR)/VERSION.h"
 writeln "\$(OBJDIR)/page_index.h: \$(TRANS_SRC) \$(OBJDIR)/mkindex"
@@ -254,7 +256,7 @@ append opt " -DSQLITE_ENABLE_LOCKING_STYLE=0"
 set SQLITE_OPTIONS $opt
 writeln "\t\$(XTCC) $opt -c \$(SRCDIR)/sqlite3.c -o \$(OBJDIR)/sqlite3.o\n"
 
-writeln "\$(OBJDIR)/shell.o:\t\$(SRCDIR)/shell.c"
+writeln "\$(OBJDIR)/shell.o:\t\$(SRCDIR)/shell.c \$(SRCDIR)/sqlite3.h"
 set opt {-Dmain=sqlite3_shell}
 append opt " -DSQLITE_OMIT_LOAD_EXTENSION=1"
 writeln "\t\$(XTCC) $opt -c \$(SRCDIR)/shell.c -o \$(OBJDIR)/shell.o\n"

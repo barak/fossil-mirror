@@ -999,18 +999,12 @@ void db_close(int reportErrors){
     int cur, hiwtr;
     sqlite3_db_status(g.db, SQLITE_DBSTATUS_LOOKASIDE_USED, &cur, &hiwtr, 0);
     fprintf(stderr, "-- LOOKASIDE_USED         %10d %10d\n", cur, hiwtr);
-#ifdef SQLITE_DBSTATUS_LOOKASIDE_HIT
     sqlite3_db_status(g.db, SQLITE_DBSTATUS_LOOKASIDE_HIT, &cur, &hiwtr, 0);
     fprintf(stderr, "-- LOOKASIDE_HIT                     %10d\n", hiwtr);
-#endif
-#ifdef SQLITE_DBSTATUS_LOOKASIDE_MISS_SIZE
     sqlite3_db_status(g.db, SQLITE_DBSTATUS_LOOKASIDE_MISS_SIZE, &cur,&hiwtr,0);
     fprintf(stderr, "-- LOOKASIDE_MISS_SIZE               %10d\n", hiwtr);
-#endif
-#ifdef SQLITE_DBSTATUS_LOOKASIDE_MISS_FULL
     sqlite3_db_status(g.db, SQLITE_DBSTATUS_LOOKASIDE_MISS_FULL, &cur,&hiwtr,0);
     fprintf(stderr, "-- LOOKASIDE_MISS_FULL               %10d\n", hiwtr);
-#endif
     sqlite3_db_status(g.db, SQLITE_DBSTATUS_CACHE_USED, &cur, &hiwtr, 0);
     fprintf(stderr, "-- CACHE_USED             %10d\n", cur);
     sqlite3_db_status(g.db, SQLITE_DBSTATUS_SCHEMA_USED, &cur, &hiwtr, 0);

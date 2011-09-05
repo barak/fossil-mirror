@@ -1021,18 +1021,12 @@ static int display_stats(
     iHiwtr = iCur = -1;
     sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_USED, &iCur, &iHiwtr, bReset);
     fprintf(pArg->out, "Lookaside Slots Used:                %d (max %d)\n", iCur, iHiwtr);
-#ifdef SQLITE_DBSTATUS_LOOKASIDE_HIT
     sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_HIT, &iCur, &iHiwtr, bReset);
     fprintf(pArg->out, "Successful lookaside attempts:       %d\n", iHiwtr);
-#endif
-#ifdef SQLITE_DBSTATUS_LOOKASIDE_MISS_SIZE
     sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_MISS_SIZE, &iCur, &iHiwtr, bReset);
     fprintf(pArg->out, "Lookaside failures due to size:      %d\n", iHiwtr);
-#endif
-#ifdef SQLITE_DBSTATUS_LOOKASIDE_MISS_FULL
     sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_MISS_FULL, &iCur, &iHiwtr, bReset);
     fprintf(pArg->out, "Lookaside failures due to OOM:       %d\n", iHiwtr);
-#endif
     iHiwtr = iCur = -1;
     sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_USED, &iCur, &iHiwtr, bReset);
     fprintf(pArg->out, "Pager Heap Usage:                    %d bytes\n", iCur); 
@@ -2660,9 +2654,7 @@ static void main_init(struct callback_data *data) {
   data->mode = MODE_List;
   memcpy(data->separator,"|", 2);
   data->showHeader = 0;
-#ifdef SQLITE_CONFIG_URI
   sqlite3_config(SQLITE_CONFIG_URI, 1);
-#endif
   sqlite3_config(SQLITE_CONFIG_LOG, shellLog, data);
   sqlite3_snprintf(sizeof(mainPrompt), mainPrompt,"sqlite> ");
   sqlite3_snprintf(sizeof(continuePrompt), continuePrompt,"   ...> ");

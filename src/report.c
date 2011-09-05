@@ -255,11 +255,9 @@ char *verify_sql_statement(char *zSql){
   if( rc!=SQLITE_OK ){
     zErr = mprintf("Syntax error: %s", sqlite3_errmsg(g.db));
   }
-#if SQLITE_VERSION_NUMBER >= 3007004
   if( !sqlite3_stmt_readonly(pStmt) ){
     zErr = mprintf("SQL must not modify the database");
   }
-#endif
   if( pStmt ){
     sqlite3_finalize(pStmt);
   }
@@ -871,12 +869,10 @@ int sqlite3_exec_readonly(
     /* this happens for a comment or white-space */
     return SQLITE_OK;
   }
-#if SQLITE_VERSION_NUMBER >= 3007004
   if( !sqlite3_stmt_readonly(pStmt) ){
     sqlite3_finalize(pStmt);
     return SQLITE_ERROR;
   }
-#endif
 
   nCol = sqlite3_column_count(pStmt);
   azVals = fossil_malloc(2*nCol*sizeof(const char*) + 1);
