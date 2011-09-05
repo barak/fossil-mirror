@@ -83,6 +83,7 @@ static struct {
   { "manifest",               CONFIGSET_PROJ },
   { "ignore-glob",            CONFIGSET_PROJ },
   { "crnl-glob",              CONFIGSET_PROJ },
+  { "empty-dirs",             CONFIGSET_PROJ },
   { "index-page",             CONFIGSET_SKIN },
   { "timeline-block-markup",  CONFIGSET_SKIN },
   { "timeline-max-comment",   CONFIGSET_SKIN },
@@ -727,7 +728,7 @@ static void export_config(
 /*
 ** COMMAND: configuration
 **
-** Usage: %fossil configure METHOD ... ?-R|--repository REPOSITORY?
+** Usage: %fossil configuration METHOD ... ?-R|--repository REPOSITORY?
 **
 ** Where METHOD is one of: export import merge pull push reset.  All methods
 ** accept the -R or --repository option to specific a repository.
