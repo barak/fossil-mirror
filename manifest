@@ -1,5 +1,5 @@
-C use\snew\supstream\sversion\snumbering\sscheme
-D 2011-09-05T14:29:39.379
+C put\sback\ssrc/sqlite3.c\sand\ssrc/sqlite3.h
+D 2011-09-05T14:40:11.082
 F BUILD.txt 8ebfd7f92eff1922aaf28ebcce6639a39fcb5cdd
 F COPYRIGHT-BSD2.txt c7dd1de9f9539a5a859c2b41fe4560604a774476
 F Makefile.classic 610ce9eedc0d35e35692fb8b0fc2fdd8359a04fd x
@@ -339,8 +339,8 @@ F www/tech_overview.wiki 487503a4bf90dc6b42f23cdb0db76e1cd8e8c866
 F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/webui.wiki d6f45339cf55d9e249afc46f062e1fd62519231f
 F www/wikitheory.wiki ac404a90fc9d210d80d5e7c1c2f24028d957dc4a
-P 5fb46eae4e04e734a58cbba1bc170dae617ba3e6
+P 54b4a956284fa27a5c118dd8d6174e3af278fc1f
 R 5c0f0856f7760a09bfda11d9ee1c5d1f
 U barak
-Z 8ca21e89d5a61009dd25ac7052537686
+Z 18c5708b17c26e834041b9879a6001bf
 # Remove this line to create a well-formed Fossil manifest.
