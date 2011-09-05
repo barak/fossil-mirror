@@ -6,3 +6,8 @@ override_dh_auto_configure:
 	dh_auto_configure -- --disable-internal-sqlite
 
 override_dh_auto_install:
+
+override_dh_installdocs:
+	dh_installdocs
+	mv debian/fossil/usr/share/doc/fossil/changes.wiki \
+	   debian/fossil/usr/share/doc/fossil/changelog

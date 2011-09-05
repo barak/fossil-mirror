@@ -1,5 +1,5 @@
-C update\sdebian\spackaging\sto\suse\supstream\ssystem\ssqlite3\sbuild\soption
-D 2011-09-05T13:53:21.028
+C silence\slintian\schangelog\sname\swarning
+D 2011-09-05T14:15:25.866
 F BUILD.txt 8ebfd7f92eff1922aaf28ebcce6639a39fcb5cdd
 F COPYRIGHT-BSD2.txt c7dd1de9f9539a5a859c2b41fe4560604a774476
 F Makefile.classic 610ce9eedc0d35e35692fb8b0fc2fdd8359a04fd x
@@ -56,7 +56,7 @@ F debian/fossil.1 e032f73ea44849cb063bb0b577e39749af511dbe
 F debian/fossil.docs 45a770a8534b1a439a32546145737975a9217b30
 F debian/fossil.install 8ae909034651ad9b0a72cd10460fed7b9e51f627
 F debian/fossil.manpages a54d8f1ffdace2473552a7903f51d059edc38a07
-F debian/rules da40bc9774912cc46f6c2dfe338c19ad42b78bde x
+F debian/rules 96ad9296ad6d476c8b1e609098f457071dce7270 x
 F debian/source/format 1064dc0ce263680c076a1005f35ec906a5cf5a32
 F debian/source/local-options 58a65fc3dfe4bbb8692c99e80334fba1e913f072
 F debian/source/patch-header cc9c5d455e74f2cb75b716fb8cab2c2d31c6fe4e
@@ -339,8 +339,8 @@ F www/tech_overview.wiki 487503a4bf90dc6b42f23cdb0db76e1cd8e8c866
 F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/webui.wiki d6f45339cf55d9e249afc46f062e1fd62519231f
 F www/wikitheory.wiki ac404a90fc9d210d80d5e7c1c2f24028d957dc4a
-P 503e2974d09d3c821fe567ff574dd02153c0271b
-R c438fd43235401609d78c38ba8645f41
+P aac3ab4c8803262164544dad28b13a1f89934032
+R 939475e15967c2ece90fe922e52a478f
 U barak
-Z 9a4fb8353d97c3b304a57c42cdfb6da4
+Z 3cd8fe0863307a86407dbd8bfd4fc648
 # Remove this line to create a well-formed Fossil manifest.
