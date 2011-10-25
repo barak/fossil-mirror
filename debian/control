@@ -5,6 +5,7 @@ Maintainer: Barak A. Pearlmutter <bap@debian.org>
 Standards-Version: 3.9.2
 Build-depends: debhelper (>= 8),
 	       libsqlite3-dev,
+	       sqlite3,
 	       tcl8.5 | tclsh,
 	       zlib1g-dev | libz-dev,
 	       libssl-dev
