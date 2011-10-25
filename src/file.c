@@ -15,7 +15,12 @@
 **
 *******************************************************************************
 **
-** File utilities
+** File utilities.
+**
+** Functions named file_* are generic functions that always follow symlinks.
+**
+** Functions named file_wd_* are to be used for files inside working
+** directories. They follow symlinks depending on 'allow-symlinks' setting.
 */
 #include "config.h"
 #include <sys/types.h>
@@ -31,39 +36,63 @@
 ** Use _stati64 rather than stat on windows, in order to handle files
 ** larger than 2GB.
 */
-#if defined(_WIN32) && defined(__MSVCRT__)
-  static struct _stati64 fileStat;
+#if defined(_WIN32) && (defined(__MSVCRT__) || defined(_MSC_VER))
 # define stat _stati64
-#else
-  static struct stat fileStat;
+#endif
+/*
+** On Windows S_ISLNK always returns FALSE.
+*/
+#if defined(_WIN32)
+# define S_ISLNK(x) (0)
 #endif
 static int fileStatValid = 0;
+static struct stat fileStat;
+
+/*
+** Fill stat buf with information received from stat() or lstat().
+** lstat() is called on Unix if isWd is TRUE and allow-symlinks setting is on.
+**
+*/
+static int fossil_stat(const char *zFilename, struct stat *buf, int isWd){
+#if !defined(_WIN32)
+  if( isWd && g.allowSymlinks ){
+    return lstat(zFilename, buf);
+  }else{
+    return stat(zFilename, buf);
+  }
+#else
+  int rc = 0;
+  char *zMbcs = fossil_utf8_to_mbcs(zFilename);
+  rc = stat(zMbcs, buf);
+  fossil_mbcs_free(zMbcs);
+  return rc;
+#endif
+}
 
 /*
 ** Fill in the fileStat variable for the file named zFilename.
 ** If zFilename==0, then use the previous value of fileStat if
 ** there is a previous value.
 **
+** If isWd is TRUE, do lstat() instead of stat() if allow-symlinks is on.
+**
 ** Return the number of errors.  No error messages are generated.
 */
-static int getStat(const char *zFilename){
+static int getStat(const char *zFilename, int isWd){
   int rc = 0;
   if( zFilename==0 ){
     if( fileStatValid==0 ) rc = 1;
   }else{
-    char *zMbcs = fossil_utf8_to_mbcs(zFilename);
-    if( stat(zMbcs, &fileStat)!=0 ){
+    if( fossil_stat(zFilename, &fileStat, isWd)!=0 ){
       fileStatValid = 0;
       rc = 1;
     }else{
       fileStatValid = 1;
       rc = 0;
     }
-    fossil_mbcs_free(zMbcs);
   }
   return rc;
 }
-
 
 /*
 ** Return the size of a file in bytes.  Return -1 if the file does not
@@ -71,7 +100,14 @@ static int getStat(const char *zFilename){
 ** stat-ed file.
 */
 i64 file_size(const char *zFilename){
-  return getStat(zFilename) ? -1 : fileStat.st_size;
+  return getStat(zFilename, 0) ? -1 : fileStat.st_size;
+}
+
+/*
+** Same as file_size(), but takes into account symlinks.
+*/
+i64 file_wd_size(const char *zFilename){
+  return getStat(zFilename, 1) ? -1 : fileStat.st_size;  
 }
 
 /*
@@ -80,7 +116,24 @@ i64 file_size(const char *zFilename){
 ** recently stat-ed file.
 */
 i64 file_mtime(const char *zFilename){
-  return getStat(zFilename) ? -1 : fileStat.st_mtime;
+  return getStat(zFilename, 0) ? -1 : fileStat.st_mtime;
+}
+
+/*
+** Same as file_mtime(), but takes into account symlinks.
+*/
+i64 file_wd_mtime(const char *zFilename){
+  return getStat(zFilename, 1) ? -1 : fileStat.st_mtime;
+}
+
+/*
+** Return TRUE if the named file is an ordinary file or symlink 
+** and symlinks are allowed.
+** Return false for directories, devices, fifos, etc.
+*/
+int file_wd_isfile_or_link(const char *zFilename){
+  return getStat(zFilename, 1) ? 0 : S_ISREG(fileStat.st_mode) ||
+                                     S_ISLNK(fileStat.st_mode);
 }
 
 /*
@@ -88,25 +141,115 @@ i64 file_mtime(const char *zFilename){
 ** for directories, devices, fifos, symlinks, etc.
 */
 int file_isfile(const char *zFilename){
-  return getStat(zFilename) ? 0 : S_ISREG(fileStat.st_mode);
+  return getStat(zFilename, 0) ? 0 : S_ISREG(fileStat.st_mode);
+}
+
+/*
+** Same as file_isfile(), but takes into account symlinks.
+*/
+int file_wd_isfile(const char *zFilename){
+  return getStat(zFilename, 1) ? 0 : S_ISREG(fileStat.st_mode);
+}
+
+/*
+** Create symlink to file on Unix, or plain-text file with
+** symlink target if "allow-symlinks" is off or we're on Windows.
+**
+** Arguments: target file (symlink will point to it), link file
+**/
+void symlink_create(const char *zTargetFile, const char *zLinkFile){
+#if !defined(_WIN32)
+  if( g.allowSymlinks ){
+    int i, nName;
+    char *zName, zBuf[1000];
+
+    nName = strlen(zLinkFile);
+    if( nName>=sizeof(zBuf) ){
+      zName = mprintf("%s", zLinkFile);
+    }else{
+      zName = zBuf;
+      memcpy(zName, zLinkFile, nName+1);
+    }
+    nName = file_simplify_name(zName, nName);
+    for(i=1; i<nName; i++){
+      if( zName[i]=='/' ){
+        zName[i] = 0;
+          if( file_mkdir(zName, 1) ){
+            fossil_fatal_recursive("unable to create directory %s", zName);
+            return;
+          }
+        zName[i] = '/';
+      }
+    }
+    if( zName!=zBuf ) free(zName);
+
+    if( symlink(zTargetFile, zName)!=0 ){
+      fossil_fatal_recursive("unable to create symlink \"%s\"", zName);      
+    }
+  }else
+#endif 
+  {
+    Blob content;
+    blob_set(&content, zTargetFile);
+    blob_write_to_file(&content, zLinkFile);
+    blob_reset(&content);
+  }
+}
+
+/*
+** Copy symbolic link from zFrom to zTo.
+*/
+void symlink_copy(const char *zFrom, const char *zTo){
+  Blob content;
+  blob_read_link(&content, zFrom);
+  symlink_create(blob_str(&content), zTo);
+  blob_reset(&content);
+}
+
+/*
+** Return file permissions (normal, executable, or symlink):
+**   - PERM_EXE if file is executable;
+**   - PERM_LNK on Unix if file is symlink and allow-symlinks option is on;
+**   - PERM_REG for all other cases (regular file, directory, fifo, etc).
+*/
+int file_wd_perm(const char *zFilename){
+  if( getStat(zFilename, 1) ) return PERM_REG;
+#if defined(_WIN32)
+#  if defined(__DMC__) || defined(_MSC_VER)
+#    define S_IXUSR  _S_IEXEC
+#  endif
+  if( S_ISREG(fileStat.st_mode) && ((S_IXUSR)&fileStat.st_mode)!=0 )
+    return PERM_EXE;
+  else
+    return PERM_REG;
+#else
+  if( S_ISREG(fileStat.st_mode) && 
+      ((S_IXUSR|S_IXGRP|S_IXOTH)&fileStat.st_mode)!=0 )
+    return PERM_EXE;
+  else if( g.allowSymlinks && S_ISLNK(fileStat.st_mode) )
+    return PERM_LNK;
+  else
+    return PERM_REG;
+#endif
 }
 
 /*
 ** Return TRUE if the named file is an executable.  Return false
 ** for directories, devices, fifos, symlinks, etc.
 */
-int file_isexe(const char *zFilename){
-  if( getStat(zFilename) || !S_ISREG(fileStat.st_mode) ) return 0;
-#if defined(_WIN32)
-#  if defined(__DMC__) || defined(_MSC_VER)
-#    define S_IXUSR  _S_IEXEC
-#  endif
-  return ((S_IXUSR)&fileStat.st_mode)!=0;
-#else
-  return ((S_IXUSR|S_IXGRP|S_IXOTH)&fileStat.st_mode)!=0;
-#endif
+int file_wd_isexe(const char *zFilename){
+  return file_wd_perm(zFilename)==PERM_EXE;
 }
 
+/*
+** Return TRUE if the named file is a symlink and symlinks are allowed.
+** Return false for all other cases.
+**
+** On Windows, always return False.
+*/
+int file_wd_islink(const char *zFilename){
+  return file_wd_perm(zFilename)==PERM_LNK;
+}
 
 /*
 ** Return 1 if zFilename is a directory.  Return 0 if zFilename
@@ -119,13 +262,31 @@ int file_isdir(const char *zFilename){
   if( zFilename ){
     char *zFN = mprintf("%s", zFilename);
     file_simplify_name(zFN, -1);
-    rc = getStat(zFN);
+    rc = getStat(zFN, 0);
     free(zFN);
   }else{
-    rc = getStat(0);
+    rc = getStat(0, 0);
   }
   return rc ? 0 : (S_ISDIR(fileStat.st_mode) ? 1 : 2);
 }
+
+/*
+** Same as file_isdir(), but takes into account symlinks.
+*/
+int file_wd_isdir(const char *zFilename){
+  int rc;
+
+  if( zFilename ){
+    char *zFN = mprintf("%s", zFilename);
+    file_simplify_name(zFN, -1);
+    rc = getStat(zFN, 1);
+    free(zFN);
+  }else{
+    rc = getStat(0, 1);
+  }
+  return rc ? 0 : (S_ISDIR(fileStat.st_mode) ? 1 : 2);
+}
+
 
 /*
 ** Wrapper around the access() system call.
@@ -197,11 +358,11 @@ void file_copy(const char *zFrom, const char *zTo){
 ** Set or clear the execute bit on a file.  Return true if a change
 ** occurred and false if this routine is a no-op.
 */
-int file_setexe(const char *zFilename, int onoff){
+int file_wd_setexe(const char *zFilename, int onoff){
   int rc = 0;
 #if !defined(_WIN32)
   struct stat buf;
-  if( stat(zFilename, &buf)!=0 ) return 0;
+  if( fossil_stat(zFilename, &buf, 1)!=0 || S_ISLNK(buf.st_mode) ) return 0;
   if( onoff ){
     int targetMode = (buf.st_mode & 0444)>>2;
     if( (buf.st_mode & 0111)!=targetMode ){
@@ -235,7 +396,7 @@ void file_delete(const char *zFilename){
 ** Return the number of errors.
 */
 int file_mkdir(const char *zName, int forceFlag){
-  int rc = file_isdir(zName);
+  int rc = file_wd_isdir(zName);
   if( rc==2 ){
     if( !forceFlag ) return 1;
     file_delete(zName);
@@ -466,13 +627,15 @@ void cmd_test_canonical_name(void){
     file_canonical_name(zName, &x);
     fossil_print("[%s] -> [%s]\n", zName, blob_buffer(&x));
     blob_reset(&x);
-    sqlite3_snprintf(sizeof(zBuf), zBuf, "%lld", file_size(zName));
+    sqlite3_snprintf(sizeof(zBuf), zBuf, "%lld", file_wd_size(zName));
     fossil_print("  file_size   = %s\n", zBuf);
-    sqlite3_snprintf(sizeof(zBuf), zBuf, "%lld", file_mtime(zName));
+    sqlite3_snprintf(sizeof(zBuf), zBuf, "%lld", file_wd_mtime(zName));
     fossil_print("  file_mtime  = %s\n", zBuf);
-    fossil_print("  file_isfile = %d\n", file_isfile(zName));
-    fossil_print("  file_isexe  = %d\n", file_isexe(zName));
-    fossil_print("  file_isdir  = %d\n", file_isdir(zName));
+    fossil_print("  file_isfile = %d\n", file_wd_isfile(zName));
+    fossil_print("  file_isfile_or_link = %d\n",file_wd_isfile_or_link(zName));
+    fossil_print("  file_islink = %d\n", file_wd_islink(zName));
+    fossil_print("  file_isexe  = %d\n", file_wd_isexe(zName));
+    fossil_print("  file_isdir  = %d\n", file_wd_isdir(zName));
   }
 }
 
@@ -738,10 +901,14 @@ int file_is_the_same(Blob *pContent, const char *zName){
   int rc;
   Blob onDisk;
 
-  iSize = file_size(zName);
+  iSize = file_wd_size(zName);
   if( iSize<0 ) return 0;
   if( iSize!=blob_size(pContent) ) return 0;
-  blob_read_from_file(&onDisk, zName);
+  if( file_wd_islink(zName) ){
+    blob_read_link(&onDisk, zName);
+  }else{
+    blob_read_from_file(&onDisk, zName);
+  }
   rc = blob_compare(&onDisk, pContent);
   blob_reset(&onDisk);
   return rc==0;

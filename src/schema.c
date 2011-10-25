@@ -253,7 +253,7 @@ const char zRepositorySchema2[] =
 @ -- Events used to generate a timeline
 @ --
 @ CREATE TABLE event(
-@   type TEXT,                      -- Type of event: 'ci', 'w', 'e', 't'
+@   type TEXT,                      -- Type of event: 'ci', 'w', 'e', 't', 'g'
 @   mtime DATETIME,                 -- Time of occurrence. Julian day.
 @   objid INTEGER PRIMARY KEY,      -- Associated record ID
 @   tagid INTEGER,                  -- Associated ticket or wiki name tag
@@ -463,6 +463,7 @@ const char zLocalSchema[] =
 @   chnged INT DEFAULT 0,             -- 0:unchnged 1:edited 2:m-chng 3:m-add
 @   deleted BOOLEAN DEFAULT 0,        -- True if deleted 
 @   isexe BOOLEAN,                    -- True if file should be executable
+@   islink BOOLEAN,                    -- True if file should be symlink
 @   rid INTEGER,                      -- Originally from this repository record
 @   mrid INTEGER,                     -- Based on this record due to a merge
 @   mtime INTEGER,                    -- Mtime of file on disk. sec since 1970

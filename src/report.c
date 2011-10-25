@@ -36,7 +36,7 @@ void view_list(void){
   int cnt = 0;
 
   login_check_credentials();
-  if( !g.okRdTkt && !g.okNewTkt ){ login_needed(); return; }
+  if( !g.perm.RdTkt && !g.perm.NewTkt ){ login_needed(); return; }
   style_header("Ticket Main Menu");
   if( g.thTrace ) Th_Trace("BEGIN_REPORTLIST<br />\n", -1);
   zScript = ticket_reportlist_code();
@@ -49,7 +49,7 @@ void view_list(void){
   while( db_step(&q)==SQLITE_ROW ){
     const char *zTitle = db_column_text(&q, 1);
     const char *zOwner = db_column_text(&q, 2);
-    if( zTitle[0] =='_' && !g.okTktFmt ){
+    if( zTitle[0] =='_' && !g.perm.TktFmt ){
       continue;
     }
     rn = db_column_int(&q, 0);
@@ -61,18 +61,18 @@ void view_list(void){
       blob_appendf(&ril, "<a href=\"rptview?rn=%d\" rel=\"nofollow\">%h</a>", rn, zTitle);
     }
     blob_appendf(&ril, "&nbsp;&nbsp;&nbsp;");
-    if( g.okWrite && zOwner && zOwner[0] ){
+    if( g.perm.Write && zOwner && zOwner[0] ){
       blob_appendf(&ril, "(by <i>%h</i></i>) ", zOwner);
     }
-    if( g.okTktFmt ){
+    if( g.perm.TktFmt ){
       blob_appendf(&ril, "[<a href=\"rptedit?rn=%d&amp;copy=1\" rel=\"nofollow\">copy</a>] ", rn);
     }
-    if( g.okAdmin 
-     || (g.okWrTkt && zOwner && fossil_strcmp(g.zLogin,zOwner)==0)
+    if( g.perm.Admin 
+     || (g.perm.WrTkt && zOwner && fossil_strcmp(g.zLogin,zOwner)==0)
     ){
       blob_appendf(&ril, "[<a href=\"rptedit?rn=%d\" rel=\"nofollow\">edit</a>] ", rn);
     }
-    if( g.okTktFmt ){
+    if( g.perm.TktFmt ){
       blob_appendf(&ril, "[<a href=\"rptsql?rn=%d\" rel=\"nofollow\">sql</a>] ", rn);
     }
     blob_appendf(&ril, "</li>\n");
@@ -186,7 +186,7 @@ int report_query_authorizer(
       if( i>=sizeof(azAllowed)/sizeof(azAllowed[0]) ){
         *(char**)pError = mprintf("access to table \"%s\" is restricted",zArg1);
         rc = SQLITE_DENY;
-      }else if( !g.okRdAddr && strncmp(zArg2, "private_", 8)==0 ){
+      }else if( !g.perm.RdAddr && strncmp(zArg2, "private_", 8)==0 ){
         rc = SQLITE_IGNORE;
       }
       break;
@@ -277,7 +277,7 @@ void view_see_sql(void){
   Stmt q;
 
   login_check_credentials();
-  if( !g.okTktFmt ){
+  if( !g.perm.TktFmt ){
     login_needed();
     return;
   }
@@ -325,7 +325,7 @@ void view_edit(void){
   char *zErr = 0;
 
   login_check_credentials();
-  if( !g.okTktFmt ){
+  if( !g.perm.TktFmt ){
     login_needed();
     return;
   }
@@ -432,7 +432,7 @@ void view_edit(void){
   @ <textarea name="s" rows="20" cols="80">%h(zSQL)</textarea>
   @ </p>
   login_insert_csrf_secret();
-  if( g.okAdmin ){
+  if( g.perm.Admin ){
     @ <p>Report owner:
     @ <input type="text" name="w" size="20" value="%h(zOwner)" />
     @ </p>
@@ -445,7 +445,7 @@ void view_edit(void){
   @ color for that line.<br />
   @ <textarea name="k" rows="8" cols="50">%h(zClrKey)</textarea>
   @ </p>
-  if( !g.okAdmin && fossil_strcmp(zOwner,g.zLogin)!=0 ){
+  if( !g.perm.Admin && fossil_strcmp(zOwner,g.zLogin)!=0 ){
     @ <p>This report format is owned by %h(zOwner).  You are not allowed
     @ to change it.</p>
     @ </form>
@@ -632,13 +632,7 @@ static int generate_html(
   struct GenerateHTML *pState = (struct GenerateHTML*)pUser;
   int i;
   const char *zTid;  /* Ticket UUID.  (value of column named '#') */
-  int rn;            /* Report number */
   char *zBg = 0;     /* Use this background color */
-  char zPage[30];    /* Text version of the ticket number */
-
-  /* Get the report number
-  */
-  rn = pState->rn;
 
   /* Do initialization
   */
@@ -661,7 +655,7 @@ static int generate_html(
         pState->iBg = i;
         continue;
       }
-      if( g.okWrite && azName[i][0]=='#' ){
+      if( g.perm.Write && azName[i][0]=='#' ){
         pState->nCol++;
       }
       if( !pState->isMultirow ){
@@ -682,7 +676,7 @@ static int generate_html(
       char *zName = azName[i];
       if( i==pState->iBg ) continue;
       if( pState->iNewRow>=0 && i>=pState->iNewRow ){
-        if( g.okWrite && zTid ){
+        if( g.perm.Write && zTid ){
           @ <th>&nbsp;</th>
           zTid = 0;
         }
@@ -695,7 +689,7 @@ static int generate_html(
         @ <th>%h(zName)</th>
       }
     }
-    if( g.okWrite && zTid ){
+    if( g.perm.Write && zTid ){
       @ <th>&nbsp;</th>
     }
     @ </tr>
@@ -721,14 +715,13 @@ static int generate_html(
   if( zBg==0 ) zBg = "white";
   @ <tr style="background-color:%h(zBg)">
   zTid = 0;
-  zPage[0] = 0;
   for(i=0; i<nArg; i++){
     char *zData;
     if( i==pState->iBg ) continue;
     zData = azArg[i];
     if( zData==0 ) zData = "";
     if( pState->iNewRow>=0 && i>=pState->iNewRow ){
-      if( zTid && g.okWrite ){
+      if( zTid && g.perm.Write ){
         @ <td valign="top"><a href="tktedit/%h(zTid)">edit</a></td>
         zTid = 0;
       }
@@ -741,7 +734,7 @@ static int generate_html(
       }
     }else if( azName[i][0]=='#' ){
       zTid = zData;
-      if( g.okHistory ){
+      if( g.perm.History ){
         @ <td valign="top"><a href="tktview?name=%h(zData)">%h(zData)</a></td>
       }else{
         @ <td valign="top">%h(zData)</td>
@@ -754,7 +747,7 @@ static int generate_html(
       @ </td>
     }
   }
-  if( zTid && g.okWrite ){
+  if( zTid && g.perm.Write ){
     @ <td valign="top"><a href="tktedit/%h(zTid)">edit</a></td>
   }
   @ </tr>
@@ -917,7 +910,7 @@ void rptview_page(void){
   char *zErr2 = 0;
 
   login_check_credentials();
-  if( !g.okRdTkt ){ login_needed(); return; }
+  if( !g.perm.RdTkt ){ login_needed(); return; }
   rn = atoi(PD("rn","0"));
   if( rn==0 ){
     cgi_redirect("reportlist");
@@ -959,14 +952,14 @@ void rptview_page(void){
     db_multi_exec("PRAGMA empty_result_callbacks=ON");
     style_submenu_element("Raw", "Raw", 
       "rptview?tablist=1&amp;%h", PD("QUERY_STRING",""));
-    if( g.okAdmin 
-       || (g.okTktFmt && g.zLogin && fossil_strcmp(g.zLogin,zOwner)==0) ){
+    if( g.perm.Admin 
+       || (g.perm.TktFmt && g.zLogin && fossil_strcmp(g.zLogin,zOwner)==0) ){
       style_submenu_element("Edit", "Edit", "rptedit?rn=%d", rn);
     }
-    if( g.okTktFmt ){
+    if( g.perm.TktFmt ){
       style_submenu_element("SQL", "SQL", "rptsql?rn=%d",rn);
     }
-    if( g.okNewTkt ){
+    if( g.perm.NewTkt ){
       style_submenu_element("New Ticket", "Create a new ticket",
         "%s/tktnew", g.zTop);
     }
@@ -1110,37 +1103,28 @@ void rptshow(
 ){
   Stmt q;
   char *zSql;
-  const char *zTitle;
-  const char *zOwner;
-  const char *zClrKey;
   char *zErr1 = 0;
   char *zErr2 = 0;
   int count = 0;
   int rn;
 
   if (!zRep || !strcmp(zRep,zFullTicketRptRn) || !strcmp(zRep,zFullTicketRptTitle) ){
-    zTitle = zFullTicketRptTitle;
     zSql = "SELECT * FROM ticket";
-    zOwner = g.zLogin;
-    zClrKey = "";
   }else{
     rn = atoi(zRep);
     if( rn ){
       db_prepare(&q,
-       "SELECT title, sqlcode, owner, cols FROM reportfmt WHERE rn=%d", rn);
+       "SELECT sqlcode FROM reportfmt WHERE rn=%d", rn);
     }else{
       db_prepare(&q,
-       "SELECT title, sqlcode, owner, cols FROM reportfmt WHERE title='%s'", zRep);
+       "SELECT sqlcode FROM reportfmt WHERE title=%Q", zRep);
     }
     if( db_step(&q)!=SQLITE_ROW ){
       db_finalize(&q);
       rpt_list_reports();
       fossil_fatal("unknown report format(%s)!",zRep);
     }
-    zTitle = db_column_malloc(&q, 0);
-    zSql = db_column_malloc(&q, 1);
-    zOwner = db_column_malloc(&q, 2);
-    zClrKey = db_column_malloc(&q, 3);
+    zSql = db_column_malloc(&q, 0);
     db_finalize(&q);
   }
   if( zFilter ){

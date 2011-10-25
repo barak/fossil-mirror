@@ -86,7 +86,7 @@ static void print_person(const char *zUser){
 /*
 ** COMMAND: export
 **
-** Usage: %fossil export --git ?options? ?REPOSITORY?
+** Usage: %fossil export --git ?OPTIONS? ?REPOSITORY?
 **
 ** Write an export of all check-ins to standard output.  The export is
 ** written in the git-fast-export file format assuming the --git option is
@@ -105,6 +105,13 @@ static void print_person(const char *zUser){
 **
 ** If the "--export-marks FILE" option is used, the rid of all commits and
 ** blobs written on exit for use with "--import-marks" on the next run.
+**
+** Options:
+**   --export-marks FILE          export rids of exported data to FILE
+**   --import-marks FILE          read rids of data to ignore from FILE
+**   --repository|-R REPOSITORY   export the given REPOSITORY
+**   
+** See also: import
 */
 void export_cmd(void){
   Stmt q, q2, q3;
@@ -271,8 +278,15 @@ void export_cmd(void){
       int mPerm = db_column_int(&q4,2);
       if( zNew==0)
         printf("D %s\n", zName);
-      else if( bag_find(&blobs, zNew) )
-        printf("M %s :%d %s\n", mPerm ? "100755" : "100644", BLOBMARK(zNew), zName);
+      else if( bag_find(&blobs, zNew) ) {
+        const char *zPerm;
+        switch( mPerm ){
+          case PERM_LNK:  zPerm = "120000";   break;
+          case PERM_EXE:  zPerm = "100755";   break;
+          default:        zPerm = "100644";   break;
+        }
+        printf("M %s :%d %s\n", zPerm, BLOBMARK(zNew), zName);
+      }
     }
     db_finalize(&q4);
     db_finalize(&q3);

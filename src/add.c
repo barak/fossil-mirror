@@ -60,9 +60,16 @@ const char *fossil_reserved_name(int N){
      "manifest.uuid",
   };
 
+  /* Cached setting "manifest" */
+  static int cachedManifest = -1;
+
+  if( cachedManifest == -1 ){
+    cachedManifest = db_get_boolean("manifest",0);
+  }
+
   if( N>=0 && N<count(azName) ) return azName[N];
   if( N>=count(azName) && N<count(azName)+count(azManifest)
-      && db_get_boolean("manifest",0) ){
+      && cachedManifest ){
     return azManifest[N-count(azName)];
   }
   return 0;
@@ -108,9 +115,9 @@ static int add_one_file(
   }else{
     char *zFullname = mprintf("%s%s", g.zLocalRoot, zPath);
     db_multi_exec(
-      "INSERT INTO vfile(vid,deleted,rid,mrid,pathname,isexe)"
-      "VALUES(%d,0,0,0,%Q,%d)",
-      vid, zPath, file_isexe(zFullname));
+      "INSERT INTO vfile(vid,deleted,rid,mrid,pathname,isexe,islink)"
+      "VALUES(%d,0,0,0,%Q,%d,%d)",
+      vid, zPath, file_wd_isexe(zFullname), file_wd_islink(zFullname));
     fossil_free(zFullname);
   }
   if( db_changes() ){
@@ -183,8 +190,13 @@ static int add_files_in_sfile(int vid, int caseSensitive){
 ** does not appear on the command line then the "ignore-glob" setting is
 ** used.
 **
-** SUMMARY: fossil add ?OPTIONS? FILE1 ?FILE2 ...?
-** Options: --dotfiles, --ignore
+** Options:
+**
+**    --dotfiles       include files beginning with a dot (".")   
+**    --ignore <CSG>   ignore files matching patterns from the 
+**                     comma separated list of glob patterns.
+** 
+** See also: addremove, rm
 */
 void add_cmd(void){
   int i;                     /* Loop counter */
@@ -225,7 +237,7 @@ void add_cmd(void){
 
     file_canonical_name(g.argv[i], &fullName);
     zName = blob_str(&fullName);
-    isDir = file_isdir(zName);
+    isDir = file_wd_isdir(zName);
     if( isDir==1 ){
       vfile_scan(&fullName, nRoot-1, includeDotFiles, pIgnore);
     }else if( isDir==0 ){
@@ -261,8 +273,7 @@ void add_cmd(void){
 ** files as no longer being part of the project.  In other words, future
 ** changes to the named files will not be versioned.
 **
-** SUMMARY: fossil rm FILE1 ?FILE2 ...?
-**      or: fossil delete FILE1 ?FILE2 ...?
+** See also: addremove, add
 */
 void delete_cmd(void){
   int i;
@@ -346,7 +357,7 @@ int filenames_are_case_sensitive(void){
 /*
 ** COMMAND: addremove
 **
-** Usage: %fossil addremove ?--dotfiles? ?--ignore GLOBPATTERN? ?--test?
+** Usage: %fossil addremove ?OPTIONS?
 **
 ** Do all necessary "add" and "rm" commands to synchronize the repository
 ** with the content of the working checkout:
@@ -371,9 +382,14 @@ int filenames_are_case_sensitive(void){
 ** The --test option shows what would happen without actually doing anything.
 **
 ** This command can be used to track third party software.
+** 
+** Options: 
+**   --dotfiles       include files beginning with a dot (".")   
+**   --ignore <CSG>   ignore files matching patterns from the 
+**                    comma separated list of glob patterns.
+**   --test           If given, show what would be done without doing so.
 **
-** SUMMARY: fossil addremove
-** Options: ?--dotfiles? ?--ignore GLOB? ?--test? ?--case-sensitive BOOL?
+** See also: add, rm
 */
 void addremove_cmd(void){
   Blob path;
@@ -428,7 +444,7 @@ void addremove_cmd(void){
 
     zFile = db_column_text(&q, 0);
     zPath = db_column_text(&q, 1);
-    if( !file_isfile(zPath) ){
+    if( !file_wd_isfile_or_link(zPath) ){
       if( !isTest ){
         db_multi_exec("UPDATE vfile SET deleted=1 WHERE pathname=%Q", zFile);
       }
@@ -499,7 +515,7 @@ void mv_cmd(void){
   db_multi_exec(
     "CREATE TEMP TABLE mv(f TEXT UNIQUE ON CONFLICT IGNORE, t TEXT);"
   );
-  if( file_isdir(zDest)!=1 ){
+  if( file_wd_isdir(zDest)!=1 ){
     Blob orig;
     if( g.argc!=4 ){
       usage("OLDNAME NEWNAME");

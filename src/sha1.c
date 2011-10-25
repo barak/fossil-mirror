@@ -84,7 +84,7 @@ struct SHA1Context {
 
 void SHA1Transform(unsigned int state[5], const unsigned char buffer[64])
 {
-  unsigned int qq[5]; // a, b, c, d, e;
+  unsigned int qq[5]; /* a, b, c, d, e; */
   static int one = 1;
   unsigned int block[16];
   memcpy(block, buffer, 64);
@@ -282,6 +282,17 @@ int sha1sum_file(const char *zFilename, Blob *pCksum){
   SHA1Context ctx;
   unsigned char zResult[20];
   char zBuf[10240];
+
+  if( file_wd_islink(zFilename) ){
+    /* Instead of file content, return sha1 of link destination path */
+    Blob destinationPath;
+    int rc;
+    
+    blob_read_link(&destinationPath, zFilename);
+    rc = sha1sum_blob(&destinationPath, pCksum);
+    blob_reset(&destinationPath);
+    return rc;
+  }
 
   in = fossil_fopen(zFilename,"rb");
   if( in==0 ){

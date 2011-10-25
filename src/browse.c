@@ -79,7 +79,7 @@ void hyperlinked_path(const char *zPath, Blob *pOut, const char *zCI){
 
   for(i=0; zPath[i]; i=j){
     for(j=i; zPath[j] && zPath[j]!='/'; j++){}
-    if( zPath[j] && g.okHistory ){
+    if( zPath[j] && g.perm.History ){
       if( zCI ){
         blob_appendf(pOut, "%s<a href=\"%s/dir?ci=%S&amp;name=%#T\">%#h</a>", 
                      zSep, g.zTop, zCI, j, zPath, j-i, &zPath[i]);
@@ -120,7 +120,7 @@ void page_dir(void){
   const char *zSubdirLink;
 
   login_check_credentials();
-  if( !g.okHistory ){ login_needed(); return; }
+  if( !g.perm.History ){ login_needed(); return; }
   while( nD>1 && zD[nD-2]=='/' ){ zD[(--nD)-1] = 0; }
   style_header("File List");
   sqlite3_create_function(g.db, "pathelement", 2, SQLITE_UTF8, 0,
@@ -251,7 +251,9 @@ void page_dir(void){
   */
   mxLen = db_int(12, "SELECT max(length(x)) FROM localfiles /*scan*/");
   cnt = db_int(0, "SELECT count(*) FROM localfiles /*scan*/");
-  nCol = 4;
+  nCol = 100/mxLen;
+  if( nCol<1 ) nCol = 1;
+  if( nCol>5 ) nCol = 5;
   nRow = (cnt+nCol-1)/nCol;
   db_prepare(&q, "SELECT x, u FROM localfiles ORDER BY x /*scan*/");
   @ <table class="browser"><tr><td class="browser"><ul class="browser">

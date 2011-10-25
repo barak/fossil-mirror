@@ -93,7 +93,7 @@ static char *login_cookie_name(void){
        "SELECT 'fossil-' || substr(value,1,16)"
        "  FROM config"
        " WHERE name IN ('project-code','login-group-code')"
-       " ORDER BY name;"
+       " ORDER BY name /*sort*/"
     );
   }
   return zCookieName;
@@ -196,6 +196,33 @@ static void record_login_attempt(
 }
 
 /*
+** SQL function for constant time comparison of two values.
+** Sets result to 0 if two values are equal.
+*/
+static void constant_time_cmp_function(
+ sqlite3_context *context,
+ int argc,
+ sqlite3_value **argv
+){
+  const unsigned char *buf1, *buf2;
+  int len, i;
+  unsigned char rc = 0;
+
+  assert( argc==2 );
+  len = sqlite3_value_bytes(argv[0]);
+  if( len==0 || len!=sqlite3_value_bytes(argv[1]) ){
+    rc = 1;
+  }else{
+    buf1 = sqlite3_value_text(argv[0]);
+    buf2 = sqlite3_value_text(argv[1]);
+    for( i=0; i<len; i++ ){
+      rc = rc | (buf1[i] ^ buf2[i]);
+    }
+  }
+  sqlite3_result_int(context, rc);
+}
+
+/*
 ** WEBPAGE: login
 ** WEBPAGE: logout
 ** WEBPAGE: my
@@ -219,6 +246,8 @@ void login_page(void){
   char *zRemoteAddr;           /* Abbreviated IP address of requestor */
 
   login_check_credentials();
+  sqlite3_create_function(g.db, "constant_time_cmp", 2, SQLITE_UTF8, 0,
+		  constant_time_cmp_function, 0, 0);
   zUsername = P("u");
   zPasswd = P("p");
   anonFlag = P("anon")!=0;
@@ -228,12 +257,16 @@ void login_page(void){
     cgi_set_cookie(zCookieName, "", login_cookie_path(), -86400);
     redirect_to_g();
   }
-  if( g.okPassword && zPasswd && (zNew1 = P("n1"))!=0 && (zNew2 = P("n2"))!=0 ){
+  if( g.perm.Password && zPasswd
+   && (zNew1 = P("n1"))!=0 && (zNew2 = P("n2"))!=0
+  ){
     /* The user requests a password change */
     zSha1Pw = sha1_shared_secret(zPasswd, g.zLogin, 0);
     if( db_int(1, "SELECT 0 FROM user"
-                  " WHERE uid=%d AND (pw=%Q OR pw=%Q)", 
-                  g.userUid, zPasswd, zSha1Pw) ){
+                  " WHERE uid=%d"
+                  " AND (constant_time_cmp(pw,%Q)=0"
+                  "      OR constant_time_cmp(pw,%Q)=0)", 
+                  g.userUid, zSha1Pw, zPasswd) ){
       sleep(1);
       zErrMsg = 
          @ <p><span class="loginError">
@@ -310,8 +343,8 @@ void login_page(void){
         " WHERE login=%Q"
         "   AND length(cap)>0 AND length(pw)>0"
         "   AND login NOT IN ('anonymous','nobody','developer','reader')"
-        "   AND (pw=%Q OR pw=%Q)",
-        zUsername, zPasswd, zSha1Pw
+        "   AND (constant_time_cmp(pw,%Q)=0 OR constant_time_cmp(pw,%Q)=0)",
+        zUsername, zSha1Pw, zPasswd
     );
     if( uid<=0 ){
       sleep(1);
@@ -433,7 +466,7 @@ void login_page(void){
     @ <input type="submit" name="out" value="Logout" /></p>
   }
   @ </form>
-  if( g.okPassword ){
+  if( g.perm.Password ){
     @ <hr />
     @ <p>To change your password, enter your old password and your
     @ new password twice below then press the "Change Password"
@@ -483,16 +516,18 @@ static int login_transfer_credentials(
   rc = sqlite3_open(zOtherRepo, &pOther);
   if( rc==SQLITE_OK ){
     sqlite3_create_function(pOther,"now",0,SQLITE_ANY,0,db_now_function,0,0);
+    sqlite3_create_function(pOther, "constant_time_cmp", 2, SQLITE_UTF8, 0,
+		  constant_time_cmp_function, 0, 0);
     sqlite3_busy_timeout(pOther, 5000);
     zSQL = mprintf(
       "SELECT cexpire FROM user"
-      " WHERE cookie=%Q"
+      " WHERE login=%Q"
       "   AND ipaddr=%Q"
-      "   AND login=%Q"
       "   AND length(cap)>0"
       "   AND length(pw)>0"
-      "   AND cexpire>julianday('now')",
-      zHash, zRemoteAddr, zLogin
+      "   AND cexpire>julianday('now')"
+      "   AND constant_time_cmp(cookie,%Q)=0",
+      zLogin, zRemoteAddr, zHash
     );
     pStmt = 0;
     rc = sqlite3_prepare_v2(pOther, zSQL, -1, &pStmt, 0);
@@ -529,12 +564,12 @@ static int login_find_user(
   uid = db_int(0, 
     "SELECT uid FROM user"
     " WHERE login=%Q"
-    "   AND cookie=%Q"
     "   AND ipaddr=%Q"
     "   AND cexpire>julianday('now')"
     "   AND length(cap)>0"
-    "   AND length(pw)>0",
-    zLogin, zCookie, zRemoteAddr
+    "   AND length(pw)>0"
+    "   AND constant_time_cmp(cookie,%Q)=0",
+    zLogin, zRemoteAddr, zCookie
   );
   return uid;
 }
@@ -543,7 +578,7 @@ static int login_find_user(
 ** This routine examines the login cookie to see if it exists and
 ** and is valid.  If the login cookie checks out, it then sets 
 ** global variables appropriately.  Global variables set include
-** g.userUid and g.zLogin and of the g.okRead family of permission
+** g.userUid and g.zLogin and of the g.perm.Read family of permission
 ** booleans.
 **
 */
@@ -556,6 +591,9 @@ void login_check_credentials(void){
 
   /* Only run this check once.  */
   if( g.userUid!=0 ) return;
+
+  sqlite3_create_function(g.db, "constant_time_cmp", 2, SQLITE_UTF8, 0,
+		  constant_time_cmp_function, 0, 0);
 
   /* If the HTTP connection is coming over 127.0.0.1 and if
   ** local login is disabled and if we are using HTTP and not HTTPS, 
@@ -727,36 +765,36 @@ void login_set_capabilities(const char *zCap, unsigned flags){
   int i;
   for(i=0; zCap[i]; i++){
     switch( zCap[i] ){
-      case 's':   g.okSetup = 1;  /* Fall thru into Admin */
-      case 'a':   g.okAdmin = g.okRdTkt = g.okWrTkt = g.okZip =
-                              g.okRdWiki = g.okWrWiki = g.okNewWiki =
-                              g.okApndWiki = g.okHistory = g.okClone = 
-                              g.okNewTkt = g.okPassword = g.okRdAddr =
-                              g.okTktFmt = g.okAttach = g.okApndTkt = 1;
+      case 's':   g.perm.Setup = 1;  /* Fall thru into Admin */
+      case 'a':   g.perm.Admin = g.perm.RdTkt = g.perm.WrTkt = g.perm.Zip =
+                              g.perm.RdWiki = g.perm.WrWiki = g.perm.NewWiki =
+                              g.perm.ApndWiki = g.perm.History = g.perm.Clone = 
+                              g.perm.NewTkt = g.perm.Password = g.perm.RdAddr =
+                              g.perm.TktFmt = g.perm.Attach = g.perm.ApndTkt = 1;
                               /* Fall thru into Read/Write */
-      case 'i':   g.okRead = g.okWrite = 1;                     break;
-      case 'o':   g.okRead = 1;                                 break;
-      case 'z':   g.okZip = 1;                                  break;
+      case 'i':   g.perm.Read = g.perm.Write = 1;                     break;
+      case 'o':   g.perm.Read = 1;                                 break;
+      case 'z':   g.perm.Zip = 1;                                  break;
 
-      case 'd':   g.okDelete = 1;                               break;
-      case 'h':   g.okHistory = 1;                              break;
-      case 'g':   g.okClone = 1;                                break;
-      case 'p':   g.okPassword = 1;                             break;
+      case 'd':   g.perm.Delete = 1;                               break;
+      case 'h':   g.perm.History = 1;                              break;
+      case 'g':   g.perm.Clone = 1;                                break;
+      case 'p':   g.perm.Password = 1;                             break;
 
-      case 'j':   g.okRdWiki = 1;                               break;
-      case 'k':   g.okWrWiki = g.okRdWiki = g.okApndWiki =1;    break;
-      case 'm':   g.okApndWiki = 1;                             break;
-      case 'f':   g.okNewWiki = 1;                              break;
+      case 'j':   g.perm.RdWiki = 1;                               break;
+      case 'k':   g.perm.WrWiki = g.perm.RdWiki = g.perm.ApndWiki =1;    break;
+      case 'm':   g.perm.ApndWiki = 1;                             break;
+      case 'f':   g.perm.NewWiki = 1;                              break;
 
-      case 'e':   g.okRdAddr = 1;                               break;
-      case 'r':   g.okRdTkt = 1;                                break;
-      case 'n':   g.okNewTkt = 1;                               break;
-      case 'w':   g.okWrTkt = g.okRdTkt = g.okNewTkt = 
-                  g.okApndTkt = 1;                              break;
-      case 'c':   g.okApndTkt = 1;                              break;
-      case 't':   g.okTktFmt = 1;                               break;
-      case 'b':   g.okAttach = 1;                               break;
-      case 'x':   g.okPrivate = 1;                              break;
+      case 'e':   g.perm.RdAddr = 1;                               break;
+      case 'r':   g.perm.RdTkt = 1;                                break;
+      case 'n':   g.perm.NewTkt = 1;                               break;
+      case 'w':   g.perm.WrTkt = g.perm.RdTkt = g.perm.NewTkt = 
+                  g.perm.ApndTkt = 1;                              break;
+      case 'c':   g.perm.ApndTkt = 1;                              break;
+      case 't':   g.perm.TktFmt = 1;                               break;
+      case 'b':   g.perm.Attach = 1;                               break;
+      case 'x':   g.perm.Private = 1;                              break;
 
       /* The "u" privileges is a little different.  It recursively 
       ** inherits all privileges of the user named "reader" */
@@ -794,32 +832,32 @@ int login_has_capability(const char *zCap, int nCap){
   if( nCap<0 ) nCap = strlen(zCap);
   for(i=0; i<nCap && rc && zCap[i]; i++){
     switch( zCap[i] ){
-      case 'a':  rc = g.okAdmin;     break;
-      case 'b':  rc = g.okAttach;    break;
-      case 'c':  rc = g.okApndTkt;   break;
-      case 'd':  rc = g.okDelete;    break;
-      case 'e':  rc = g.okRdAddr;    break;
-      case 'f':  rc = g.okNewWiki;   break;
-      case 'g':  rc = g.okClone;     break;
-      case 'h':  rc = g.okHistory;   break;
-      case 'i':  rc = g.okWrite;     break;
-      case 'j':  rc = g.okRdWiki;    break;
-      case 'k':  rc = g.okWrWiki;    break;
+      case 'a':  rc = g.perm.Admin;     break;
+      case 'b':  rc = g.perm.Attach;    break;
+      case 'c':  rc = g.perm.ApndTkt;   break;
+      case 'd':  rc = g.perm.Delete;    break;
+      case 'e':  rc = g.perm.RdAddr;    break;
+      case 'f':  rc = g.perm.NewWiki;   break;
+      case 'g':  rc = g.perm.Clone;     break;
+      case 'h':  rc = g.perm.History;   break;
+      case 'i':  rc = g.perm.Write;     break;
+      case 'j':  rc = g.perm.RdWiki;    break;
+      case 'k':  rc = g.perm.WrWiki;    break;
       /* case 'l': */
-      case 'm':  rc = g.okApndWiki;  break;
-      case 'n':  rc = g.okNewTkt;    break;
-      case 'o':  rc = g.okRead;      break;
-      case 'p':  rc = g.okPassword;  break;
+      case 'm':  rc = g.perm.ApndWiki;  break;
+      case 'n':  rc = g.perm.NewTkt;    break;
+      case 'o':  rc = g.perm.Read;      break;
+      case 'p':  rc = g.perm.Password;  break;
       /* case 'q': */
-      case 'r':  rc = g.okRdTkt;     break;
-      case 's':  rc = g.okSetup;     break;
-      case 't':  rc = g.okTktFmt;    break;
+      case 'r':  rc = g.perm.RdTkt;     break;
+      case 's':  rc = g.perm.Setup;     break;
+      case 't':  rc = g.perm.TktFmt;    break;
       /* case 'u': READER    */
       /* case 'v': DEVELOPER */
-      case 'w':  rc = g.okWrTkt;     break;
-      case 'x':  rc = g.okPrivate;   break;
+      case 'w':  rc = g.perm.WrTkt;     break;
+      case 'x':  rc = g.perm.Private;   break;
       /* case 'y': */
-      case 'z':  rc = g.okZip;       break;
+      case 'z':  rc = g.perm.Zip;       break;
       default:   rc = 0;             break;
     }
   }
@@ -833,28 +871,7 @@ void login_as_user(const char *zUser){
   char *zCap = "";   /* New capabilities */
 
   /* Turn off all capabilities from prior logins */
-  g.okSetup = 0;
-  g.okAdmin = 0;
-  g.okDelete = 0;
-  g.okPassword = 0;
-  g.okQuery = 0;
-  g.okWrite = 0;
-  g.okRead = 0;
-  g.okHistory = 0;
-  g.okClone = 0;
-  g.okRdWiki = 0;
-  g.okNewWiki = 0;
-  g.okApndWiki = 0;
-  g.okWrWiki = 0;
-  g.okRdTkt = 0;
-  g.okNewTkt = 0;
-  g.okApndTkt = 0;
-  g.okWrTkt = 0;
-  g.okAttach = 0;
-  g.okTktFmt = 0;
-  g.okRdAddr = 0;
-  g.okZip = 0;
-  g.okPrivate = 0;
+  memset( &g.perm, 0, sizeof(g.perm) );
 
   /* Set the global variables recording the userid and login.  The
   ** "nobody" user is a special case in that g.zLogin==0.
@@ -894,7 +911,7 @@ void login_needed(void){
 ** logging in as anonymous.
 */
 void login_anonymous_available(void){
-  if( !g.okHistory &&
+  if( !g.perm.History &&
       db_exists("SELECT 1 FROM user"
                 " WHERE login='anonymous'"
                 "   AND cap LIKE '%%h%%'") ){

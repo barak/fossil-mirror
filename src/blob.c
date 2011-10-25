@@ -317,6 +317,32 @@ int blob_compare(Blob *pA, Blob *pB){
 }
 
 /*
+** Compare two blobs in constant time and return zero if they are equal.
+** Constant time comparison only applies for blobs of the same length.
+** If lengths are different, immediately returns 1.
+*/
+int blob_constant_time_cmp(Blob *pA, Blob *pB){
+  int szA, szB, i;
+  unsigned char *buf1, *buf2;
+  unsigned char rc = 0;
+
+  blob_is_init(pA);
+  blob_is_init(pB);
+  szA = blob_size(pA);
+  szB = blob_size(pB);
+  if( szA!=szB || szA==0 ) return 1;
+
+  buf1 = (unsigned char*)blob_buffer(pA);
+  buf2 = (unsigned char*)blob_buffer(pB);
+
+  for( i=0; i<szA; i++ ){
+    rc = rc | (buf1[i] ^ buf2[i]);
+  }
+
+  return rc;
+}
+
+/*
 ** Compare a blob to a string.  Return TRUE if they are equal.
 */
 int blob_eq_str(Blob *pBlob, const char *z, int n){
@@ -683,7 +709,7 @@ int blob_read_from_file(Blob *pBlob, const char *zFilename){
         || (zFilename[0]=='-' && zFilename[1]==0) ){
     return blob_read_from_channel(pBlob, stdin, -1);
   }
-  size = file_size(zFilename);
+  size = file_wd_size(zFilename);
   blob_zero(pBlob);
   if( size<0 ){
     fossil_fatal("no such file: %s", zFilename);
@@ -703,6 +729,32 @@ int blob_read_from_file(Blob *pBlob, const char *zFilename){
   }
   return got;
 }
+
+/*
+** Reads symlink destination path and puts int into blob.
+** Any prior content of the blob is discarded, not freed.
+**
+** Returns length of destination path.
+**
+** On windows, zeros blob and returns 0.
+*/
+int blob_read_link(Blob *pBlob, const char *zFilename){
+#if !defined(_WIN32)
+  char zBuf[1024];
+  ssize_t len = readlink(zFilename, zBuf, 1023);
+  if( len < 0 ){
+    fossil_panic("cannot read symbolic link %s", zFilename);
+  }
+  zBuf[len] = 0;   /* null-terminate */
+  blob_zero(pBlob);
+  blob_appendf(pBlob, "%s", zBuf);
+  return len;
+#else
+  blob_zero(pBlob);
+  return 0;
+#endif
+}
+
 
 /*
 ** Write the content of a blob into a file.

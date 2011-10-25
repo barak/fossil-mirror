@@ -49,7 +49,7 @@ static void shorten_uuid(char *zDest, const char *zSrc){
 void hyperlink_to_uuid(const char *zUuid){
   char z[UUID_SIZE+1];
   shorten_uuid(z, zUuid);
-  if( g.okHistory ){
+  if( g.perm.History ){
     @ <a class="timelineHistLink" href="%s(g.zTop)/info/%s(z)">[%s(z)]</a>
   }else{
     @ <span class="timelineHistDsp">[%s(z)]</span>
@@ -60,7 +60,7 @@ void hyperlink_to_uuid(const char *zUuid){
 ** Generate a hyperlink to a diff between two versions.
 */
 void hyperlink_to_diff(const char *zV1, const char *zV2){
-  if( g.okHistory ){
+  if( g.perm.History ){
     if( zV2==0 ){
       @ <a href="%s(g.zTop)/diff?v2=%s(zV1)">[diff]</a>
     }else{
@@ -74,7 +74,7 @@ void hyperlink_to_diff(const char *zV1, const char *zV2){
 */
 void hyperlink_to_date(const char *zDate, const char *zSuffix){
   if( zSuffix==0 ) zSuffix = "";
-  if( g.okHistory ){
+  if( g.perm.History ){
     @ <a href="%s(g.zTop)/timeline?c=%T(zDate)">%s(zDate)</a>%s(zSuffix)
   }else{
     @ %s(zDate)%s(zSuffix)
@@ -88,7 +88,7 @@ void hyperlink_to_date(const char *zDate, const char *zSuffix){
 */
 void hyperlink_to_user(const char *zU, const char *zD, const char *zSuf){
   if( zSuf==0 ) zSuf = "";
-  if( g.okHistory ){
+  if( g.perm.History ){
     if( zD && zD[0] ){
       @ <a href="%s(g.zTop)/timeline?c=%T(zD)&amp;u=%T(zU)">%h(zU)</a>%s(zSuf)
     }else{
@@ -181,7 +181,7 @@ void test_hash_color(void){
 **    4.  User
 **    5.  True if is a leaf
 **    6.  background color
-**    7.  type ("ci", "w", "t", "e", "div")
+**    7.  type ("ci", "w", "t", "e", "g", "div")
 **    8.  list of symbolic tags.
 **    9.  tagid for ticket or wiki or event
 **   10.  Short comment to user for repeated tickets and wiki
@@ -319,6 +319,9 @@ void www_print_timeline(
     }else{
       @ <td class="timelineTableCell">
     }
+    if( pGraph && zType[0]!='c' ){
+      @ &bull;
+    }
     if( zType[0]=='c' ){
       hyperlink_to_uuid(zUuid);
       if( isLeaf ){
@@ -352,7 +355,7 @@ void www_print_timeline(
     ** with a hyperlink to another timeline for that user.
     */
     if( zTagList && zTagList[0]==0 ) zTagList = 0;
-    if( g.okHistory && fossil_strcmp(zUser, zThisUser)!=0 ){
+    if( g.perm.History && fossil_strcmp(zUser, zThisUser)!=0 ){
       char *zLink = mprintf("%s/timeline?u=%h&c=%t&nd",
                             g.zTop, zUser, zDate);
       @ (user: <a href="%s(zLink)">%h(zUser)</a>%s(zTagList?",":"\051")
@@ -365,7 +368,7 @@ void www_print_timeline(
     ** with hyperlinks to the tag list.
     */
     if( zTagList ){
-      if( g.okHistory ){
+      if( g.perm.History ){
         int i;
         const char *z = zTagList;
         Blob links;
@@ -396,7 +399,7 @@ void www_print_timeline(
     }
 
     /* Generate the file-change list if requested */
-    if( (tmFlags & TIMELINE_FCHANGES)!=0 && zType[0]=='c' && g.okHistory ){
+    if( (tmFlags & TIMELINE_FCHANGES)!=0 && zType[0]=='c' && g.perm.History ){
       int inUl = 0;
       if( !fchngQueryInit ){
         db_prepare(&fchngQuery, 
@@ -404,9 +407,10 @@ void www_print_timeline(
           "       (fid==0) AS isdel,"
           "       (SELECT name FROM filename WHERE fnid=mlink.fnid) AS name,"
           "       (SELECT uuid FROM blob WHERE rid=fid),"
-          "       (SELECT uuid FROM blob WHERE rid=pid)"
+          "       (SELECT uuid FROM blob WHERE rid=pid),"
+          "       (SELECT name FROM filename WHERE fnid=mlink.pfnid) AS oldnm"
           "  FROM mlink"
-          " WHERE mid=:mid AND pid!=fid"
+          " WHERE mid=:mid AND (pid!=fid OR pfnid>0)"
           " ORDER BY 3 /*sort*/"
         );
         fchngQueryInit = 1;
@@ -416,6 +420,7 @@ void www_print_timeline(
         const char *zFilename = db_column_text(&fchngQuery, 2);
         int isNew = db_column_int(&fchngQuery, 0);
         int isDel = db_column_int(&fchngQuery, 1);
+        const char *zOldName = db_column_text(&fchngQuery, 5);
         const char *zOld = db_column_text(&fchngQuery, 4);
         const char *zNew = db_column_text(&fchngQuery, 3);
         if( !inUl ){
@@ -424,12 +429,20 @@ void www_print_timeline(
         }
         if( isNew ){
           @ <li> %h(zFilename) (new file) &nbsp;
-          @ <a href="%s(g.zTop)/artifact/%S(zNew)" target="diffwindow">[view]
-          @ </a></li>
+          @ <a href="%s(g.zTop)/artifact/%S(zNew)"
+          @ target="diffwindow">[view]</a></li>
         }else if( isDel ){
           @ <li> %h(zFilename) (deleted)</li>
+        }else if( fossil_strcmp(zOld,zNew)==0 && zOldName!=0 ){
+          @ <li> %h(zOldName) &rarr; %h(zFilename)
+          @ <a href="%s(g.zTop)/artifact/%S(zNew)"
+          @ target="diffwindow">[view]</a></li>
         }else{
-          @ <li> %h(zFilename) &nbsp;
+          if( zOldName!=0 ){
+            @ <li> %h(zOldName) &rarr; %h(zFilename)
+          }else{
+            @ <li> %h(zFilename) &nbsp;
+          }
           @ <a href="%s(g.zTop)/fdiff?v1=%S(zOld)&v2=%S(zNew)"
           @ target="diffwindow">[diff]</a></li>
         }
@@ -832,8 +845,9 @@ static void timeline_add_dividers(const char *zDate, int rid){
 **    b=TIMESTAMP    before this date.
 **    c=TIMESTAMP    "circa" this date.
 **    n=COUNT        number of events in output
-**    p=RID          artifact RID and up to COUNT parents and ancestors
-**    d=RID          artifact RID and up to COUNT descendants
+**    p=UUID         artifact and up to COUNT parents and ancestors
+**    d=UUID         artifact and up to COUNT descendants
+**    dp=UUUID       The same as d=UUID&p=UUID
 **    t=TAGID        show only check-ins with the given tagid
 **    r=TAGID        show check-ins related to tagid
 **    u=USER         only if belonging to this user
@@ -842,9 +856,9 @@ static void timeline_add_dividers(const char *zDate, int rid){
 **    ng             Suppress the graph if present
 **    nd             Suppress "divider" lines
 **    fc             Show details of files changed
-**    f=RID          Show family (immediate parents and children) of RID
-**    from=RID       Path from...
-**    to=RID           ... to this
+**    f=UUID         Show family (immediate parents and children) of UUID
+**    from=UUID      Path from...
+**    to=UUID          ... to this
 **    nomerge          ... avoid merge links on the path
 **    brbg           Background color from branch name
 **    ubg            Background color from user
@@ -884,15 +898,23 @@ void page_timeline(void){
   int noMerge = P("nomerge")!=0;          /* Do not follow merge links */
   int me_rid = name_to_typed_rid(P("me"),"ci");  /* me= for common ancestory */
   int you_rid = name_to_typed_rid(P("you"),"ci");/* you= for common ancst */
+  int pd_rid;
 
   /* To view the timeline, must have permission to read project data.
   */
+  pd_rid = name_to_typed_rid(P("dp"),"ci");
+  if( pd_rid ){
+    p_rid = d_rid = pd_rid;
+  }
   login_check_credentials();
-  if( !g.okRead && !g.okRdTkt && !g.okRdWiki ){ login_needed(); return; }
-  if( zTagName && g.okRead ){
+  if( !g.perm.Read && !g.perm.RdTkt && !g.perm.RdWiki ){
+    login_needed();
+    return;
+  }
+  if( zTagName && g.perm.Read ){
     tagid = db_int(0, "SELECT tagid FROM tag WHERE tagname='sym-%q'", zTagName);
     zThisTag = zTagName;
-  }else if( zBrName && g.okRead ){
+  }else if( zBrName && g.perm.Read ){
     tagid = db_int(0, "SELECT tagid FROM tag WHERE tagname='sym-%q'",zBrName);
     zThisTag = zBrName;
   }else{
@@ -922,7 +944,7 @@ void page_timeline(void){
     url_add_parameter(&url, "fc", 0);
   }
   if( !useDividers ) url_add_parameter(&url, "nd", 0);
-  if( ((from_rid && to_rid) || (me_rid && you_rid)) && g.okRead ){
+  if( ((from_rid && to_rid) || (me_rid && you_rid)) && g.perm.Read ){
     /* If from= and to= are present, display all nodes on a path connecting
     ** the two */
     PathNode *p = 0;
@@ -930,7 +952,7 @@ void page_timeline(void){
     const char *zTo = 0;
 
     if( from_rid && to_rid ){
-      p = path_shortest(from_rid, to_rid, noMerge);
+      p = path_shortest(from_rid, to_rid, noMerge, 0);
       zFrom = P("from");
       zTo = P("to");
     }else{
@@ -948,20 +970,20 @@ void page_timeline(void){
     blob_append(&sql, ")", -1);
     path_reset();
     blob_append(&desc, "All nodes on the path from ", -1);
-    if( g.okHistory ){
+    if( g.perm.History ){
       blob_appendf(&desc, "<a href='%s/info/%h'>[%h]</a>",  g.zTop,zFrom,zFrom);
     }else{
       blob_appendf(&desc, "[%h]", zFrom);
     }
     blob_append(&desc, " and ", -1);
-    if( g.okHistory ){
+    if( g.perm.History ){
       blob_appendf(&desc, "<a href='%s/info/%h'>[%h]</a>.",  g.zTop, zTo, zTo);
     }else{
       blob_appendf(&desc, "[%h].", zTo);
     }
     tmFlags |= TIMELINE_DISJOINT;
     db_multi_exec("%s", blob_str(&sql));
-  }else if( (p_rid || d_rid) && g.okRead ){
+  }else if( (p_rid || d_rid) && g.perm.Read ){
     /* If p= or d= is present, ignore all other parameters other than n= */
     char *zUuid;
     int np, nd;
@@ -980,10 +1002,8 @@ void page_timeline(void){
     if( d_rid ){
       compute_descendants(d_rid, nEntry+1);
       nd = db_int(0, "SELECT count(*)-1 FROM ok");
-      if( nd>=0 ){
-        db_multi_exec("%s", blob_str(&sql));
-        blob_appendf(&desc, "%d descendant%s", nd,(1==nd)?"":"s");
-      }
+      if( nd>=0 ) db_multi_exec("%s", blob_str(&sql));
+      if( nd>0 ) blob_appendf(&desc, "%d descendant%s", nd,(1==nd)?"":"s");
       if( useDividers ) timeline_add_dividers(0, d_rid);
       db_multi_exec("DELETE FROM ok");
     }
@@ -997,13 +1017,13 @@ void page_timeline(void){
       }
       if( d_rid==0 && useDividers ) timeline_add_dividers(0, p_rid);
     }
-    if( g.okHistory ){
+    if( g.perm.History ){
       blob_appendf(&desc, " of <a href='%s/info/%s'>[%.10s]</a>",
                    g.zTop, zUuid, zUuid);
     }else{
       blob_appendf(&desc, " of check-in [%.10s]", zUuid);
     }
-  }else if( f_rid && g.okRead ){
+  }else if( f_rid && g.perm.Read ){
     /* If f= is present, ignore all other parameters other than n= */
     char *zUuid;
     db_multi_exec(
@@ -1018,7 +1038,7 @@ void page_timeline(void){
     if( useDividers ) timeline_add_dividers(0, f_rid);
     blob_appendf(&desc, "Parents and children of check-in ");
     zUuid = db_text("", "SELECT uuid FROM blob WHERE rid=%d", f_rid);
-    if( g.okHistory ){
+    if( g.perm.History ){
       blob_appendf(&desc, "<a href='%s/info/%s'>[%.10s]</a>",
                    g.zTop, zUuid, zUuid);
     }else{
@@ -1063,26 +1083,27 @@ void page_timeline(void){
       }
       blob_appendf(&sql, ")");
     }
-    if( (zType[0]=='w' && !g.okRdWiki)
-     || (zType[0]=='t' && !g.okRdTkt)
-     || (zType[0]=='e' && !g.okRdWiki)
-     || (zType[0]=='c' && !g.okRead)
+    if( (zType[0]=='w' && !g.perm.RdWiki)
+     || (zType[0]=='t' && !g.perm.RdTkt)
+     || (zType[0]=='e' && !g.perm.RdWiki)
+     || (zType[0]=='c' && !g.perm.Read)
+     || (zType[0]=='g' && !g.perm.Read)
     ){
       zType = "all";
     }
     if( zType[0]=='a' ){
-      if( !g.okRead || !g.okRdWiki || !g.okRdTkt ){
+      if( !g.perm.Read || !g.perm.RdWiki || !g.perm.RdTkt ){
         char cSep = '(';
         blob_appendf(&sql, " AND event.type IN ");
-        if( g.okRead ){
-          blob_appendf(&sql, "%c'ci'", cSep);
+        if( g.perm.Read ){
+          blob_appendf(&sql, "%c'ci','g'", cSep);
           cSep = ',';
         }
-        if( g.okRdWiki ){
+        if( g.perm.RdWiki ){
           blob_appendf(&sql, "%c'w','e'", cSep);
           cSep = ',';
         }
-        if( g.okRdTkt ){
+        if( g.perm.RdTkt ){
           blob_appendf(&sql, "%c't'", cSep);
           cSep = ',';
         }
@@ -1099,6 +1120,8 @@ void page_timeline(void){
         zEType = "ticket change";
       }else if( zType[0]=='e' ){
         zEType = "event";
+      }else if( zType[0]=='g' ){
+        zEType = "tag";
       }
     }
     if( zUser ){
@@ -1192,7 +1215,7 @@ void page_timeline(void){
     if( zSearch ){
       blob_appendf(&desc, " matching \"%h\"", zSearch);
     }
-    if( g.okHistory ){
+    if( g.perm.History ){
       if( zAfter || n==nEntry ){
         zDate = db_text(0, "SELECT min(timestamp) FROM timeline /*scan*/");
         timeline_submenu(&url, "Older", "b", zDate, "a");
@@ -1206,17 +1229,20 @@ void page_timeline(void){
         if( zType[0]!='a' ){
           timeline_submenu(&url, "All Types", "y", "all", 0);
         }
-        if( zType[0]!='w' && g.okRdWiki ){
+        if( zType[0]!='w' && g.perm.RdWiki ){
           timeline_submenu(&url, "Wiki Only", "y", "w", 0);
         }
-        if( zType[0]!='c' && g.okRead ){
+        if( zType[0]!='c' && g.perm.Read ){
           timeline_submenu(&url, "Checkins Only", "y", "ci", 0);
         }
-        if( zType[0]!='t' && g.okRdTkt ){
+        if( zType[0]!='t' && g.perm.RdTkt ){
           timeline_submenu(&url, "Tickets Only", "y", "t", 0);
         }
-        if( zType[0]!='e' && g.okRdWiki ){
+        if( zType[0]!='e' && g.perm.RdWiki ){
           timeline_submenu(&url, "Events Only", "y", "e", 0);
+        }
+        if( zType[0]!='g' && g.perm.Read ){
+          timeline_submenu(&url, "Tags Only", "y", "g", 0);
         }
       }
       if( nEntry>20 ){
@@ -1594,7 +1620,7 @@ void test_timewarp_page(void){
   Stmt q;
 
   login_check_credentials();
-  if( !g.okRead || !g.okHistory ){ login_needed(); return; }
+  if( !g.perm.Read || !g.perm.History ){ login_needed(); return; }
   style_header("Instances of timewarp");
   @ <ul>
   db_prepare(&q,

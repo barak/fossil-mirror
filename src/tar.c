@@ -46,7 +46,7 @@ static struct tarball_t {
 **
 ** Initialize the GZIP compressor and the table of directory names.
 */
-static void tar_begin(void){
+static void tar_begin(sqlite3_int64 mTime){
   assert( tball.aHdr==0 );
   tball.aHdr = fossil_malloc(512+512);
   memset(tball.aHdr, 0, 512+512);
@@ -62,7 +62,7 @@ static void tar_begin(void){
   memcpy(&tball.aHdr[257], "ustar\00000", 8);  /* POSIX.1 format */
   memcpy(&tball.aHdr[265], "nobody", 7);   /* Owner name */
   memcpy(&tball.aHdr[297], "nobody", 7);   /* Group name */
-  gzip_begin();
+  gzip_begin(mTime);
   db_multi_exec(
     "CREATE TEMP TABLE dir(name UNIQUE);"
   );
@@ -282,7 +282,8 @@ static void tar_add_header(
   int iMode,             /* Mode.  0644 or 0755 */
   unsigned int mTime,    /* File modification time */
   int iSize,             /* Size of the object in bytes */
-  char cType             /* Type of object.  '0'==file.  '5'==directory */
+  char cType             /* Type of object:  
+                            '0'==file. '2'==symlink. '5'==directory */
 ){
   /* set mode and modification time */
   sqlite3_snprintf(8, (char*)&tball.aHdr[100], "%07o", iMode);
@@ -361,16 +362,32 @@ static void tar_add_directory_of(
 static void tar_add_file(
   const char *zName,               /* Name of the file.  nul-terminated */
   Blob *pContent,                  /* Content of the file */
-  int isExe,                       /* True for executable files */
+  int mPerm,                       /* 1: executable file, 2: symlink */
   unsigned int mTime               /* Last modification time of the file */
 ){
   int nName = strlen(zName);
   int n = blob_size(pContent);
   int lastPage;
+  char cType = '0';
 
   /* length check moved to tar_split_path */
   tar_add_directory_of(zName, nName, mTime);
-  tar_add_header(zName, nName, isExe ? 0755 : 0644, mTime, n, '0');
+
+  /* 
+   * If we have a symlink, write its destination path (which is stored in
+   * pContent) into header, and set content length to 0 to avoid storing path
+   * as file content in the next step.  Since 'linkname' header is limited to
+   * 100 bytes (-1 byte for terminating zero), if path is greater than that,
+   * store symlink as a plain-text file. (Not sure how TAR handles long links.)
+   */
+  if( mPerm == PERM_LNK && n <= 100 ){
+    sqlite3_snprintf(100, (char*)&tball.aHdr[157], "%s", blob_str(pContent));
+    cType = '2';
+    n = 0;
+  }
+
+  tar_add_header(zName, nName, ( mPerm==PERM_EXE ) ? 0755 : 0644, 
+                 mTime, n, cType);
   if( n ){
     gzip_step(blob_buffer(pContent), n);
     lastPage = n % 512;
@@ -401,7 +418,7 @@ static void tar_finish(Blob *pOut){
 /*
 ** COMMAND: test-tarball
 **
-** Generate a GZIP-compresssed tarball in the file given by the first argument
+** Generate a GZIP-compressed tarball in the file given by the first argument
 ** that contains files given in the second and subsequent arguments.
 */
 void test_tarball_cmd(void){
@@ -412,12 +429,12 @@ void test_tarball_cmd(void){
     usage("ARCHIVE FILE....");
   }
   sqlite3_open(":memory:", &g.db);
-  tar_begin();
+  tar_begin(0);
   for(i=3; i<g.argc; i++){
     blob_zero(&file);
     blob_read_from_file(&file, g.argv[i]);
     tar_add_file(g.argv[i], &file,
-                 file_isexe(g.argv[i]), file_mtime(g.argv[i]));
+                 file_wd_perm(g.argv[i]), file_wd_mtime(g.argv[i]));
     blob_reset(&file);
   }
   tar_finish(&zip);
@@ -458,7 +475,6 @@ void tarball_of_checkin(int rid, Blob *pTar, const char *zDir){
   }
   blob_zero(&hash);
   blob_zero(&filename);
-  tar_begin();
 
   if( zDir && zDir[0] ){
     blob_appendf(&filename, "%s/", zDir);
@@ -468,6 +484,7 @@ void tarball_of_checkin(int rid, Blob *pTar, const char *zDir){
   pManifest = manifest_get(rid, CFTYPE_MANIFEST);
   if( pManifest ){
     mTime = (pManifest->rDate - 2440587.5)*86400.0;
+    tar_begin(mTime);
     if( db_get_boolean("manifest", 0) ){
       blob_append(&filename, "manifest", -1);
       zName = blob_str(&filename);
@@ -498,6 +515,7 @@ void tarball_of_checkin(int rid, Blob *pTar, const char *zDir){
     blob_append(&filename, blob_str(&hash), 16);
     zName = blob_str(&filename);
     mTime = db_int64(0, "SELECT (julianday('now') -  2440587.5)*86400.0;");
+    tar_begin(mTime);
     tar_add_file(zName, &mfile, 0, mTime);
   }
   manifest_destroy(pManifest);
@@ -557,7 +575,7 @@ void tarball_page(void){
   Blob tarball;
 
   login_check_credentials();
-  if( !g.okZip ){ login_needed(); return; }
+  if( !g.perm.Zip ){ login_needed(); return; }
   zName = mprintf("%s", PD("name",""));
   nName = strlen(zName);
   zRid = mprintf("%s", PD("uuid",""));
