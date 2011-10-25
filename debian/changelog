@@ -1,3 +1,9 @@
+fossil (1:1.20-1) unstable; urgency=low
+
+  * New upstream version (aka 2011.10.21.125253)
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Tue, 25 Oct 2011 12:51:50 +0100
+
 fossil (1:1.19-1) unstable; urgency=low
 
   * Silence lintian debian-patch warning
