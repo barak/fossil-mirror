@@ -1,3 +1,11 @@
+fossil (1:1.20-2) unstable; urgency=low
+
+  * Add build dependency on sqlite3 for /usr/bin/sqlite3, which is used
+    during the build process only when building outside a live fossil
+    repository.
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Tue, 25 Oct 2011 15:15:49 +0100
+
 fossil (1:1.20-1) unstable; urgency=low
 
   * New upstream version (aka 2011.10.21.125253)
