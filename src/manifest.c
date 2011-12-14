@@ -1227,6 +1227,34 @@ ManifestFile *manifest_file_seek(Manifest *p, const char *zName){
 }
 
 /*
+** Look for a file in a manifest, taking the case-sensitive option
+** into account.  If case-sensitive is off, then files in any case
+** will match.
+*/
+ManifestFile *manifest_file_find(Manifest *p, const char *zName){
+  int i, n;
+  Manifest *pBase;
+  if( filenames_are_case_sensitive() ){
+    return manifest_file_seek(p, zName);
+  }
+  for(i=0; i<p->nFile; i++){
+    if( fossil_stricmp(zName, p->aFile[i].zName)==0 ){
+      return &p->aFile[i];
+    }
+  }
+  if( p->zBaseline==0 ) return 0;
+  fetch_baseline(p, 1);
+  pBase = p->pBaseline;
+  if( pBase==0 ) return 0;
+  for(i=0; i<pBase->nFile; i++){
+    if( fossil_stricmp(zName, p->aFile[i].zName)==0 ){
+      return &p->aFile[i];
+    }
+  }
+  return 0;
+}
+
+/*
 ** Add mlink table entries associated with manifest cid, pChild.  The
 ** parent manifest is pid, pParent.  One of either pChild or pParent
 ** will be NULL and it will be computed based on cid/pid.
@@ -1336,14 +1364,29 @@ static void add_mlink(int pid, Manifest *pParent, int cid, Manifest *pChild){
   }
   if( pParent->zBaseline && pChild->zBaseline ){
     /* Both parent and child are delta manifests.  Look for files that
-    ** are marked as deleted in the parent but which reappear in the child
-    ** and show such files as being added in the child. */
+    ** are deleted or modified in the parent but which reappear or revert
+    ** to baseline in the child and show such files as being added or changed
+    ** in the child. */
     for(i=0, pParentFile=pParent->aFile; i<pParent->nFile; i++, pParentFile++){
-      if( pParentFile->zUuid ) continue;
-      pChildFile = manifest_file_seek(pChild, pParentFile->zName);
-      if( pChildFile ){
-        add_one_mlink(cid, 0, pChildFile->zUuid, pChildFile->zName, 0,
-                      isPublic, manifest_file_mperm(pChildFile));
+      if( pParentFile->zUuid ){
+        pChildFile = manifest_file_seek_base(pChild, pParentFile->zName);
+        if( pChildFile==0 ){
+          /* The child file reverts to baseline.  Show this as a change */
+          pChildFile = manifest_file_seek(pChild, pParentFile->zName);
+          if( pChildFile ){
+            add_one_mlink(cid, pParentFile->zUuid, pChildFile->zUuid,
+                          pChildFile->zName, 0, isPublic,
+                          manifest_file_mperm(pChildFile));
+          }
+        }
+      }else{
+        pChildFile = manifest_file_seek(pChild, pParentFile->zName);
+        if( pChildFile ){
+          /* File resurrected in the child after having been deleted in
+          ** the parent.  Show this as an added file. */
+          add_one_mlink(cid, 0, pChildFile->zUuid, pChildFile->zName, 0,
+                        isPublic, manifest_file_mperm(pChildFile));
+        }
       }
     }
   }else if( pChild->zBaseline==0 ){

@@ -262,7 +262,7 @@ void add_cmd(void){
 
 /*
 ** COMMAND: rm
-** COMMAND: delete
+** COMMAND: delete*
 **
 ** Usage: %fossil rm FILE1 ?FILE2 ...?
 **    or: %fossil delete FILE1 ?FILE2 ...?
@@ -339,19 +339,34 @@ void capture_case_sensitive_option(void){
 ** setting.
 */
 int filenames_are_case_sensitive(void){
-  int caseSensitive;
+  static int caseSensitive;
+  static int once = 1;
 
-  if( zCaseSensitive ){
-    caseSensitive = is_truth(zCaseSensitive);
-  }else{
+  if( once ){
+    once = 0;
+    if( zCaseSensitive ){
+      caseSensitive = is_truth(zCaseSensitive);
+    }else{
 #if !defined(_WIN32) && !defined(__DARWIN__) && !defined(__APPLE__)
-    caseSensitive = 1;
+      caseSensitive = 1;  /* Unix */
 #else
-    caseSensitive = 0;
+      caseSensitive = 0;  /* Windows and Mac */
 #endif
-    caseSensitive = db_get_boolean("case-sensitive",caseSensitive);
+      caseSensitive = db_get_boolean("case-sensitive",caseSensitive);
+    }
   }
   return caseSensitive;
+}
+
+/*
+** Return one of two things:
+**
+**   ""                 (empty string) if filenames are case sensitive
+**
+**   "COLLATE nocase"   if filenames are not case sensitive.
+*/
+const char *filename_collation(void){
+  return filenames_are_case_sensitive() ? "" : "COLLATE nocase";
 }
 
 /*
@@ -475,7 +490,7 @@ static void mv_one_file(int vid, const char *zOrig, const char *zNew){
 
 /*
 ** COMMAND: mv
-** COMMAND: rename
+** COMMAND: rename*
 **
 ** Usage: %fossil mv|rename OLDNAME NEWNAME
 **    or: %fossil mv|rename OLDNAME... DIR
