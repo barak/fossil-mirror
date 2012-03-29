@@ -412,6 +412,10 @@ static struct QParam {   /* One entry for each query parameter or cookie */
 void cgi_set_parameter_nocopy(const char *zName, const char *zValue){
   if( nAllocQP<=nUsedQP ){
     nAllocQP = nAllocQP*2 + 10;
+    if( nAllocQP>1000 ){
+      /* Prevent a DOS service attack against the framework */
+      fossil_fatal("Too many query parameters");
+    }
     aParamQP = fossil_realloc( aParamQP, nAllocQP*sizeof(aParamQP[0]) );
   }
   aParamQP[nUsedQP].zName = zName;
@@ -912,7 +916,7 @@ const char *cgi_parameter(const char *zName, const char *zDefault){
   ** with the given name.
   */
   if( fossil_isupper(zName[0]) ){
-    const char *zValue = getenv(zName);
+    const char *zValue = fossil_getenv(zName);
     if( zValue ){
       cgi_set_parameter_nocopy(zName, zValue);
       CGIDEBUG(("env-match [%s] = [%s]\n", zName, zValue));

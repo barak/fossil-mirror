@@ -246,6 +246,16 @@ void ticket_init(void){
 }
 
 /*
+** Create the subscript interpreter and load the "change" code.
+*/
+int ticket_change(void){
+  const char *zConfig;
+  Th_FossilInit();
+  zConfig = ticket_change_code();
+  return Th_Eval(g.interp, 0, zConfig, -1);
+}
+
+/*
 ** Recreate the ticket table.
 */
 void ticket_create_table(int separateConnection){
@@ -489,7 +499,7 @@ static int submitTicketCmd(
     assert( blob_is_reset(&tktchng) );
     manifest_crosslink_end();
   }
-  return TH_RETURN;
+  return ticket_change();
 }
 
 
@@ -522,6 +532,9 @@ void tktnew_page(void){
   initializeVariablesFromCGI();
   @ <form method="post" action="%s(g.zTop)/%s(g.zPath)"><p>
   login_insert_csrf_secret();
+  if( P("date_override") && g.perm.Setup ){
+    @ <input type="hidden" name="date_override" value="%h(P("date_override"))">
+  }
   @ </p>
   zScript = ticket_newpage_code();
   Th_Store("login", g.zLogin);

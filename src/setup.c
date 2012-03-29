@@ -75,6 +75,8 @@ void setup_page(void){
     " on the same server");
   setup_menu_entry("Tickets", "tktsetup",
     "Configure the trouble-ticketing system for this repository");
+  setup_menu_entry("Transfers", "xfersetup",
+    "Configure the transfer system for this repository");
   setup_menu_entry("Skins", "setup_skin",
     "Select from a menu of prepackaged \"skins\" for the web interface");
   setup_menu_entry("CSS", "setup_editcss",
@@ -138,7 +140,7 @@ void setup_ulist(void){
     }
     @ </td>
     @ <td class="usetupListCap" style="text-align: center;padding-right: 15px;">%s(zCap)</td>
-    @ <td  class="usetupListCon"  style="text-align: left;">%s(db_column_text(&s,3))</td>
+    @ <td  class="usetupListCon"  style="text-align: left;">%h(db_column_text(&s,3))</td>
     @ </tr>
   }
   @ </table>
@@ -868,10 +870,11 @@ void setup_access(void){
   @ </p>
   @
   @ <hr />
-  entry_attribute("IP address turns used in login cookie", 3, "ip-prefix-terms", "ipt",
-                  "2");
-  @ <p>The number of octets of of the IP address used in the login cookie.  Set to
-  @ zero to omit the IP address from the login cookie.  A value of 2 is recommended.
+  entry_attribute("IP address terms used in login cookie", 3, 
+                  "ip-prefix-terms", "ipt", "2");
+  @ <p>The number of octets of of the IP address used in the login cookie.
+  @ Set to zero to omit the IP address from the login cookie.  A value of
+  @ 2 is recommended.
   @ </p>
   @
   @ <hr />
