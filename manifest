@@ -1,5 +1,5 @@
-C update\sdebian/changelog
-D 2012-03-29T08:37:05.929
+C update\sdebian/README.Debian\swith\salternate\srepo\sinfo\sfilename
+D 2012-03-29T08:41:49.152
 F BUILD.txt 8ebfd7f92eff1922aaf28ebcce6639a39fcb5cdd
 F COPYRIGHT-BSD2.txt c7dd1de9f9539a5a859c2b41fe4560604a774476
 F Makefile.classic 610ce9eedc0d35e35692fb8b0fc2fdd8359a04fd x
@@ -53,7 +53,7 @@ F autosetup/local.tcl 148de330d2f7dee3e910c605ce2ba0021b554072
 F autosetup/system.tcl 180ac175844a263c5767cc0a4e1e574c5919c31c
 F autosetup/test-tclsh f197a4c7bfa8bde7672864fc36dcbc7f85bdda6c
 F configure 239cde01aca7fc63a2903f85bd2a6414189f1bd4 x
-F debian/README.Debian ee9471f5c88ceab3e44e934d5b8f32d58304d718
+F debian/README.Debian c4454849a34a6ec363880bb734c4caad9f0d8719
 F debian/changelog 5d8c1e659642727173c4dd67f8428c808e38941c
 F debian/compat 136571b41aa14adc10c5f3c987d43c02c8f5d498
 F debian/control 5ea81388bcb92f58bc495463af4460b212db144a
@@ -375,8 +375,8 @@ F www/tech_overview.wiki 729384def59791576850e08b00b506fdf7843334
 F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/webui.wiki d6f45339cf55d9e249afc46f062e1fd62519231f
 F www/wikitheory.wiki 4100c1164995d26295591cf8d4170a87ad8d1c43
-P 4fc834b5efc0a0887cdfec520ecc01e6ebd86f5e
-R 1a99b8ea76eab57d072770dd8c7332ec
+P 860679dfee6d97769155517362bb45de972e02dd
+R ea60a2ab93260902e0114fb7244bec5b
 U barak
-Z 1a904179a4dc2ec50514dea682a4f37c
+Z 004a531dac6bab04983cc8a43a6d736f
 # Remove this line to create a well-formed Fossil manifest.
