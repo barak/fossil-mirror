@@ -1,3 +1,12 @@
+fossil (1:1.22.1-1) unstable; urgency=low
+
+  * New upstream version
+    - listed as "patch" to 1.22 fixing minor bug in the diff logic
+    - therefore I call it 1.22.1
+    - alternate upstream designation 2012.03.17.175325
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Thu, 29 Mar 2012 09:34:00 +0100
+
 fossil (1:1.21-1) unstable; urgency=low
 
   * New upstream version
