@@ -22,6 +22,15 @@
 #include <assert.h>
 
 /*
+** Use the right null device for the platform.
+*/
+#if defined(_WIN32)
+#  define NULL_DEVICE "NUL"
+#else
+#  define NULL_DEVICE "/dev/null"
+#endif
+
+/*
 ** Print the "Index:" message that patches wants to see at the top of a diff.
 */
 void diff_print_index(const char *zFile, int diffFlags){
@@ -78,7 +87,7 @@ void diff_file(
     /* Read content of zFile2 into memory */
     blob_zero(&file2);
     if( file_wd_size(zFile2)<0 ){
-      zName2 = "/dev/null";
+      zName2 = NULL_DEVICE;
     }else{
       if( file_wd_islink(zFile2) ){
         blob_read_link(&file2, zFile2);
@@ -285,7 +294,7 @@ static void diff_all_against_disk(
     int showDiff = 1;
     if( isDeleted ){
       fossil_print("DELETED  %s\n", zPathname);
-      if( !asNewFile ){ showDiff = 0; zFullName = "/dev/null"; }
+      if( !asNewFile ){ showDiff = 0; zFullName = NULL_DEVICE; }
     }else if( file_access(zFullName, 0) ){
       fossil_print("MISSING  %s\n", zPathname);
       if( !asNewFile ){ showDiff = 0; }
@@ -474,6 +483,7 @@ static void diff_all_two_versions(
 ** deleted files to be displayed.
 **
 ** Options:
+**   --branch BRANCH     Show diff of all changes on BRANCH
 **   --brief             Show filenames only
 **   --context|-c N      Use N lines of context 
 **   --from|-r VERSION   select VERSION as source for the diff
@@ -489,6 +499,7 @@ void diff_cmd(void){
   int hasNFlag;              /* True if -N or --new-file flag is used */
   const char *zFrom;         /* Source version number */
   const char *zTo;           /* Target version number */
+  const char *zBranch;       /* Branch to diff */
   const char *zDiffCmd = 0;  /* External diff command. NULL for internal diff */
   int diffFlags = 0;         /* Flags to control the DIFF */
   int f;
@@ -497,10 +508,18 @@ void diff_cmd(void){
   isInternDiff = find_option("internal","i",0)!=0;
   zFrom = find_option("from", "r", 1);
   zTo = find_option("to", 0, 1);
+  zBranch = find_option("branch", 0, 1);
   diffFlags = diff_options();
   hasNFlag = find_option("new-file","N",0)!=0;
   if( hasNFlag ) diffFlags |= DIFF_NEWFILE;
 
+  if( zBranch ){
+    if( zTo || zFrom ){
+      fossil_fatal("cannot use --from or --to with --branch");
+    }
+    zTo = zBranch;
+    zFrom = mprintf("root:%s", zBranch);
+  }
   if( zTo==0 ){
     db_must_be_within_tree();
     verify_all_options();
@@ -534,7 +553,7 @@ void diff_cmd(void){
 
 /*
 ** WEBPAGE: vpatch
-** URL vpatch?from=UUID&amp;to=UUID
+** URL vpatch?from=UUID&to=UUID
 */
 void vpatch_page(void){
   const char *zFrom = P("from");

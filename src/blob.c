@@ -92,6 +92,9 @@ int fossil_isdigit(char c){ return c>='0' && c<='9'; }
 int fossil_tolower(char c){
   return fossil_isupper(c) ? c - 'A' + 'a' : c;
 }
+int fossil_toupper(char c){
+  return fossil_islower(c) ? c - 'a' + 'A' : c;
+}
 int fossil_isalpha(char c){
   return (c>='a' && c<='z') || (c>='A' && c<='Z');
 }
@@ -438,9 +441,6 @@ int blob_seek(Blob *p, int offset, int whence){
   }else if( whence==BLOB_SEEK_END ){
     p->iCursor = p->nUsed + offset - 1;
   }
-  if( p->iCursor<0 ){
-    p->iCursor = 0;
-  }
   if( p->iCursor>p->nUsed ){
     p->iCursor = p->nUsed;
   }
@@ -700,7 +700,8 @@ int blob_read_from_channel(Blob *pBlob, FILE *in, int nToRead){
 **
 ** Any prior content of the blob is discarded, not freed.
 **
-** Return the number of bytes read.  Return -1 for an error.
+** Return the number of bytes read. Calls fossil_panic() error (i.e.
+** it exit()s and does not return).
 */
 int blob_read_from_file(Blob *pBlob, const char *zFilename){
   int size, got;
@@ -793,7 +794,7 @@ int blob_write_to_file(Blob *pBlob, const char *zFilename){
       zName = zBuf;
       memcpy(zName, zFilename, nName+1);
     }
-    nName = file_simplify_name(zName, nName);
+    nName = file_simplify_name(zName, nName, 0);
     for(i=1; i<nName; i++){
       if( zName[i]=='/' ){
         zName[i] = 0;
@@ -1079,4 +1080,15 @@ unsigned int blob_read(Blob *pIn, void * pDest, unsigned int nLen ){
     pIn->iCursor += nLen;
   }
   return nLen;
+}
+
+/*
+** Swaps the contents of the given blobs. Results
+** are unspecified if either value is NULL or both
+** point to the same blob.
+*/
+void blob_swap( Blob *pLeft, Blob *pRight ){
+  Blob swap = *pLeft;
+  *pLeft = *pRight;
+  *pRight = swap;
 }

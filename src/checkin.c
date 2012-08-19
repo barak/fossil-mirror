@@ -44,7 +44,7 @@ static void status_report(
   db_prepare(&q, 
     "SELECT pathname, deleted, chnged, rid, coalesce(origname!=pathname,0)"
     "  FROM vfile "
-    " WHERE file_is_selected(id)"
+    " WHERE is_selected(id)"
     "   AND (chnged OR deleted OR rid=0 OR pathname!=origname) ORDER BY 1"
   );
   blob_zero(&rewrittenPathname);
@@ -57,7 +57,7 @@ static void status_report(
     int isRenamed = db_column_int(&q,4);
     char *zFullName = mprintf("%s%s", g.zLocalRoot, zPathname);
     if( cwdRelative ){
-      file_relative_name(zFullName, &rewrittenPathname);
+      file_relative_name(zFullName, &rewrittenPathname, 0);
       zDisplayName = blob_str(&rewrittenPathname);
       if( zDisplayName[0]=='.' && zDisplayName[1]=='/' ){
         zDisplayName += 2;  /* no unnecessary ./ prefix */
@@ -97,11 +97,16 @@ static void status_report(
   }
   blob_reset(&rewrittenPathname);
   db_finalize(&q);
-  db_prepare(&q, "SELECT uuid FROM vmerge JOIN blob ON merge=rid"
-                 " WHERE id=0");
+  db_prepare(&q, "SELECT uuid, id FROM vmerge JOIN blob ON merge=rid"
+                 " WHERE id<=0");
   while( db_step(&q)==SQLITE_ROW ){
+    const char *zLabel = "MERGED_WITH";
+    switch( db_column_int(&q, 1) ){
+      case -1:  zLabel = "CHERRYPICK ";  break;
+      case -2:  zLabel = "BACKOUT    ";  break;
+    }
     blob_append(report, zPrefix, nPrefix);
-    blob_appendf(report, "MERGED_WITH %s\n", db_column_text(&q, 0));
+    blob_appendf(report, "%s %s\n", zLabel, db_column_text(&q, 0));
   }
   db_finalize(&q);
   if( nErr ){
@@ -141,6 +146,8 @@ static int determine_cwd_relative_option()
 **                      directory.
 **    --sha1sum         Verify file status using SHA1 hashing rather
 **                      than relying on file mtimes.
+**    --header          Identify the repository if there are changes
+**    -v                Say "no changes" if there are none
 ** 
 ** See also: extra, ls, status
 */
@@ -148,6 +155,8 @@ void changes_cmd(void){
   Blob report;
   int vid;
   int useSha1sum = find_option("sha1sum", 0, 0)!=0;
+  int showHdr = find_option("header",0,0)!=0;
+  int verbose = find_option("verbose","v",0)!=0;
   int cwdRelative = 0;
   db_must_be_within_tree();
   cwdRelative = determine_cwd_relative_option();
@@ -155,6 +164,13 @@ void changes_cmd(void){
   vid = db_lget_int("checkout", 0);
   vfile_check_signature(vid, 0, useSha1sum);
   status_report(&report, "", 0, cwdRelative);
+  if( verbose && blob_size(&report)==0 ){
+    blob_append(&report, "  (none)\n", -1);
+  }
+  if( showHdr && blob_size(&report)>0 ){
+    fossil_print("Changes for %s at %s:\n", db_get("project-name","???"),
+                 g.zLocalRoot);
+  }
   blob_write_to_file(&report, "-");
 }
 
@@ -315,7 +331,7 @@ void extra_cmd(void){
     zDisplayName = zPathname = db_column_text(&q, 0);
     if( cwdRelative ) {
       char *zFullName = mprintf("%s%s", g.zLocalRoot, zPathname);
-      file_relative_name(zFullName, &rewrittenPathname);
+      file_relative_name(zFullName, &rewrittenPathname, 0);
       free(zFullName);
       zDisplayName = blob_str(&rewrittenPathname);
       if( zDisplayName[0]=='.' && zDisplayName[1]=='/' ){
@@ -634,8 +650,9 @@ static void create_manifest(
   const char *zDateOvrd,      /* Date override.  If 0 then use 'now' */
   const char *zUserOvrd,      /* User override.  If 0 then use g.zLogin */
   const char *zBranch,        /* Branch name.  May be 0 */
-  const char *zBgColor,       /* Background color.  May be 0 */
-  const char *zTag,           /* Tag to apply to this check-in */
+  const char *zColor,         /* One-time gackground color.  May be 0 */
+  const char *zBrClr,         /* Persistent branch color.  May be 0 */
+  const char **azTag,         /* Tags to apply to this check-in */
   int *pnFBcard               /* Number of generated B- and F-cards */
 ){
   char *zDate;                /* Date of the check-in */
@@ -647,6 +664,7 @@ static void create_manifest(
   Blob mcksum;                /* Manifest checksum */
   ManifestFile *pFile;        /* File from the baseline */
   int nFBcard = 0;            /* Number of B-cards and F-cards */
+  int i;                      /* Loop counter */
 
   assert( pBaseline==0 || pBaseline->zBaseline==0 );
   assert( pBaseline==0 || zBaselineUuid!=0 );
@@ -666,11 +684,12 @@ static void create_manifest(
   zDate[10] = ' ';
   db_prepare(&q,
     "SELECT pathname, uuid, origname, blob.rid, isexe, islink,"
-    "       file_is_selected(vfile.id)"
+    "       is_selected(vfile.id)"
     "  FROM vfile JOIN blob ON vfile.mrid=blob.rid"
-    " WHERE (NOT deleted OR NOT file_is_selected(vfile.id))"
+    " WHERE (NOT deleted OR NOT is_selected(vfile.id))"
     "   AND vfile.vid=%d"
-    " ORDER BY 1", vid);
+    " ORDER BY if_selected(vfile.id, pathname, origname)",
+    vid);
   blob_zero(&filename);
   blob_appendf(&filename, "%s", g.zLocalRoot);
   nBasename = blob_size(&filename);
@@ -738,8 +757,7 @@ static void create_manifest(
   blob_appendf(pOut, "P %s", zParentUuid);
   if( verifyDate ) checkin_verify_younger(vid, zParentUuid, zDate);
   free(zParentUuid);
-  db_prepare(&q2, "SELECT merge FROM vmerge WHERE id=:id");
-  db_bind_int(&q2, ":id", 0);
+  db_prepare(&q2, "SELECT merge FROM vmerge WHERE id=0");
   while( db_step(&q2)==SQLITE_ROW ){
     char *zMergeUuid;
     int mid = db_column_int(&q2, 0);
@@ -758,19 +776,27 @@ static void create_manifest(
   if( pCksum ) blob_appendf(pOut, "R %b\n", pCksum);
   if( zBranch && zBranch[0] ){
     /* Set tags for the new branch */
-    if( zBgColor && zBgColor[0] ){
-      blob_appendf(pOut, "T *bgcolor * %F\n", zBgColor);
+    if( zBrClr && zBrClr[0] ){
+      zColor = 0;
+      blob_appendf(pOut, "T *bgcolor * %F\n", zBrClr);
     }
     blob_appendf(pOut, "T *branch * %F\n", zBranch);
     blob_appendf(pOut, "T *sym-%F *\n", zBranch);
+  }
+  if( zColor && zColor[0] ){
+    /* One-time background color */
+    blob_appendf(pOut, "T +bgcolor * %F\n", zColor);
   }
   if( g.markPrivate ){
     /* If this manifest is private, mark it as such */
     blob_appendf(pOut, "T +private *\n");
   }
-  if( zTag && zTag[0] ){
-    /* Add a symbolic tag to this check-in */
-    blob_appendf(pOut, "T +sym-%F *\n", zTag);
+  if( azTag ){
+    for(i=0; azTag[i]; i++){
+      /* Add a symbolic tag to this check-in.  The tag names have already
+      ** been sorted and converted using the %F format */
+      blob_appendf(pOut, "T +sym-%s *\n", azTag[i]);
+    }
   }
   if( zBranch && zBranch[0] ){
     /* For a new branch, cancel all prior propagating tags */
@@ -783,8 +809,8 @@ static void create_manifest(
         " ORDER BY tagname",
         vid, zBranch);
     while( db_step(&q)==SQLITE_ROW ){
-      const char *zTag = db_column_text(&q, 0);
-      blob_appendf(pOut, "T -%F *\n", zTag);
+      const char *zBrTag = db_column_text(&q, 0);
+      blob_appendf(pOut, "T -%F *\n", zBrTag);
     }
     db_finalize(&q);
   }  
@@ -828,7 +854,7 @@ static void cr_warning(const Blob *p, const char *zFilename){
   }
   if( nCrNl ){
     char c;
-    file_relative_name(zFilename, &fname);
+    file_relative_name(zFilename, &fname, 0);
     blob_zero(&ans);
     zMsg = mprintf(
          "%s contains CR/NL line endings; commit anyhow (yes/no/all)?", 
@@ -848,6 +874,15 @@ static void cr_warning(const Blob *p, const char *zFilename){
 }
 
 /*
+** qsort() comparison routine for an array of pointers to strings.
+*/
+static int tagCmp(const void *a, const void *b){
+  char **pA = (char**)a;
+  char **pB = (char**)b;
+  return fossil_strcmp(pA[0], pB[0]);
+}
+
+/*
 ** COMMAND: ci*
 ** COMMAND: commit
 **
@@ -864,10 +899,19 @@ static void cr_warning(const Blob *p, const char *zFilename){
 ** All files that have changed will be committed unless some subset of
 ** files is specified on the command line.
 **
-** The --branch option followed by a branch name causes the new check-in
-** to be placed in the named branch.  The --bgcolor option can be followed
-** by a color name (ex:  '#ffc0c0') to specify the background color of
-** entries in the new branch when shown in the web timeline interface.
+** The --branch option followed by a branch name causes the new
+** check-in to be placed in a newly-created branch with the name
+** passed to the --branch option.
+**
+** Use the --branchcolor option followed by a color name (ex:
+** '#ffc0c0') to specify the background color of entries in the new
+** branch when shown in the web timeline interface.  The use of
+** the --branchcolor option is not recommend.  Instead, let Fossil
+** choose the branch color automatically.
+**
+** The --bgcolor option works like --branchcolor but only sets the
+** background color for a single check-in.  Subsequent check-ins revert
+** to the default color.
 **
 ** A check-in is not permitted to fork unless the --force or -f
 ** option appears.  A check-in is not allowed against a closed leaf.
@@ -879,8 +923,9 @@ static void cr_warning(const Blob *p, const char *zFilename){
 **
 ** Options:
 **    --baseline                 use a baseline manifest in the commit process
-**    --bgcolor COLOR            apply given COLOR to the branch
+**    --bgcolor COLOR            apply COLOR to this one check-in only
 **    --branch NEW-BRANCH-NAME   check in to this new branch
+**    --branchcolor COLOR        apply given COLOR to the branch
 **    --comment|-m COMMENT-TEXT  use COMMENT-TEXT as commit comment
 **    --delta                    use a delta manifest in the commit process
 **    --force|-f                 allow forking with this commit
@@ -910,11 +955,14 @@ void commit_cmd(void){
   int outputManifest;    /* True to output "manifest" and "manifest.uuid" */
   int testRun;           /* True for a test run.  Debugging only */
   const char *zBranch;   /* Create a new branch with this name */
-  const char *zBgColor;  /* Set background color when branching */
+  const char *zBrClr;    /* Set background color when branching */
+  const char *zColor;    /* One-time check-in color */
   const char *zDateOvrd; /* Override date string */
   const char *zUserOvrd; /* Override user name */
   const char *zComFile;  /* Read commit message from this file */
-  const char *zTag;      /* Symbolic tag to apply to this check-in */
+  int nTag = 0;          /* Number of --tag arguments */
+  const char *zTag;      /* A single --tag argument */
+  const char **azTag = 0;/* Array of all --tag arguments */
   Blob manifest;         /* Manifest in baseline form */
   Blob muuid;            /* Manifest uuid */
   Blob cksum1, cksum2;   /* Before and after commit checksums */
@@ -933,13 +981,19 @@ void commit_cmd(void){
   zComment = find_option("comment","m",1);
   forceFlag = find_option("force", "f", 0)!=0;
   zBranch = find_option("branch","b",1);
-  zBgColor = find_option("bgcolor",0,1);
-  zTag = find_option("tag",0,1);
+  zColor = find_option("bgcolor",0,1);
+  zBrClr = find_option("branchcolor",0,1);
+  while( (zTag = find_option("tag",0,1))!=0 ){
+    if( zTag[0]==0 ) continue;
+    azTag = fossil_realloc((void *)azTag, sizeof(char*)*(nTag+2));
+    azTag[nTag++] = zTag;
+    azTag[nTag] = 0;
+  }
   zComFile = find_option("message-file", "M", 1);
   if( find_option("private",0,0) ){
     g.markPrivate = 1;
     if( zBranch==0 ) zBranch = "private";
-    if( zBgColor==0 ) zBgColor = "#fec084";  /* Orange */
+    if( zBrClr==0 && zColor==0 ) zBrClr = "#fec084";  /* Orange */
   }
   zDateOvrd = find_option("date-override",0,1);
   zUserOvrd = find_option("user-override",0,1);
@@ -949,6 +1003,13 @@ void commit_cmd(void){
   useCksum = db_get_boolean("repo-cksum", 1);
   outputManifest = db_get_boolean("manifest", 0);
   verify_all_options();
+
+  /* Escape special characters in tags and put all tags in sorted order */
+  if( nTag ){
+    int i;
+    for(i=0; i<nTag; i++) azTag[i] = mprintf("%F", azTag[i]);
+    qsort((void*)azTag, nTag, sizeof(azTag[0]), tagCmp);
+  }
 
   /* So that older versions of Fossil (that do not understand delta-
   ** manifest) can continue to use this repository, do not create a new
@@ -1003,7 +1064,7 @@ void commit_cmd(void){
   ** should be committed.
   */
   select_commit_files();
-  isAMerge = db_exists("SELECT 1 FROM vmerge");
+  isAMerge = db_exists("SELECT 1 FROM vmerge WHERE id=0");
   if( g.aCommitFile && isAMerge ){
     fossil_fatal("cannot do a partial commit of a merge");
   }
@@ -1032,7 +1093,7 @@ void commit_cmd(void){
     blob_init(&unmodified, 0, 0);
     db_blob(&unmodified, 
       "SELECT pathname FROM vfile"
-      " WHERE chnged = 0 AND origname IS NULL AND file_is_selected(id)"
+      " WHERE chnged = 0 AND origname IS NULL AND is_selected(id)"
     );
     if( strlen(blob_str(&unmodified)) ){
       fossil_fatal("file %s has not changed", blob_str(&unmodified));
@@ -1066,6 +1127,12 @@ void commit_cmd(void){
   }else{
     char *zInit = db_text(0, "SELECT value FROM vvar WHERE name='ci-comment'");
     prepare_commit_comment(&comment, zInit, zBranch, vid, zUserOvrd);
+    if( zInit && zInit[0] && fossil_strcmp(zInit, blob_str(&comment))==0 ){
+      Blob ans;
+      blob_zero(&ans);
+      prompt_user("unchanged check-in comment.  continue (y/N)? ", &ans);
+      if( blob_str(&ans)[0]!='y' ) fossil_exit(1);;
+    }
     free(zInit);
   }
   if( blob_size(&comment)==0 ){
@@ -1087,7 +1154,7 @@ void commit_cmd(void){
   */
   db_prepare(&q,
     "SELECT id, %Q || pathname, mrid, %s FROM vfile "
-    "WHERE chnged==1 AND NOT deleted AND file_is_selected(id)",
+    "WHERE chnged==1 AND NOT deleted AND is_selected(id)",
     g.zLocalRoot, glob_expr("pathname", db_get("crnl-glob",""))
   );
   while( db_step(&q)==SQLITE_ROW ){
@@ -1128,7 +1195,8 @@ void commit_cmd(void){
   }else{
     create_manifest(&manifest, 0, 0, &comment, vid,
                     !forceFlag, useCksum ? &cksum1 : 0,
-                    zDateOvrd, zUserOvrd, zBranch, zBgColor, zTag, &szB);
+                    zDateOvrd, zUserOvrd, zBranch, zColor, zBrClr,
+                    azTag, &szB);
   }
 
   /* See if a delta-manifest would be more appropriate */
@@ -1148,7 +1216,8 @@ void commit_cmd(void){
       Blob delta;
       create_manifest(&delta, zBaselineUuid, pBaseline, &comment, vid,
                       !forceFlag, useCksum ? &cksum1 : 0,
-                      zDateOvrd, zUserOvrd, zBranch, zBgColor, zTag, &szD);
+                      zDateOvrd, zUserOvrd, zBranch, zColor, zBrClr,
+                      azTag, &szD);
       /*
       ** At this point, two manifests have been constructed, either of
       ** which would work for this checkin.  The first manifest (held
@@ -1223,11 +1292,11 @@ void commit_cmd(void){
   
   /* Update the vfile and vmerge tables */
   db_multi_exec(
-    "DELETE FROM vfile WHERE (vid!=%d OR deleted) AND file_is_selected(id);"
-    "DELETE FROM vmerge WHERE file_is_selected(id) OR id=0;"
+    "DELETE FROM vfile WHERE (vid!=%d OR deleted) AND is_selected(id);"
+    "DELETE FROM vmerge;"
     "UPDATE vfile SET vid=%d;"
     "UPDATE vfile SET rid=mrid, chnged=0, deleted=0, origname=NULL"
-    " WHERE file_is_selected(id);"
+    " WHERE is_selected(id);"
     , vid, nvid
   );
   db_lset_int("checkout", nvid);

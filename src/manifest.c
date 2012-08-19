@@ -336,7 +336,7 @@ static char next_card(ManifestText *p){
 ** The card type determines the other parameters to the card.
 ** Cards must occur in lexicographical order.
 */
-static Manifest *manifest_parse(Blob *pContent, int rid){
+Manifest *manifest_parse(Blob *pContent, int rid){
   Manifest *p;
   int seenZ = 0;
   int i, lineNo=0;
@@ -350,7 +350,9 @@ static Manifest *manifest_parse(Blob *pContent, int rid){
   int isRepeat;
   static Bag seen;
 
-  if( bag_find(&seen, rid) ){
+  if( rid==0 ){
+    isRepeat = 1;
+  }else if( bag_find(&seen, rid) ){
     isRepeat = 1;
   }else{
     isRepeat = 0;
@@ -974,6 +976,7 @@ void manifest_test_parse_cmd(void){
     Blob b2;
     blob_copy(&b2, &b);
     p = manifest_parse(&b2, 0);
+    if( p==0 ) fossil_print("FAILED!\n");
     manifest_destroy(p);
   }
 }

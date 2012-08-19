@@ -387,7 +387,7 @@ static int prefix_match(const char *zPattern, const char *zStr){
 */
 static int isHuman(const char *zAgent){
   int i;
-  if( zAgent==0 ) return 0;  /* If not UserAgent, the probably a bot */
+  if( zAgent==0 ) return 0;  /* If not UserAgent, then probably a bot */
   for(i=0; zAgent[i]; i++){
     if( prefix_match("bot", zAgent+i) ) return 0;
     if( prefix_match("spider", zAgent+i) ) return 0;
@@ -466,6 +466,7 @@ void login_page(void){
   const char *zUsername, *zPasswd;
   const char *zNew1, *zNew2;
   const char *zAnonPw = 0;
+  const char *zGoto = P("g");
   int anonFlag;
   char *zErrMsg = "";
   int uid;                     /* User id loged in user */
@@ -563,9 +564,12 @@ void login_page(void){
   }
   style_header("Login/Logout");
   @ %s(zErrMsg)
+  if( zGoto && P("anon")==0 ){
+    @ <p>A login is required for <a href="%h(zGoto)">%h(zGoto)</a>.</p>
+  }
   @ <form action="login" method="post">
-  if( P("g") ){
-    @ <input type="hidden" name="g" value="%h(P("g"))" />
+  if( zGoto ){
+    @ <input type="hidden" name="g" value="%h(zGoto)" />
   }
   @ <table class="login_out">
   @ <tr>
@@ -592,7 +596,7 @@ void login_page(void){
   @ </tr>
   @ </table>
   @ <script type="text/JavaScript">
-  @   document.getElementById('u').focus()
+  @   gebi('u').focus()
   @   function chngAction(form){
   if( g.sslNotAvailable==0
    && memcmp(g.zBaseURL,"https:",6)!=0
@@ -633,8 +637,7 @@ void login_page(void){
     @ </pre></td></tr></table>
     if( bAutoCaptcha ) {
         @ <input type="button" value="Fill out captcha"
-        @  onclick="document.getElementById('u').value='anonymous';
-        @           document.getElementById('p').value='%s(zDecoded)';" />
+        @  onclick="gebi('u').value='anonymous'; gebi('p').value='%s(zDecoded)';" />
     }
     @ </div>
     free(zCaptcha);
@@ -763,6 +766,8 @@ static int login_find_user(
 ** is valid.  If the login cookie checks out, it then sets global
 ** variables appropriately.  Global variables set include g.userUid
 ** and g.zLogin and the g.perm family of permission booleans.
+**
+** If the 
 */
 void login_check_credentials(void){
   int uid = 0;                  /* User id */
@@ -770,6 +775,7 @@ void login_check_credentials(void){
   const char *zIpAddr;          /* Raw IP address of the requestor */
   char *zRemoteAddr;            /* Abbreviated IP address of the requestor */
   const char *zCap = 0;         /* Capability string */
+  const char *zPublicPages = 0; /* GLOB patterns of public pages */
 
   /* Only run this check once.  */
   if( g.userUid!=0 ) return;
@@ -906,9 +912,24 @@ void login_check_credentials(void){
   /* Set the capabilities */
   login_replace_capabilities(zCap, 0);
   login_set_anon_nobody_capabilities();
-  if( zCap[0] && !g.perm.History && db_get_boolean("auto-enable-hyperlinks",1)
+  if( zCap[0] && !g.perm.Hyperlink
+   && db_get_boolean("auto-hyperlink",1)
       && isHuman(P("HTTP_USER_AGENT")) ){
-    g.perm.History = 1;
+    g.perm.Hyperlink = 1;
+    g.javascriptHyperlink = 1;
+  }
+
+  /* If the public-pages glob pattern is defined and REQUEST_URI matches
+  ** one of the globs in public-pages, then also add in all default-perms
+  ** permissions.
+  */
+  zPublicPages = db_get("public-pages",0);
+  if( zPublicPages!=0 ){
+    Glob *pGlob = glob_create(zPublicPages);
+    if( glob_match(pGlob, PD("REQUEST_URI","no-match")) ){
+      login_set_capabilities(db_get("default-perms","u"), 0);
+    }
+    glob_free(pGlob);
   }
 }
 
@@ -940,8 +961,7 @@ void login_set_anon_nobody_capabilities(void){
 ** Flags passed into the 2nd argument of login_set/replace_capabilities().
 */
 #if INTERFACE
-#define LOGIN_IGNORE_U   0x01         /* Ignore "u" */
-#define LOGIN_IGNORE_V   0x01         /* Ignore "v" */
+#define LOGIN_IGNORE_UV  0x01         /* Ignore "u" and "v" */
 #endif
 
 /*
@@ -956,17 +976,17 @@ void login_set_capabilities(const char *zCap, unsigned flags){
     switch( zCap[i] ){
       case 's':   g.perm.Setup = 1;  /* Fall thru into Admin */
       case 'a':   g.perm.Admin = g.perm.RdTkt = g.perm.WrTkt = g.perm.Zip =
-                              g.perm.RdWiki = g.perm.WrWiki = g.perm.NewWiki =
-                              g.perm.ApndWiki = g.perm.History = g.perm.Clone = 
-                              g.perm.NewTkt = g.perm.Password = g.perm.RdAddr =
-                              g.perm.TktFmt = g.perm.Attach = g.perm.ApndTkt = 1;
-                              /* Fall thru into Read/Write */
+                           g.perm.RdWiki = g.perm.WrWiki = g.perm.NewWiki =
+                           g.perm.ApndWiki = g.perm.Hyperlink = g.perm.Clone = 
+                           g.perm.NewTkt = g.perm.Password = g.perm.RdAddr =
+                           g.perm.TktFmt = g.perm.Attach = g.perm.ApndTkt = 1;
+                           /* Fall thru into Read/Write */
       case 'i':   g.perm.Read = g.perm.Write = 1;                     break;
       case 'o':   g.perm.Read = 1;                                 break;
       case 'z':   g.perm.Zip = 1;                                  break;
 
       case 'd':   g.perm.Delete = 1;                               break;
-      case 'h':   g.perm.History = 1;                              break;
+      case 'h':   g.perm.Hyperlink = 1;                            break;
       case 'g':   g.perm.Clone = 1;                                break;
       case 'p':   g.perm.Password = 1;                             break;
 
@@ -988,10 +1008,10 @@ void login_set_capabilities(const char *zCap, unsigned flags){
       /* The "u" privileges is a little different.  It recursively 
       ** inherits all privileges of the user named "reader" */
       case 'u': {
-        if( (flags & LOGIN_IGNORE_U)==0 ){
+        if( (flags & LOGIN_IGNORE_UV)==0 ){
           const char *zUser;
           zUser = db_text("", "SELECT cap FROM user WHERE login='reader'");
-          login_set_capabilities(zUser, flags | LOGIN_IGNORE_U);
+          login_set_capabilities(zUser, flags | LOGIN_IGNORE_UV);
         }
         break;
       }
@@ -999,10 +1019,10 @@ void login_set_capabilities(const char *zCap, unsigned flags){
       /* The "v" privileges is a little different.  It recursively 
       ** inherits all privileges of the user named "developer" */
       case 'v': {
-        if( (flags & LOGIN_IGNORE_V)==0 ){
+        if( (flags & LOGIN_IGNORE_UV)==0 ){
           const char *zDev;
           zDev = db_text("", "SELECT cap FROM user WHERE login='developer'");
-          login_set_capabilities(zDev, flags | LOGIN_IGNORE_V);
+          login_set_capabilities(zDev, flags | LOGIN_IGNORE_UV);
         }
         break;
       }
@@ -1036,11 +1056,10 @@ int login_has_capability(const char *zCap, int nCap){
       case 'e':  rc = g.perm.RdAddr;    break;
       case 'f':  rc = g.perm.NewWiki;   break;
       case 'g':  rc = g.perm.Clone;     break;
-      case 'h':  rc = g.perm.History;   break;
+      case 'h':  rc = g.perm.Hyperlink; break;
       case 'i':  rc = g.perm.Write;     break;
       case 'j':  rc = g.perm.RdWiki;    break;
       case 'k':  rc = g.perm.WrWiki;    break;
-      /* case 'l': */
       case 'm':  rc = g.perm.ApndWiki;  break;
       case 'n':  rc = g.perm.NewTkt;    break;
       case 'o':  rc = g.perm.Read;      break;
@@ -1112,19 +1131,19 @@ void login_needed(void){
 }
 
 /*
-** Call this routine if the user lacks okHistory permission.  If
-** the anonymous user has okHistory permission, then paint a mesage
+** Call this routine if the user lacks g.perm.Hyperlink permission.  If
+** the anonymous user has Hyperlink permission, then paint a mesage
 ** to inform the user that much more information is available by
 ** logging in as anonymous.
 */
 void login_anonymous_available(void){
-  if( !g.perm.History &&
+  if( !g.perm.Hyperlink &&
       db_exists("SELECT 1 FROM user"
                 " WHERE login='anonymous'"
                 "   AND cap LIKE '%%h%%'") ){
     const char *zUrl = PD("REQUEST_URI", "index");
     @ <p>Many <span class="disabled">hyperlinks are disabled.</span><br />
-    @ Use <a href="%s(g.zTop)/login?anon=1&amp;g=%T(zUrl)">anonymous login</a>
+    @ Use <a href="%s(g.zTop)/login?anon=1&g=%T(zUrl)">anonymous login</a>
     @ to enable hyperlinks.</p>
   }
 }
@@ -1217,11 +1236,6 @@ void register_page(void){
       }else{
         char *zPw = sha1_shared_secret(blob_str(&passwd), blob_str(&login), 0);
         int uid;
-        char *zCookie;
-        const char *zCookieName;
-        const char *zExpire;
-        int expires;
-        const char *zIpAddr;
         db_multi_exec(
             "INSERT INTO user(login,pw,cap,info)"
             "VALUES(%B,%Q,%B,%B)",
@@ -1231,19 +1245,7 @@ void register_page(void){
 
         /* The user is registered, now just log him in. */
         uid = db_int(0, "SELECT uid FROM user WHERE login=%Q", zUsername);
-        zCookieName = login_cookie_name();
-        zExpire = db_get("cookie-expire","8766");
-        expires = atoi(zExpire)*3600;
-        zIpAddr = PD("REMOTE_ADDR","nil");
-
-        zCookie = db_text(0, "SELECT '%d/' || hex(randomblob(25))", uid);
-        cgi_set_cookie(zCookieName, zCookie, login_cookie_path(), expires);
-        record_login_attempt(zUsername, zIpAddr, 1);
-        db_multi_exec(
-            "UPDATE user SET cookie=%Q, ipaddr=%Q, "
-            "  cexpire=julianday('now')+%d/86400.0 WHERE uid=%d",
-            zCookie, ipPrefix(zIpAddr), expires, uid
-        );
+        login_set_user_cookie( zUsername, uid, NULL );
         redirect_to_g();
 
       }
@@ -1406,13 +1408,13 @@ void login_group_join(
   zSelf = db_name("repository");
 
   /* Get the full pathname of the other repository */  
-  file_canonical_name(zRepo, &fullName);
+  file_canonical_name(zRepo, &fullName, 0);
   zRepo = mprintf(blob_str(&fullName));
   blob_reset(&fullName);
 
   /* Get the full pathname for our repository.  Also the project code
   ** and project name for ourself. */
-  file_canonical_name(g.zRepositoryName, &fullName);
+  file_canonical_name(g.zRepositoryName, &fullName, 0);
   zSelfRepo = mprintf(blob_str(&fullName));
   blob_reset(&fullName);
   zSelfProjCode = db_get("project-code", "unknown");

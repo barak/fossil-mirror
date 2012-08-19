@@ -32,6 +32,7 @@ static const JsonPageDef JsonPageDefs_Dir[] = {
 {NULL,NULL,0}
 };
 
+#if 0 /* TODO: Not used? */
 static char const * json_dir_path_extra(){
   static char const * zP = NULL;
   if( !zP ){
@@ -42,30 +43,33 @@ static char const * json_dir_path_extra(){
   }
   return zP;
 }
+#endif
 
 /*
 ** Impl of /json/dir. 98% of it was taken directly
 ** from browse.c::page_dir()
 */
 static cson_value * json_page_dir_list(){
-  cson_object * zPayload = NULL;
-  cson_array * zEntries = NULL;
-  cson_object * zEntry = NULL;
+  cson_object * zPayload = NULL; /* return value */
+  cson_array * zEntries = NULL; /* accumulated list of entries. */
+  cson_object * zEntry = NULL;  /* a single dir/file entry. */
+  cson_array * keyStore = NULL; /* garbage collector for shared strings. */
   cson_string * zKeyName = NULL;
+  cson_string * zKeySize = NULL;
   cson_string * zKeyIsDir = NULL;
   cson_string * zKeyUuid = NULL;
+  cson_string * zKeyTime = NULL;
+  cson_string * zKeyRaw = NULL;
   char * zD = NULL;
   char const * zDX = NULL;
-  cson_value const * zDV = NULL;
   int nD;
   char * zUuid = NULL;
   char const * zCI = NULL;
   Manifest * pM = NULL;
   Stmt q = empty_Stmt;
   int rid = 0;
-  char * zPrefix = NULL;
-  if( !g.perm.History ){
-    json_set_err(FSL_JSON_E_DENIED, "Requires 'h' permissions.");
+  if( !g.perm.Read ){
+    json_set_err(FSL_JSON_E_DENIED, "Requires 'o' permissions.");
     return NULL;
   }
   zCI = json_find_option_cstr("checkin",NULL,"ci" );
@@ -85,29 +89,15 @@ static cson_value * json_page_dir_list(){
       return NULL;
     }
   }
-  zDV = json_req_payload_get("name");
-  if(!zDV){
-    zDV = cson_object_get( g.json.param.o, "name" );
-    if(!zDV && !g.isHTTP){
-      zDX = json_command_arg(g.json.dispatchDepth+1);
-    }
-  }
-  if(!zDX){
-    zDX = zDV ? cson_value_get_cstr(zDV) : NULL;
-  }
+
+  /* Jump through some hoops to find the directory name... */
+  zDX = json_find_option_cstr("name",NULL,NULL);
   if(!zDX && !g.isHTTP){
-    zDX = json_find_option_cstr("name",NULL,"n");
+    zDX = json_command_arg(g.json.dispatchDepth+1);
   }
-#if 1
   if(zDX && (!*zDX || (0==strcmp(zDX,"/")))){
     zDX = NULL;
   }
-#endif
-#if 0
-  if(!zDX || !*zDX){
-    zDX = "/";
-  }
-#endif
   zD = zDX ? fossil_strdup(zDX) : NULL;
   nD = zD ? strlen(zD)+1 : 0;
   while( nD>1 && zD[nD-2]=='/' ){ zD[(--nD)-1] = 0; }
@@ -122,10 +112,6 @@ static cson_value * json_page_dir_list(){
   ** first and it also gives us an easy way to distinguish files
   ** from directories in the loop that follows.
   */
-  db_multi_exec(
-     "CREATE TEMP TABLE localfiles(x UNIQUE NOT NULL %s, u);",
-     filename_collation()
-  );
 
   if( zCI ){
     Stmt ins;
@@ -134,9 +120,37 @@ static cson_value * json_page_dir_list(){
     int nPrev = 0;
     int c;
 
+    db_multi_exec(
+                  "CREATE TEMP TABLE json_dir_files("
+                  "  n UNIQUE NOT NULL %s," /* file name */
+                  "  fn UNIQUE NOT NULL %s," /* full file name */
+                  "  u DEFAULT NULL," /* file uuid */
+                  "  sz DEFAULT -1," /* file size */
+                  "  mtime DEFAULT NULL" /* file mtime in unix epoch format */
+                  ");",
+                  filename_collation(), filename_collation()
+                  );
+    
     db_prepare(&ins,
-       "INSERT OR IGNORE INTO localfiles VALUES(pathelement(:x,0), :u)"
-    );
+               "INSERT OR IGNORE INTO json_dir_files (n,fn,u,sz,mtime) "
+               "SELECT"
+               "  pathelement(:path,0),"
+               "  CASE WHEN %Q IS NULL THEN '' ELSE %Q||'/' END ||:abspath,"
+               "  a.uuid,"
+               "  a.size,"
+               "  CAST(strftime('%%s',e.mtime) AS INTEGER) "
+               "FROM"
+               "  mlink m, "
+               "  event e,"
+               "  blob a,"
+               "  blob b "
+               "WHERE"
+               " e.objid=m.mid"
+               " AND a.rid=m.fid"/*FILE artifact*/
+               " AND b.rid=m.mid"/*CHECKIN artifact*/
+               " AND a.uuid=:uuid",
+               zD, zD
+               );
     manifest_file_rewind(pM);
     while( (pFile = manifest_file_next(pM,0))!=0 ){
       if( nD>0 
@@ -151,8 +165,9 @@ static cson_value * json_page_dir_list(){
       ){
         continue;
       }
-      db_bind_text(&ins, ":x", &pFile->zName[nD]);
-      db_bind_text(&ins, ":u", pFile->zUuid);
+      db_bind_text( &ins, ":path", &pFile->zName[nD] );
+      db_bind_text( &ins, ":abspath", &pFile->zName[nD] );
+      db_bind_text( &ins, ":uuid", pFile->zUuid );
       db_step(&ins);
       db_reset(&ins);
       pPrev = pFile;
@@ -163,77 +178,114 @@ static cson_value * json_page_dir_list(){
   }else if( zD && *zD ){
     if( filenames_are_case_sensitive() ){
       db_multi_exec(
-        "INSERT OR IGNORE INTO localfiles"
-        " SELECT pathelement(name,%d), NULL FROM filename"
-        "  WHERE name GLOB '%q/*'",
-        nD, zD
+        "CREATE TEMP VIEW json_dir_files AS"
+        " SELECT DISTINCT(pathelement(name,%d)) AS n,"
+        " %Q||'/'||name AS fn,"
+        " NULL AS u, NULL AS sz, NULL AS mtime"
+        " FROM filename"
+        "  WHERE name GLOB '%q/*'"
+        " GROUP BY n",
+        nD, zD, zD
       );
     }else{
       db_multi_exec(
-        "INSERT OR IGNORE INTO localfiles"
-        " SELECT pathelement(name,%d), NULL FROM filename"
-        "  WHERE name LIKE '%q/%%'",
-        nD, zD
+        "CREATE TEMP VIEW json_dir_files AS"
+        " SELECT DISTINCT(pathelement(name,%d)) AS n, "
+        " %Q||'/'||name AS fn,"
+        " NULL AS u, NULL AS sz, NULL AS mtime"
+        " FROM filename"
+        "  WHERE name LIKE '%q/%%'"
+        " GROUP BY n",
+        nD, zD, zD
       );
     }
   }else{
     db_multi_exec(
-      "INSERT OR IGNORE INTO localfiles"
-      " SELECT pathelement(name,0), NULL FROM filename"
+      "CREATE TEMP VIEW json_dir_files"
+      " AS SELECT DISTINCT(pathelement(name,0)) AS n, NULL AS fn"
+      " FROM filename"
     );
   }
 
   if(zCI){
-    db_prepare( &q, "SELECT x as name, u as uuid  FROM localfiles ORDER BY x");
+    db_prepare( &q, "SELECT"
+                "  n as name,"
+                "  fn as fullname,"
+                "  u as uuid,"
+                "  sz as size,"
+                "  mtime as mtime "
+                "FROM json_dir_files ORDER BY n");
   }else{/* UUIDs are all NULL. */
-    db_prepare( &q, "SELECT x as name FROM localfiles ORDER BY x");
+    db_prepare( &q, "SELECT n, fn FROM json_dir_files ORDER BY n");
   }
 
   zKeyName = cson_new_string("name",4);
-  cson_value_add_reference( cson_string_value(zKeyName) );
   zKeyUuid = cson_new_string("uuid",4);
-  cson_value_add_reference( cson_string_value(zKeyUuid) );
   zKeyIsDir = cson_new_string("isDir",5);
-  cson_value_add_reference( cson_string_value(zKeyIsDir) );
+  keyStore = cson_new_array();
+  cson_array_append( keyStore, cson_string_value(zKeyName) );
+  cson_array_append( keyStore, cson_string_value(zKeyUuid) );
+  cson_array_append( keyStore, cson_string_value(zKeyIsDir) );
 
-  zPayload = cson_new_object();
-  cson_object_set_s( zPayload, zKeyName, json_new_string((zD&&*zD) ? zD : "/") );
-  if(zUuid){
-    cson_object_set_s( zPayload, zKeyUuid, cson_string_value(cson_new_string(zUuid, strlen(zUuid))) );
-  }
   if( zCI ){
-    cson_object_set( zPayload, "checkin", json_new_string(zCI) );
+    zKeySize = cson_new_string("size",4);
+    cson_array_append( keyStore, cson_string_value(zKeySize) );
+    zKeyTime = cson_new_string("timestamp",9);
+    cson_array_append( keyStore, cson_string_value(zKeyTime) );
+    zKeyRaw = cson_new_string("downloadPath",12);
+    cson_array_append( keyStore, cson_string_value(zKeyRaw) );
+  }
+  zPayload = cson_new_object();
+  cson_object_set_s( zPayload, zKeyName,
+                     json_new_string((zD&&*zD) ? zD : "/") );
+  if( zUuid ){
+    cson_object_set( zPayload, "checkin", json_new_string(zUuid) );
   }
 
   while( (SQLITE_ROW==db_step(&q)) ){
     cson_value * name = NULL;
     char const * n = db_column_text(&q,0);
-    char const * u = zCI ? db_column_text(&q,1) : NULL;
+    char const isDir = ('/'==*n);
     zEntry = cson_new_object();
     if(!zEntries){
       zEntries = cson_new_array();
       cson_object_set( zPayload, "entries", cson_array_value(zEntries) );
     }
-    if('/'==*n){
+    cson_array_append(zEntries, cson_object_value(zEntry) );
+    if(isDir){
       name = json_new_string( n+1 );
       cson_object_set_s(zEntry, zKeyIsDir, cson_value_true() );
-
     } else{
       name = json_new_string( n );
     }
-    if(u && *u){
-      cson_object_set_s(zEntry, zKeyUuid, json_new_string( u ) );
-    }
     cson_object_set_s(zEntry, zKeyName, name );
-    cson_array_append(zEntries, cson_object_value(zEntry) );
+    if( zCI && !isDir){
+      /* Don't add the uuid/size for dir entries - that data refers to
+         one of the files in that directory :/. Entries with no
+         --checkin may refer to N versions, and therefore we cannot
+         associate a single size and uuid with them (and fetching all
+         would be overkill for most use cases).
+      */
+      char const * fullName = db_column_text(&q,1);
+      char const * u = db_column_text(&q,2);
+      sqlite_int64 const sz = db_column_int64(&q,3);
+      sqlite_int64 const ts = db_column_int64(&q,4);
+      cson_object_set_s(zEntry, zKeyUuid, json_new_string( u ) );
+      cson_object_set_s(zEntry, zKeySize,
+                        cson_value_new_integer( (cson_int_t)sz ));
+      cson_object_set_s(zEntry, zKeyTime,
+          cson_value_new_integer( (cson_int_t)ts ));
+      cson_object_set_s(zEntry, zKeyRaw,
+                        json_new_string_f("/raw/%T?name=%t",
+                                          fullName, u));
+    }
   }
   db_finalize(&q);
   if(pM){
     manifest_destroy(pM);
   }
-  cson_value_free( cson_string_value( zKeyName  ) );
-  cson_value_free( cson_string_value( zKeyUuid  ) );
-  cson_value_free( cson_string_value( zKeyIsDir  ) );
+  cson_free_array( keyStore );
+  
   free( zUuid );
   free( zD );
   return cson_object_value(zPayload);

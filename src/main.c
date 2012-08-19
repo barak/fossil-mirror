@@ -26,7 +26,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdlib.h> /* atexit() */
-
+#if !defined(_WIN32)
+#  include <errno.h> /* errno global */
+#endif
 #if INTERFACE
 #ifdef FOSSIL_ENABLE_JSON
 #  include "cson_amalgamation.h" /* JSON API. Needed inside the INTERFACE block! */
@@ -62,7 +64,7 @@ struct FossilUserPerms {
   char Query;            /* q: create new reports */
   char Write;            /* i: xfer inbound. checkin */
   char Read;             /* o: xfer outbound. checkout */
-  char History;          /* h: access historical information. */
+  char Hyperlink;        /* h: enable the display of hyperlinks */
   char Clone;            /* g: clone */
   char RdWiki;           /* j: view wiki via web */
   char NewWiki;          /* f: create new wiki via web */
@@ -137,7 +139,8 @@ struct Global {
   int *aCommitFile;       /* Array of files to be committed */
   int markPrivate;        /* All new artifacts are private if true */
   int clockSkewSeen;      /* True if clocks on client and server out of sync */
-  int isHTTP;             /* True if running in server/CGI modes, else assume CLI. */
+  char isHTTP;            /* True if erver/CGI modes, else assume CLI. */
+  char javascriptHyperlink; /* If true, set href= using script, not HTML */
 
   int urlIsFile;          /* True if a "file:" url */
   int urlIsHttps;         /* True if a "https:" url */
@@ -244,10 +247,7 @@ struct Global {
       cson_value * v;
       cson_object * o;
     } reqPayload;              /* request payload object (if any) */
-    struct {                   /* response warnings */
-      cson_value * v;
-      cson_array * a;
-    } warnings;
+    cson_array * warnings;     /* response warnings */
   } json;
 #endif /* FOSSIL_ENABLE_JSON */
 };
@@ -452,6 +452,7 @@ int main(int argc, char **argv){
        argv[0], argv[0], argv[0]);
     fossil_exit(1);
   }else{
+    const char *zChdir = find_option("chdir",0,1);
     g.isHTTP = 0;
     g.fQuiet = find_option("quiet", 0, 0)!=0;
     g.fSqlTrace = find_option("sqltrace", 0, 0)!=0;
@@ -462,6 +463,9 @@ int main(int argc, char **argv){
     g.fHttpTrace = find_option("httptrace", 0, 0)!=0;
     g.zLogin = find_option("user", "U", 1);
     g.zSSLIdentity = find_option("ssl-identity", 0, 1);
+    if( zChdir && chdir(zChdir) ){
+      fossil_fatal("unable to change directories to %s", zChdir);
+    }
     if( find_option("help",0,0)!=0 ){
       /* --help anywhere on the command line is translated into
       ** "fossil help argv[1] argv[2]..." */
@@ -557,7 +561,7 @@ NORETURN void fossil_panic(const char *zFormat, ...){
       once = 0;
       cgi_printf("<p class=\"generalError\">%h</p>", z);
       cgi_reply();
-    }else{
+    }else if( !g.fQuiet ){
       char *zOut = mprintf("%s: %s\n", fossil_nameofexe(), z);
       fossil_puts(zOut, 1);
     }
@@ -589,7 +593,7 @@ NORETURN void fossil_fatal(const char *zFormat, ...){
       g.cgiOutput = 0;
       cgi_printf("<p class=\"generalError\">%h</p>", z);
       cgi_reply();
-    }else{
+    }else if( !g.fQuiet ){
       char *zOut = mprintf("\r%s: %s\n", fossil_nameofexe(), z);
       fossil_puts(zOut, 1);
     }
@@ -713,6 +717,9 @@ int fossil_system(const char *zOrigCmd){
 void fossil_binary_mode(FILE *p){
 #if defined(_WIN32)
   _setmode(_fileno(p), _O_BINARY);
+#endif
+#ifdef __EMX__     /* OS/2 */
+  setmode(fileno(p), O_BINARY);
 #endif
 }
 
@@ -1086,6 +1093,17 @@ void set_base_url(void){
     g.zBaseURL = mprintf("http://%s%.*s", zHost, i, zCur);
     g.zTop = &g.zBaseURL[7+strlen(zHost)];
   }
+  if( db_is_writeable("repository") ){
+    if( !db_exists("SELECT 1 FROM config WHERE name='baseurl:%q'", g.zBaseURL)){
+      db_multi_exec("INSERT INTO config(name,value,mtime)"
+                    "VALUES('baseurl:%q',1,now())", g.zBaseURL);
+    }else{
+      db_optional_sql("repository",
+           "REPLACE INTO config(name,value,mtime)"
+           "VALUES('baseurl:%q',1,now())", g.zBaseURL
+      );
+    }
+  }
 }
 
 /*
@@ -1114,7 +1132,7 @@ static char *enter_chroot_jail(char *zRepo){
     Blob dir;
     char *zDir;
 
-    file_canonical_name(zRepo, &dir);
+    file_canonical_name(zRepo, &dir, 0);
     zDir = blob_str(&dir);
     if( file_isdir(zDir)==1 ){
       if( chdir(zDir) || chroot(zDir) || chdir("/") ){
@@ -1134,8 +1152,11 @@ static char *enter_chroot_jail(char *zRepo){
     if( stat(zRepo, &sStat)!=0 ){
       fossil_fatal("cannot stat() repository: %s", zRepo);
     }
-    setgid(sStat.st_gid);
-    setuid(sStat.st_uid);
+    i = setgid(sStat.st_gid);
+    i = i || setuid(sStat.st_uid);
+    if(i){
+      fossil_fatal("setgid/uid() failed with errno %d", errno);
+    }
     if( g.db!=0 ){
       db_close(1);
       db_open_repository(zRepo);
@@ -1290,7 +1311,7 @@ static void process_one_web_page(const char *zNotFound){
         if( g.zLogin==0 ) zUser = "nobody";
         if( zAltRepo[0]!='/' ){
           zAltRepo = mprintf("%s/../%s", g.zRepositoryName, zAltRepo);
-          file_simplify_name(zAltRepo, -1);
+          file_simplify_name(zAltRepo, -1, 0);
         }
         db_close(1);
         db_open_repository(zAltRepo);
@@ -1307,14 +1328,37 @@ static void process_one_web_page(const char *zNotFound){
     }
     break;
   }
+#ifdef FOSSIL_ENABLE_JSON
+  /*
+  ** Workaround to allow us to customize some following behaviour for
+  ** JSON mode.  The problem is, we don't always know if we're in JSON
+  ** mode at this point (namely, for GET mode we don't know but POST
+  ** we do), so we snoop g.zPath and cheat a bit.
+  */
+  if( !g.json.isJsonMode && g.zPath && (0==strncmp("json",g.zPath,4)) ){
+    g.json.isJsonMode = 1;
+  }
+#endif
   if( g.zExtra ){
     /* CGI parameters get this treatment elsewhere, but places like getfile
     ** will use g.zExtra directly.
     ** Reminder: the login mechanism uses 'name' differently, and may
     ** eventually have a problem/collision with this.
+    **
+    ** Disabled by stephan when running in JSON mode because this
+    ** particular parameter name is very common and i have had no end
+    ** of grief with this handling. The JSON API never relies on the
+    ** handling below, and by disabling it in JSON mode i can remove
+    ** lots of special-case handling in several JSON handlers.
     */
-    dehttpize(g.zExtra);
-    cgi_set_parameter_nocopy("name", g.zExtra);
+#ifdef FOSSIL_ENABLE_JSON
+    if(!g.json.isJsonMode){
+#endif
+      dehttpize(g.zExtra);
+      cgi_set_parameter_nocopy("name", g.zExtra);
+#ifdef FOSSIL_ENABLE_JSON
+    }
+#endif
   }
 
   /* Locate the method specified by the path and execute the function
@@ -1385,17 +1429,8 @@ void cmd_cgi(void){
   }
   g.httpOut = stdout;
   g.httpIn = stdin;
-#if defined(_WIN32)
-  /* Set binary mode on windows to avoid undesired translations
-  ** between \n and \r\n. */
-  setmode(_fileno(g.httpOut), _O_BINARY);
-  setmode(_fileno(g.httpIn), _O_BINARY);
-#endif
-#ifdef __EMX__
-  /* Similar hack for OS/2 */
-  setmode(fileno(g.httpOut), O_BINARY);
-  setmode(fileno(g.httpIn), O_BINARY);
-#endif
+  fossil_binary_mode(g.httpOut);
+  fossil_binary_mode(g.httpIn);
   g.cgiOutput = 1;
   blob_read_from_file(&config, zFile);
   while( blob_line(&config, &line) ){
@@ -1529,7 +1564,7 @@ static void find_server_repository(int disallowDir){
     db_must_be_within_tree();
   }else if( !disallowDir && file_isdir(g.argv[2])==1 ){
     g.zRepositoryName = mprintf("%s", g.argv[2]);
-    file_simplify_name(g.zRepositoryName, -1);
+    file_simplify_name(g.zRepositoryName, -1, 0);
   }else{
     db_open_repository(g.argv[2]);
   }
@@ -1625,7 +1660,7 @@ void cmd_test_http(void){
 }
 
 #if !defined(_WIN32)
-#if !defined(__DARWIN__) && !defined(__APPLE__)
+#if !defined(__DARWIN__) && !defined(__APPLE__) && !defined(__HAIKU__)
 /*
 ** Search for an executable on the PATH environment variable.
 ** Return true (1) if found and false (0) if not found.
@@ -1721,7 +1756,7 @@ void cmd_webserver(void){
 #if !defined(_WIN32)
   /* Unix implementation */
   if( isUiCmd ){
-#if !defined(__DARWIN__) && !defined(__APPLE__)
+#if !defined(__DARWIN__) && !defined(__APPLE__) && !defined(__HAIKU__)
     zBrowser = db_get("web-browser", 0);
     if( zBrowser==0 ){
       static char *azBrowserProg[] = { "xdg-open", "gnome-open", "firefox" };

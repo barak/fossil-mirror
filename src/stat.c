@@ -23,6 +23,22 @@
 #include "stat.h"
 
 /*
+** For a sufficiently large integer, provide an alternative
+** representation as MB or GB or TB.
+*/
+static void bigSizeName(int nOut, char *zOut, sqlite3_int64 v){
+  if( v<100000 ){
+    sqlite3_snprintf(nOut, zOut, "%lld bytes", v);
+  }else if( v<1000000000 ){
+    sqlite3_snprintf(nOut, zOut, "%lld bytes (%.1fMB)",
+                    v, (double)v/1000000.0);
+  }else{
+    sqlite3_snprintf(nOut, zOut, "%lld bytes (%.1fGB)",
+                    v, (double)v/1000000000.0);
+  }
+}
+
+/*
 ** WEBPAGE: stat
 **
 ** Show statistics and global information about the repository.
@@ -42,8 +58,8 @@ void stat_page(void){
   @ <table class="label-value">
   @ <tr><th>Repository&nbsp;Size:</th><td>
   fsize = file_size(g.zRepositoryName);
-  sqlite3_snprintf(sizeof(zBuf), zBuf, "%lld", fsize);
-  @ %s(zBuf) bytes
+  bigSizeName(sizeof(zBuf), zBuf, fsize);
+  @ %s(zBuf)
   @ </td></tr>
   if( !brief ){
     @ <tr><th>Number&nbsp;Of&nbsp;Artifacts:</th><td>
@@ -62,8 +78,8 @@ void stat_page(void){
       szAvg = db_column_int(&q, 1);
       szMax = db_column_int(&q, 2);
       db_finalize(&q);
-      sqlite3_snprintf(sizeof(zBuf), zBuf, "%lld", t);
-      @ %d(szAvg) bytes average, %d(szMax) bytes max, %s(zBuf) bytes total
+      bigSizeName(sizeof(zBuf), zBuf, t);
+      @ %d(szAvg) bytes average, %d(szMax) bytes max, %s(zBuf) total
       @ </td></tr>
       @ <tr><th>Compression&nbsp;Ratio:</th><td>
       if( t/fsize < 5 ){
@@ -98,24 +114,18 @@ void stat_page(void){
   @ <tr><th>Duration&nbsp;Of&nbsp;Project:</th><td>
   n = db_int(0, "SELECT julianday('now') - (SELECT min(mtime) FROM event)"
                 " + 0.99");
-  @ %d(n) days
-  sqlite3_snprintf(sizeof(zBuf), zBuf, "%.2f", n/365.24);
-  @ or approximately %s(zBuf) years
+  @ %d(n) days or approximately %.2f(n/356.24) years.
   @ </td></tr>
   @ <tr><th>Project&nbsp;ID:</th><td>%h(db_get("project-code",""))</td></tr>
   @ <tr><th>Server&nbsp;ID:</th><td>%h(db_get("server-code",""))</td></tr>
-
   @ <tr><th>Fossil&nbsp;Version:</th><td>
   @ %h(RELEASE_VERSION) %h(MANIFEST_DATE) %h(MANIFEST_VERSION)
   @ (%h(COMPILER_NAME))
   @ </td></tr>
-  @ <tr><th>SQLite&nbsp;Version:</th><td>
-  sqlite3_snprintf(sizeof(zBuf), zBuf, "%.19s [%.10s] (%s)",
-                   SQLITE_SOURCE_ID, &SQLITE_SOURCE_ID[20], SQLITE_VERSION);
-  zDb = db_name("repository");
-  @ %s(zBuf)
-  @ </td></tr>
+  @ <tr><th>SQLite&nbsp;Version:</th><td>%.19s(SQLITE_SOURCE_ID)
+  @ [%.10s(&SQLITE_SOURCE_ID[20])] (%s(SQLITE_VERSION))</td></tr>
   @ <tr><th>Database&nbsp;Stats:</th><td>
+  zDb = db_name("repository");
   @ %d(db_int(0, "PRAGMA %s.page_count", zDb)) pages,
   @ %d(db_int(0, "PRAGMA %s.page_size", zDb)) bytes/page,
   @ %d(db_int(0, "PRAGMA %s.freelist_count", zDb)) free pages,

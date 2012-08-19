@@ -154,6 +154,29 @@ int symbolic_name_to_rid(const char *zTag, const char *zType){
        " ORDER BY event.mtime DESC /*sort*/",
        &zTag[4], zType
     );
+  }
+  
+  /* root:TAG -> The origin of the branch */
+  if( memcmp(zTag, "root:", 5)==0 ){
+    Stmt q;
+    int rc;
+    rid = symbolic_name_to_rid(zTag+5, zType);
+    db_prepare(&q,
+      "SELECT pid, EXISTS(SELECT 1 FROM tagxref"
+                         " WHERE tagid=%d AND tagtype>0"
+                         "   AND value=%Q AND rid=plink.pid)"
+      "  FROM plink"
+      " WHERE cid=:cid AND isprim",
+      TAG_BRANCH, &zTag[5]
+    );
+    do{
+      db_reset(&q);
+      db_bind_int(&q, ":cid", rid);
+      rc = db_step(&q);
+      if( rc!=SQLITE_ROW ) break;
+      rid = db_column_int(&q, 0);
+    }while( db_column_int(&q, 1)==1 && rid>0 );
+    db_finalize(&q);
     return rid;
   }
 
@@ -267,6 +290,26 @@ int name_to_uuid(Blob *pName, int iErrPriority, const char *zType){
     return 0;
   }
 }
+
+/*
+** This routine is similar to name_to_uuid() except in the form it
+** takes its parameters and returns its value, and in that it does not
+** treat errors as fatal. zName must be a UUID, as described for
+** name_to_uuid(). zType is also as described for that function. If
+** zName does not resolve, 0 is returned. If it is ambiguous, a
+** negative value is returned. On success the rid is returned and
+** pUuid (if it is not NULL) is set to the a newly-allocated string,
+** the full UUID, which must eventually be free()d by the caller.
+*/
+int name_to_uuid2(char const *zName, const char *zType, char **pUuid){
+  int rid = symbolic_name_to_rid(zName, zType);
+  if((rid>0) && pUuid){
+    *pUuid = db_text(NULL, "SELECT uuid FROM blob WHERE rid=%d", rid);
+  }
+  return rid;
+}
+
+
 
 /*
 ** COMMAND:  test-name-to-id

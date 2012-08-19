@@ -1424,44 +1424,6 @@ extern "C" {
 
 
     
-/**
-   Type IDs corresponding to JavaScript/JSON types.
-*/
-enum cson_type_id {
-  /**
-    The special "undefined" value constant.
-
-    Its value must be 0 for internal reasons.
- */
- CSON_TYPE_UNDEF = 0,
- /**
-    The special "null" value constant.
- */
- CSON_TYPE_NULL = 1,
- /**
-    The bool value type.
- */
- CSON_TYPE_BOOL = 2,
- /**
-    The integer value type, represented in this library
-    by cson_int_t.
- */
- CSON_TYPE_INTEGER = 3,
- /**
-    The double value type, represented in this library
-    by cson_double_t.
- */
- CSON_TYPE_DOUBLE = 4,
- /** The immutable string type. This library stores strings
-    as immutable UTF8.
- */
- CSON_TYPE_STRING = 5,
- /** The "Array" type. */
- CSON_TYPE_ARRAY = 6,
- /** The "Object" type. */
- CSON_TYPE_OBJECT = 7
-};
-typedef enum cson_type_id cson_type_id;
 
 /**
    This type holds the "vtbl" for type-specific operations when
@@ -2316,12 +2278,10 @@ static char cson_value_is_a( cson_value const * v, cson_type_id is )
 }
 #endif
 
-#if 0
 cson_type_id cson_value_type_id( cson_value const * v )
 {
     return (v && v->api) ? v->api->typeID : CSON_TYPE_UNDEF;
 }
-#endif
 
 char cson_value_is_undef( cson_value const * v )
 {
@@ -4474,7 +4434,7 @@ Tokenizes an input string on a given separator. Inputs are:
 
 - (end) = a pointer to NULL. i.e. (*end == NULL)
 
-This function scans *inp for the given separator char or a NULL char.
+This function scans *inp for the given separator char or a NUL char.
 Successive separators at the start of *inp are skipped. The effect is
 that, when this function is called in a loop, all neighboring
 separators are ignored. e.g. the string "aa.bb...cc" will tokenize to
@@ -5631,6 +5591,62 @@ int cson_sqlite3_sql_to_json( sqlite3 * db, cson_value ** tgt, char const * sql,
         return rc;
     }        
 }
+
+int cson_sqlite3_bind_value( sqlite3_stmt * st, int ndx, cson_value const * v )
+{
+    int rc = 0;
+    char convertErr = 0;
+    if(!st) return cson_rc.ArgError;
+    else if( ndx < 1 ) {
+        rc = cson_rc.RangeError;
+    }
+    else if( cson_value_is_array(v) ){
+        cson_array * ar = cson_value_get_array(v);
+        unsigned int len = cson_array_length_get(ar);
+        unsigned int i;
+        assert(NULL != ar);
+        for( i = 0; !rc && (i < len); ++i ){
+            rc = cson_sqlite3_bind_value( st, (int)i+ndx,
+                                          cson_array_get(ar, i));
+        }
+    }
+    else if(!v || cson_value_is_null(v)){
+        rc = sqlite3_bind_null(st,ndx);
+        convertErr = 1;
+    }
+    else if( cson_value_is_double(v) ){
+        rc = sqlite3_bind_double( st, ndx, cson_value_get_double(v) );
+        convertErr = 1;
+    }
+    else if( cson_value_is_bool(v) ){
+        rc = sqlite3_bind_int( st, ndx, cson_value_get_bool(v) ? 1 : 0 );
+        convertErr = 1;
+    }
+    else if( cson_value_is_integer(v) ){
+        rc = sqlite3_bind_int64( st, ndx, cson_value_get_integer(v) );
+        convertErr = 1;
+    }
+    else if( cson_value_is_string(v) ){
+        cson_string const * s = cson_value_get_string(v);
+        rc = sqlite3_bind_text( st, ndx,
+                                cson_string_cstr(s),
+                                cson_string_length_bytes(s),
+                                SQLITE_TRANSIENT);
+        convertErr = 1;
+    }
+    else {
+        rc = cson_rc.TypeError;
+    }
+    if(convertErr && rc) switch(rc){
+      case SQLITE_TOOBIG:
+      case SQLITE_RANGE: rc = cson_rc.RangeError; break;
+      case SQLITE_NOMEM: rc = cson_rc.AllocError; break;
+      case SQLITE_IOERR: rc = cson_rc.IOError; break;
+      default: rc = cson_rc.UnknownError; break;
+    };
+    return rc;
+}
+
 
 #if defined(__cplusplus)
 } /*extern "C"*/
