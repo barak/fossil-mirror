@@ -1,6 +1,7 @@
-fossil (1:1.23-1) UNRELEASED; urgency=low
+fossil (1:1.23-1) unstable; urgency=low
 
   * New upstream version
+    - alternate upstream designation 2012.08.08.112557
 
  -- Barak A. Pearlmutter <bap@debian.org>  Sun, 19 Aug 2012 11:57:49 +0100
 
