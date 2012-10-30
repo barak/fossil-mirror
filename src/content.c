@@ -271,6 +271,9 @@ int content_get(int rid, Blob *pBlob){
         && (nextRid = findSrcid(nextRid))>0 ){
       n++;
       if( n>=nAlloc ){
+        if( n>db_int(0, "SELECT max(rid) FROM blob") ){
+          fossil_panic("infinite loop in DELTA table");
+        }
         nAlloc = nAlloc*2 + 10;
         a = fossil_realloc(a, nAlloc*sizeof(a[0]));
       }
@@ -892,4 +895,36 @@ void test_integrity(void){
   db_finalize(&q);
   fossil_print("%d non-phantom blobs (out of %d total) checked:  %d errors\n",
                n2, n1, nErr);
+}
+
+/*
+** COMMAND: test-orphans
+**
+** Search the repository for orphaned artifacts
+*/
+void test_orphans(void){
+  Stmt q;
+  int cnt = 0;
+
+  db_find_and_open_repository(0, 0);
+  db_multi_exec(
+    "CREATE TEMP TABLE used(id INTEGER PRIMARY KEY ON CONFLICT IGNORE);"
+    "INSERT INTO used SELECT mid FROM mlink;"  /* Manifests */
+    "INSERT INTO used SELECT fid FROM mlink;"  /* Files */
+    "INSERT INTO used SELECT srcid FROM tagxref WHERE srcid>0;" /* Tags */
+    "INSERT INTO used SELECT rid FROM tagxref;" /* Wiki & tickets */
+    "INSERT INTO used SELECT rid FROM attachment JOIN blob ON src=uuid;"
+    "INSERT INTO used SELECT attachid FROM attachment;"
+    "INSERT INTO used SELECT objid FROM event;"
+  );
+  db_prepare(&q, "SELECT rid, uuid, size FROM blob WHERE rid NOT IN used");
+  while( db_step(&q)==SQLITE_ROW ){
+    fossil_print("%7d %s size: %d\n",
+      db_column_int(&q, 0),
+      db_column_text(&q, 1),
+      db_column_int(&q,2));
+    cnt++;
+  }
+  db_finalize(&q);
+  fossil_print("%d orphans\n", cnt);
 }

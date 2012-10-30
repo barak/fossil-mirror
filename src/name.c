@@ -31,7 +31,7 @@
 ** have the final say-so about whether or not the date/time string is
 ** well-formed.
 */
-static int is_date(const char *z){
+int fossil_isdate(const char *z){
   if( !fossil_isdigit(z[0]) ) return 0;
   if( !fossil_isdigit(z[1]) ) return 0;
   if( !fossil_isdigit(z[2]) ) return 0;
@@ -109,15 +109,15 @@ int symbolic_name_to_rid(const char *zTag, const char *zType){
   if( memcmp(zTag, "date:", 5)==0 ){
     rid = db_int(0, 
       "SELECT objid FROM event"
-      " WHERE mtime<=julianday(%Q) AND type GLOB '%q'"
+      " WHERE mtime<=julianday(%Q,'utc') AND type GLOB '%q'"
       " ORDER BY mtime DESC LIMIT 1",
       &zTag[5], zType);
     return rid;
   }
-  if( is_date(zTag) ){
+  if( fossil_isdate(zTag) ){
     rid = db_int(0, 
       "SELECT objid FROM event"
-      " WHERE mtime<=julianday(%Q) AND type GLOB '%q'"
+      " WHERE mtime<=julianday(%Q,'utc') AND type GLOB '%q'"
       " ORDER BY mtime DESC LIMIT 1",
       zTag, zType);
     if( rid) return rid;
@@ -154,21 +154,28 @@ int symbolic_name_to_rid(const char *zTag, const char *zType){
        " ORDER BY event.mtime DESC /*sort*/",
        &zTag[4], zType
     );
+    return rid;
   }
   
   /* root:TAG -> The origin of the branch */
   if( memcmp(zTag, "root:", 5)==0 ){
     Stmt q;
     int rc;
+    char *zBr;
     rid = symbolic_name_to_rid(zTag+5, zType);
+    zBr = db_text("trunk","SELECT value FROM tagxref"
+                          " WHERE rid=%d AND tagid=%d"
+                          " AND tagtype>0",
+                          rid, TAG_BRANCH);
     db_prepare(&q,
       "SELECT pid, EXISTS(SELECT 1 FROM tagxref"
                          " WHERE tagid=%d AND tagtype>0"
                          "   AND value=%Q AND rid=plink.pid)"
       "  FROM plink"
       " WHERE cid=:cid AND isprim",
-      TAG_BRANCH, &zTag[5]
+      TAG_BRANCH, zBr
     );
+    fossil_free(zBr);
     do{
       db_reset(&q);
       db_bind_int(&q, ":cid", rid);
@@ -183,7 +190,7 @@ int symbolic_name_to_rid(const char *zTag, const char *zType){
   /* symbolic-name ":" date-time */
   nTag = strlen(zTag);
   for(i=0; i<nTag-10 && zTag[i]!=':'; i++){}
-  if( zTag[i]==':' && is_date(&zTag[i+1]) ){
+  if( zTag[i]==':' && fossil_isdate(&zTag[i+1]) ){
     char *zDate = mprintf("%s", &zTag[i+1]);
     char *zTagBase = mprintf("%.*s", i, zTag);
     int nDate = strlen(zDate);
@@ -248,11 +255,15 @@ int symbolic_name_to_rid(const char *zTag, const char *zType){
   /* Undocumented:  numeric tags get translated directly into the RID */
   for(i=0; fossil_isdigit(zTag[i]); i++){}
   if( zTag[i]==0 ){
-    rid = db_int(0, 
-      "SELECT event.objid"
-      "  FROM event"
-      " WHERE event.objid=%s"
-      "   AND event.type GLOB '%q'", zTag, zType);
+    if( strcmp(zType,"*")==0 ){
+      rid = atoi(zTag);
+    }else{
+      rid = db_int(0, 
+        "SELECT event.objid"
+        "  FROM event"
+        " WHERE event.objid=%s"
+        "   AND event.type GLOB '%q'", zTag, zType);
+    }
   }
   return rid;
 }
