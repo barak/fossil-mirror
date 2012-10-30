@@ -1,3 +1,9 @@
+fossil (1:1.24-1) UNRELEASED; urgency=low
+
+  * New upstream version
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Tue, 30 Oct 2012 15:27:34 +0000
+
 fossil (1:1.23-1) unstable; urgency=low
 
   * New upstream version

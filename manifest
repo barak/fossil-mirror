@@ -1,5 +1,5 @@
-C merge\supstream_1:1.24
-D 2012-10-30T15:04:36.898
+C update\sdebian/changelog
+D 2012-10-30T15:27:51.853
 F .project b7b33febfaccfeae87eb1d782cd0c675679b7dc7
 F .settings/org.eclipse.core.resources.prefs 6d8a06b0a3395c74037897476eadb764d7f2d22d
 F .settings/org.eclipse.core.runtime.prefs 6cc9381da1eff8e6dac0e41121d3cce3f1b4761b
@@ -57,7 +57,7 @@ F autosetup/system.tcl afcf59dd1055440e12f9632749d56f3ab4442146
 F autosetup/test-tclsh f197a4c7bfa8bde7672864fc36dcbc7f85bdda6c
 F configure 239cde01aca7fc63a2903f85bd2a6414189f1bd4 x
 F debian/README.Debian c4454849a34a6ec363880bb734c4caad9f0d8719
-F debian/changelog ffacec65205762ac8ead5fcb90226f23cce01c45
+F debian/changelog 2b75b303a5ad9de6195f0866477380f8c930d5e8
 F debian/compat b6abd567fa79cbe0196d093a067271361dc6ca8b
 F debian/control 635919c3859d07c4b840d5bb8a5cce3d125f5d29
 F debian/copyright 29b63bf8e972b563d99210f6f37a86d2b1208fe7
@@ -370,8 +370,8 @@ F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/uitest.html b4160b619cb6694c0caebd13422b15a3182e5dee
 F www/webui.wiki d6f45339cf55d9e249afc46f062e1fd62519231f
 F www/wikitheory.wiki 4100c1164995d26295591cf8d4170a87ad8d1c43
-P d3512db100fba0b4d4cfb63dced839ab8f7170e0 8d758d37153b1feee33acdc481c0f2f96441a3c9
-R 5a7907e31d6c28485e387165fc3db74d
+P a75d73a0fa26e5b3b70f71d495a0ac2178775527
+R e7a9517e379953ba294f17980d471d27
 U barak
-Z ffbb09523dd3f9959567a8b70fa02e57
+Z db5b414839d4de885f75e4aa33f9fbe0
 # Remove this line to create a well-formed Fossil manifest.
