@@ -1,5 +1,5 @@
-C update\sdebian/changelog
-D 2012-10-30T15:27:51.853
+C update\sdebian/README.Debian\sfor\sepoch,\supstream\ssqlite3\scoherence
+D 2012-10-30T15:38:44.867
 F .project b7b33febfaccfeae87eb1d782cd0c675679b7dc7
 F .settings/org.eclipse.core.resources.prefs 6d8a06b0a3395c74037897476eadb764d7f2d22d
 F .settings/org.eclipse.core.runtime.prefs 6cc9381da1eff8e6dac0e41121d3cce3f1b4761b
@@ -56,7 +56,7 @@ F autosetup/local.tcl 79b8c81822e992ec573689e57b042b348dc6923c
 F autosetup/system.tcl afcf59dd1055440e12f9632749d56f3ab4442146
 F autosetup/test-tclsh f197a4c7bfa8bde7672864fc36dcbc7f85bdda6c
 F configure 239cde01aca7fc63a2903f85bd2a6414189f1bd4 x
-F debian/README.Debian c4454849a34a6ec363880bb734c4caad9f0d8719
+F debian/README.Debian f9377e314ebe3c33c63aa427296e226473b9c266
 F debian/changelog 2b75b303a5ad9de6195f0866477380f8c930d5e8
 F debian/compat b6abd567fa79cbe0196d093a067271361dc6ca8b
 F debian/control 635919c3859d07c4b840d5bb8a5cce3d125f5d29
@@ -370,8 +370,8 @@ F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/uitest.html b4160b619cb6694c0caebd13422b15a3182e5dee
 F www/webui.wiki d6f45339cf55d9e249afc46f062e1fd62519231f
 F www/wikitheory.wiki 4100c1164995d26295591cf8d4170a87ad8d1c43
-P a75d73a0fa26e5b3b70f71d495a0ac2178775527
-R e7a9517e379953ba294f17980d471d27
+P 49dfb01dd93ea69e2ddaa136620ad82d80e7af33
+R 32640cac470c8d5307bb8b86e6f48ab1
 U barak
-Z db5b414839d4de885f75e4aa33f9fbe0
+Z 4bdbf653eba00d0fb56c112e1f5a969a
 # Remove this line to create a well-formed Fossil manifest.
