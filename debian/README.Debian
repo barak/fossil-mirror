@@ -1,4 +1,4 @@
-Version taken either as
+Version taken as
 
    1:$(cat VERSION)
 
@@ -16,6 +16,7 @@ Man page created by manually editing output of this:
 
 The debianized sources are tracked in fossil, of course.
 
+
 Brief "cheat sheet" of relevant fossil commands.
 
  ## FOR NEW UPSTREAM RELEASE
@@ -24,24 +25,29 @@ Brief "cheat sheet" of relevant fossil commands.
  uscan --rename
  VER=1:xxx
  DEBVER=1
+ mv ../fossil_*.orig.tar.gz ../fossil_${VER}.orig.tar.gz
  ID=fossil-commit-id	# find via: fossil timeline -t ci -n 400 | more
 			# then search for "release"
  fossil tag add upstream_${VER} ${ID}
  fossil merge upstream_${VER}
  fossil commit -m "merge upstream_${VER}"
- debchange --newversion=${VER}-${DEBVER} New upstream version
+ debchange --append --newversion=${VER}-${DEBVER} New upstream version
  fossil commit -m 'update debian/changelog'
 
  # build debian release
- dpkg-buildpackage -i_FOSSIL_ -i.fslckout
+ dpkg-buildpackage -i.fslckout
 
  # tag debian release
  fossil tag add debian_${VER}-${DEBVER} debian
 
  ## TO START DEVELOPMENT
 
- # create local repository
- fossil clone http://www.fossil-scm.org/ fossil.fsl
+ # create local repository by cloning mine
+ #  (I would have made a repo on chiselapp.com but never managed to
+ #  get it to work for me on a repo of this size.)
+ wget http://people.debian.org/~bap/fossil.fsl
+
+ # make a working checkout
  mkdir fossil
  cd fossil
  fossil open ../fossil.fsl
@@ -49,11 +55,8 @@ Brief "cheat sheet" of relevant fossil commands.
  fossil user password ${USER} ${PWD}
  fossil set manifest on		# needed as of approx ver 2010.11.11.133638
 
- # sync to your own remote repository
- ssh ${HOST}
-    cd ${PATH}/fossil
-    fossil server &
- fossil sync http://${USER}:${PWD}@${HOST}:8080
+ # sync to remote repository (use your own URL of course)
+ fossil sync ssh://bap@people.debian.org/public_html/fossil.fsl
 
  ## MISC
 
@@ -61,22 +64,11 @@ Brief "cheat sheet" of relevant fossil commands.
  fossil pull http://www.fossil-scm.org/
  fossil timeline -t ci -n 40
 
- # incorporate upstream development changes
- fossil merge trunk
- fossil commit -m 'merge trunk'
- VER=1:xxx
- DEBVER=1
- debchange --append --newversion=${VER}-${DEBVER} New upstream version
- fossil commit -m 'update debian/changelog'
-
- # figure out upstream version number, either from
- uscan --rename
- # or
- make VERSION.h
- cat VERSION.h
-
  # create upstream tarball (not needed if using upstream release tarball)
  fossil co trunk
- tar --exclude _FOSSIL_ -C .. -zcf fossil_${VER}.orig.tar.gz fossil
+ tar --exclude .fslckout -C .. -zcf fossil_${VER}.orig.tar.gz fossil
 
- -- Barak A. Pearlmutter <bap@debian.org>, Tue, 30 Oct 2012 15:37:57 +0000
+ # less recently created checkouts may have _FOSSIL_ instead of
+ # .fslckout, edit any commands mentioning this file appropriately.
+
+ -- Barak A. Pearlmutter <bap@debian.org>, Thu,  1 Nov 2012 16:04:42 +0000
