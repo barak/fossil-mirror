@@ -1,5 +1,5 @@
-C update\sdebian/README.Debian
-D 2012-11-01T16:07:31.046
+C replace\scson?amalgamation.[ch]\sdue\sto\scopyright\s/\sDFSG\sissues
+D 2012-12-02T23:39:04.357
 F .project b7b33febfaccfeae87eb1d782cd0c675679b7dc7
 F .settings/org.eclipse.core.resources.prefs 6d8a06b0a3395c74037897476eadb764d7f2d22d
 F .settings/org.eclipse.core.runtime.prefs 6cc9381da1eff8e6dac0e41121d3cce3f1b4761b
@@ -90,8 +90,8 @@ F src/comformat.c 4c6ab3776e9c591937c70ac4b88b7e816021e314
 F src/config.h b0d94a1b2de290c448a18ba3b33b1b3ae97d02dd
 F src/configure.c c89251c280e7b94f8fb68312daa951211236b22d
 F src/content.c 1dd9171ad19ee2d9b1fba2fa1747e3c560a7ff70
-F src/cson_amalgamation.c 8332fe5fb89b80d6b6d25a685c025c704aa45a74
-F src/cson_amalgamation.h 1497874d13be5d9e8ff6c4a625a2166988612b05
+F src/cson_amalgamation.c b22103e1c54249139e27639481e5c4fe4fde49a6
+F src/cson_amalgamation.h b22103e1c54249139e27639481e5c4fe4fde49a6
 F src/db.c 3935c4cf06bf157d7fb1c51cb08d24b8efbc5bc8
 F src/delta.c e3dfb31289b71aa446b61fc6e9d09a3fcdd92710
 F src/deltacmd.c 08f55239e28aa9530f3f53006f7b69b03fb51ede
@@ -370,8 +370,8 @@ F www/theory1.wiki f8fe3f921ade08fc42e30ca7e9f5f5d25632ef9a
 F www/uitest.html b4160b619cb6694c0caebd13422b15a3182e5dee
 F www/webui.wiki d6f45339cf55d9e249afc46f062e1fd62519231f
 F www/wikitheory.wiki 4100c1164995d26295591cf8d4170a87ad8d1c43
-P f60a86d0f2339bc2e33d0058fed91f601319a306
-R 69d7b87b033fadb01ea32b7b0bd4f9ab
+P 672263115cca7caa6f68b6fbcaa344ac16b2af46
+R 0b2a9cfce5ecbe1aa9530cec2508cf9c
 U barak
-Z 88a8f75a197c9ee1b5c0f0b963e53d59
+Z 9a6fb7d03f97494a036fa7b72506182f
 # Remove this line to create a well-formed Fossil manifest.
