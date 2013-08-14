@@ -1,5 +1,5 @@
-C update\sdebian/changelog
-D 2013-08-14T15:20:34.816
+C bump\sstandards\sversion
+D 2013-08-14T15:47:10.077
 F .fossil-settings/clean-glob c1679d70a381afc39909203441036a736fb4b596
 F .fossil-settings/ignore-glob 3ed6aa34e7396bad5468607064d39be9269d93d6
 F .fossil-settings/keep-glob 3ed6aa34e7396bad5468607064d39be9269d93d6
@@ -304,7 +304,7 @@ F configure 239cde01aca7fc63a2903f85bd2a6414189f1bd4 x
 F debian/README.Debian f05c55a5adc00dba9124ed5959b629295ec340d8
 F debian/changelog acd03e78e56c26822a5b4e012197365bbdad2370
 F debian/compat b6abd567fa79cbe0196d093a067271361dc6ca8b
-F debian/control 635919c3859d07c4b840d5bb8a5cce3d125f5d29
+F debian/control b7a5c97c6cb1d2fcb7c48a2cbc01f1917159b8c4
 F debian/copyright 29b63bf8e972b563d99210f6f37a86d2b1208fe7
 F debian/fossil.1 0aa94b217a630021c4b7fcf6b4a91dac1511c704
 F debian/fossil.docs 45a770a8534b1a439a32546145737975a9217b30
@@ -640,8 +640,8 @@ F www/tickets.wiki 74561cedee65fa362e67970911a0415f723457db
 F www/uitest.html b4160b619cb6694c0caebd13422b15a3182e5dee
 F www/webui.wiki d6f45339cf55d9e249afc46f062e1fd62519231f
 F www/wikitheory.wiki 4100c1164995d26295591cf8d4170a87ad8d1c43
-P 60f0cbd4e362d8ec542ec4114ce46af4b8dbf650
-R 7029fcac05581bde3067c76a3ba291c2
+P e7bc34b73ab01cde78c2aa268859ff4edb773f93
+R 750b3c7fda36d9a5f1c8130c58f38b1f
 U barak
-Z d6f5c9a7eba632f9485dbd792831ad3c
+Z 1cd824ca25c1a6a5220ecba03d250d00
 # Remove this line to create a well-formed Fossil manifest.
