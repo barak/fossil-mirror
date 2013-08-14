@@ -76,11 +76,14 @@ if {[opt-bool json]} {
     define FOSSIL_ENABLE_JSON
 }
 
+#if {[opt-bool markdown]} {
+#    # no-op.  Markdown is now enabled by default.
+#}
+
 if {[opt-bool static]} {
     # XXX: This will not work on all systems.
     define-append EXTRA_LDFLAGS -static
 }
-
 
 # Check for zlib, using the given location if specified
 set zlibpath [opt-val with-zlib]
@@ -190,7 +193,7 @@ if {$ssldirs ne "none"} {
         define-append EXTRA_CFLAGS $cflags
         define-append EXTRA_LDFLAGS $ldflags
         define-append LIBS -lssl -lcrypto
-        msg-result "HTTP support enabled"
+        msg-result "HTTPS support enabled"
 
         # Silence OpenSSL deprecation warnings on Mac OS X 10.7.
         if {[string match *-darwin* [get-define host]]} {
@@ -223,12 +226,14 @@ if {![cc-check-function-in-lib socket {socket network}]} {
         define-append LIBS -lwsock32
     }
 }
+cc-check-function-in-lib iconv iconv
 
 # Check for getpassphrase() for Solaris 10 where getpass() truncates to 10 chars
 if {![cc-check-functions getpassphrase]} {
     # Haiku needs this
     cc-check-function-in-lib getpass bsd
 }
+cc-check-function-in-lib dlopen dl
 
 make-template Makefile.in
 make-config-header autoconfig.h -auto {USE_* FOSSIL_*}

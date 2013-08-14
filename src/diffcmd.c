@@ -111,7 +111,7 @@ void diff_file(
       }
     }else{
       blob_zero(&out);
-      text_diff(pFile1, &file2, &out, diffFlags);
+      text_diff(pFile1, &file2, &out, 0, diffFlags);
       if( blob_size(&out) ){
         diff_print_filenames(zName, zName2, diffFlags);
         fossil_print("%s\n", blob_str(&out));
@@ -212,7 +212,7 @@ void diff_file_mem(
     Blob out;      /* Diff output text */
 
     blob_zero(&out);
-    text_diff(pFile1, pFile2, &out, diffFlags);
+    text_diff(pFile1, pFile2, &out, 0, diffFlags);
     diff_print_filenames(zName, zName, diffFlags);
     fossil_print("%s\n", blob_str(&out));
 
@@ -322,7 +322,7 @@ static void diff_all_against_disk(
   Stmt q;
   int asNewFile;            /* Treat non-existant files as empty files */
 
-  asNewFile = (diffFlags & DIFF_NEWFILE)!=0;
+  asNewFile = (diffFlags & DIFF_VERBOSE)!=0;
   vid = db_lget_int("checkout", 0);
   vfile_check_signature(vid, CKSIG_ENOTFILE);
   blob_zero(&sql);
@@ -524,7 +524,7 @@ static void diff_all_two_versions(
 ){
   Manifest *pFrom, *pTo;
   ManifestFile *pFromFile, *pToFile;
-  int asNewFlag = (diffFlags & DIFF_NEWFILE)!=0 ? 1 : 0;
+  int asNewFlag = (diffFlags & DIFF_VERBOSE)!=0 ? 1 : 0;
 
   pFrom = manifest_get_by_name(zFrom, 0);
   manifest_file_rewind(pFrom);
@@ -661,8 +661,14 @@ void diff_tk(const char *zSubCmd, int firstArg){
   blob_appendf(&script, "set cmd {| \"%/\" %s --html -y -i",
                g.nameOfExe, zSubCmd);
   for(i=firstArg; i<g.argc; i++){
+    const char *z = g.argv[i];
+    if( z[0]=='-' ){
+      if( strglob("*-html",z) ) continue;
+      if( strglob("*-y",z) ) continue;
+      if( strglob("*-i",z) ) continue;
+    }
     blob_append(&script, " ", 1);
-    shell_escape(&script, g.argv[i]);
+    shell_escape(&script, z);
   }
   blob_appendf(&script, "}\n%s", zDiffScript);
   zTempFile = write_blob_to_temp_file(&script);
@@ -732,24 +738,24 @@ const char *diff_get_binary_glob(void){
 ** This option overrides the "binary-glob" setting.
 **
 ** Options:
+**   --binary PATTERN    Treat files that match the glob PATTERN as binary
 **   --branch BRANCH     Show diff of all changes on BRANCH
 **   --brief             Show filenames only
 **   --context|-c N      Use N lines of context 
+**   --diff-binary BOOL  Include binary files when using external commands
 **   --from|-r VERSION   select VERSION as source for the diff
-**   -i                  use internal diff logic
-**   --new-file|-N       output complete text of added or deleted files
+**   --internal|-i       use internal diff logic
+**   --side-by-side|-y   side-by-side diff
 **   --tk                Launch a Tcl/Tk GUI for display
 **   --to VERSION        select VERSION as target for the diff
-**   --side-by-side|-y   side-by-side diff
 **   --unified           unified diff
-**   --width|-W N        Width of lines in side-by-side diff 
-**   --diff-binary BOOL  Include binary files when using external commands
-**   --binary PATTERN    Treat files that match the glob PATTERN as binary
+**   -v|--verbose        output complete text of added or deleted files
+**   -W|--width          Width of lines in side-by-side diff
 */
 void diff_cmd(void){
   int isGDiff;               /* True for gdiff.  False for normal diff */
   int isInternDiff;          /* True for internal diff */
-  int hasNFlag;              /* True if -N or --new-file flag is used */
+  int verboseFlag;           /* True if -v or --verbose flag is used */
   const char *zFrom;         /* Source version number */
   const char *zTo;           /* Target version number */
   const char *zBranch;       /* Branch to diff */
@@ -769,8 +775,11 @@ void diff_cmd(void){
   zTo = find_option("to", 0, 1);
   zBranch = find_option("branch", 0, 1);
   diffFlags = diff_options();
-  hasNFlag = find_option("new-file","N",0)!=0;
-  if( hasNFlag ) diffFlags |= DIFF_NEWFILE;
+  verboseFlag = find_option("verbose","v",0)!=0;
+  if( !verboseFlag ){
+    verboseFlag = find_option("new-file","N",0)!=0; /* deprecated */
+  }
+  if( verboseFlag ) diffFlags |= DIFF_VERBOSE;
 
   if( zBranch ){
     if( zTo || zFrom ){
@@ -830,5 +839,5 @@ void vpatch_page(void){
   if( zFrom==0 || zTo==0 ) fossil_redirect_home();
 
   cgi_set_content_type("text/plain");
-  diff_all_two_versions(zFrom, zTo, 0, 0, 0, DIFF_NEWFILE);
+  diff_all_two_versions(zFrom, zTo, 0, 0, 0, DIFF_VERBOSE);
 }

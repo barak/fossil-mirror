@@ -26,6 +26,7 @@ Brief "cheat sheet" of relevant fossil commands.
  VER=1:xxx
  DEBVER=1
  mv ../fossil_*.orig.tar.gz ../fossil_${VER}.orig.tar.gz
+ fossil pull http://www.fossil-scm.org
  ID=fossil-commit-id	# find via: fossil timeline -t ci -n 400 | more
 			# then search for "release"
  fossil tag add upstream_${VER} ${ID}
@@ -39,6 +40,9 @@ Brief "cheat sheet" of relevant fossil commands.
 
  # tag debian release
  fossil tag add debian_${VER}-${DEBVER} debian
+
+ # push to debian repository
+ fossil sync ssh://people.debian.org/~bap/fossil.fsl
 
  ## TO START DEVELOPMENT
 
@@ -71,4 +75,4 @@ Brief "cheat sheet" of relevant fossil commands.
  # less recently created checkouts may have _FOSSIL_ instead of
  # .fslckout, edit any commands mentioning this file appropriately.
 
- -- Barak A. Pearlmutter <bap@debian.org>, Thu,  1 Nov 2012 16:04:42 +0000
+ -- Barak A. Pearlmutter <bap@debian.org>, Wed, 14 Aug 2013 16:58:14 +0200

@@ -24,7 +24,7 @@
 /*
 ** SQL code to implement the tables needed by the stash.
 */
-static const char zStashInit[] = 
+static const char zStashInit[] =
 @ CREATE TABLE IF NOT EXISTS %s.stash(
 @   stashid INTEGER PRIMARY KEY,     -- Unique stash identifier
 @   vid INTEGER,                     -- The baseline check-out for this stash
@@ -116,7 +116,7 @@ static void stash_add_file_or_dir(int stashid, int vid, const char *zFName){
       /* A modified file */
       Blob orig;
       Blob disk;
-      
+
       if( isNewLink ){
         blob_read_link(&disk, zPath);
       }else{
@@ -160,7 +160,13 @@ static int stash_create(void){
   if( zComment==0 ){
     Blob prompt;                       /* Prompt for stash comment */
     Blob comment;                      /* User comment reply */
+#ifdef _WIN32
+    int bomSize;
+    const unsigned char *bom = get_utf8_bom(&bomSize);
+    blob_init(&prompt, (const char *) bom, bomSize);
+#else
     blob_zero(&prompt);
+#endif
     blob_append(&prompt,
        "\n"
        "# Enter a description of what is being stashed.  Lines beginning\n"
@@ -239,7 +245,7 @@ static void stash_apply(int stashid, int nConflict){
         if( isLink ){
           symlink_create(blob_str(&b), zNPath);
         }else{
-          blob_write_to_file(&b, zNPath);          
+          blob_write_to_file(&b, zNPath);
         }
         file_wd_setexe(zNPath, isExec);
         fossil_print("UPDATE %s\n", zNew);
@@ -250,8 +256,8 @@ static void stash_apply(int stashid, int nConflict){
           blob_zero(&b); /* because we reset it later */
           fossil_print("***** Cannot merge symlink %s\n", zNew);
         }else{
-          rc = merge_3way(&a, zOPath, &b, &out);
-          blob_write_to_file(&out, zNPath);          
+          rc = merge_3way(&a, zOPath, &b, &out, 0);
+          blob_write_to_file(&out, zNPath);
           blob_reset(&out);
           file_wd_setexe(zNPath, isExec);
         }
@@ -339,7 +345,7 @@ static void stash_diff(
         if( isOrigLink ){
           blob_read_link(&disk, zOPath);
         }else{
-          blob_read_from_file(&disk, zOPath);        
+          blob_read_from_file(&disk, zOPath);
         }
       }
       fossil_print("CHANGED %s\n", zNew);
@@ -402,8 +408,8 @@ static int stash_get_id(const char *zStashId){
 ** Usage: %fossil stash SUBCOMMAND ARGS...
 **
 **  fossil stash
-**  fossil stash save ?-m COMMENT? ?FILES...?
-**  fossil stash snapshot ?-m COMMENT? ?FILES...?
+**  fossil stash save ?-m|--comment COMMENT? ?FILES...?
+**  fossil stash snapshot ?-m|--comment COMMENT? ?FILES...?
 **
 **     Save the current changes in the working tree as a new stash.
 **     Then revert the changes back to the last check-in.  If FILES
@@ -412,11 +418,11 @@ static int stash_get_id(const char *zStashId){
 **     arguments.  The "snapshot" verb works the same as "save" but
 **     omits the revert, keeping the check-out unchanged.
 **
-**  fossil stash list ?--detail?
-**  fossil stash ls ?-l?
+**  fossil stash list ?-v|--verbose?
+**  fossil stash ls ?-v|--verbose?
 **
 **     List all changes sets currently stashed.  Show information about
-**     individual files in each changeset if --detail or -l is used.
+**     individual files in each changeset if -v or --verbose is used.
 **
 **  fossil stash show ?STASHID? ?DIFF-FLAGS?
 **
@@ -436,35 +442,36 @@ static int stash_get_id(const char *zStashId){
 **     changes of STASHID.  Keep STASHID so that it can be reused
 **     This command is undoable.
 **
-**  fossil stash drop ?STASHID? ?--all?
-**  fossil stash rm   ?STASHID? ?--all?
+**  fossil stash drop ?STASHID? ?-a|--all?
+**  fossil stash rm   ?STASHID? ?-a|--all?
 **
 **     Forget everything about STASHID.  Forget the whole stash if the
-**     --all flag is used.  Individual drops are undoable but --all is not.
+**     -a|--all flag is used.  Individual drops are undoable but -a|--all
+**     is not.
 **
 **  fossil stash diff ?STASHID?
 **  fossil stash gdiff ?STASHID?
 **
 **     Show diffs of the current working directory and what that
-**     directory would be if STASHID were applied.  
+**     directory would be if STASHID were applied.
 **
 ** SUMMARY:
 **  fossil stash
-**  fossil stash save ?-m COMMENT? ?FILES...?
-**  fossil stash snapshot ?-m COMMENT? ?FILES...?
-**  fossil stash list|ls  ?-l? ?--detail?
+**  fossil stash save ?-m|--comment COMMENT? ?FILES...?
+**  fossil stash snapshot ?-m|--comment COMMENT? ?FILES...?
+**  fossil stash list|ls  ?-v|--verbose?
 **  fossil stash show ?STASHID? ?DIFF-OPTIONS?
 **  fossil stash pop
 **  fossil stash apply ?STASHID?
 **  fossil stash goto ?STASHID?
-**  fossil stash rm|drop ?STASHID? ?--all?
+**  fossil stash rm|drop ?STASHID? ?-a|--all?
 **  fossil stash [g]diff ?STASHID? ?DIFF-OPTIONS?
 */
 void stash_cmd(void){
   const char *zDb;
   const char *zCmd;
   int nCmd;
-  int stashid;
+  int stashid = 0;
 
   undo_capture_command_line();
   db_must_be_within_tree();
@@ -506,14 +513,17 @@ void stash_cmd(void){
   if( memcmp(zCmd, "list", nCmd)==0 || memcmp(zCmd, "ls", nCmd)==0 ){
     Stmt q, q2;
     int n = 0;
-    int fDetail = find_option("detail","l",0)!=0;
+    int verboseFlag = find_option("verbose","v",0)!=0;
+    if( !verboseFlag ){
+      verboseFlag = find_option("detail","l",0)!=0; /* deprecated */
+    }
     verify_all_options();
     db_prepare(&q,
        "SELECT stashid, (SELECT uuid FROM blob WHERE rid=vid),"
        "       comment, datetime(ctime) FROM stash"
        " ORDER BY ctime DESC"
     );
-    if( fDetail ){
+    if( verboseFlag ){
       db_prepare(&q2, "SELECT isAdded, isRemoved, origname, newname"
                       "  FROM stashfile WHERE stashid=$id");
     }
@@ -531,7 +541,7 @@ void stash_cmd(void){
         fossil_print("       ");
         comment_print(zCom, 7, 79);
       }
-      if( fDetail ){
+      if( verboseFlag ){
         db_bind_int(&q2, "$id", stashid);
         while( db_step(&q2)==SQLITE_ROW ){
           int isAdded = db_column_int(&q2, 0);
@@ -552,23 +562,32 @@ void stash_cmd(void){
       }
     }
     db_finalize(&q);
-    if( fDetail ) db_finalize(&q2);
+    if( verboseFlag ) db_finalize(&q2);
     if( n==0 ) fossil_print("empty stash\n");
   }else
   if( memcmp(zCmd, "drop", nCmd)==0 || memcmp(zCmd, "rm", nCmd)==0 ){
-    int allFlag = find_option("all", 0, 0)!=0;
-    if( g.argc>4 ) usage("drop STASHID");
+    int allFlag = find_option("all", "a", 0)!=0;
     if( allFlag ){
       Blob ans;
+      char cReply;
       blob_zero(&ans);
       prompt_user("This action is not undoable.  Continue (y/N)? ", &ans);
-      if( blob_str(&ans)[0]=='y' ){
+      cReply = blob_str(&ans)[0];
+      if( cReply=='y' || cReply=='Y' ){
         db_multi_exec("DELETE FROM stash; DELETE FROM stashfile;");
       }
-    }else{
-      stashid = stash_get_id(g.argc==4 ? g.argv[3] : 0);
+    }else if( g.argc>=4 ){
+      int i;
       undo_begin();
-      undo_save_stash(stashid);
+      for(i=3; i<g.argc; i++){
+        stashid = stash_get_id(g.argv[i]);
+        undo_save_stash(stashid);
+        stash_drop(stashid);
+      }
+      undo_finish();
+    }else{
+      undo_begin();
+      undo_save_stash(0);
       stash_drop(stashid);
       undo_finish();
     }

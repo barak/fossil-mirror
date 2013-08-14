@@ -306,9 +306,7 @@ void vfile_to_disk(
       blob_reset(&ans);
       if( cReply=='a' || cReply=='A' ){
         promptFlag = 0;
-        cReply = 'y';
-      }
-      if( cReply=='n' || cReply=='N' ){
+      } else if( cReply!='y' && cReply!='Y' ){
         blob_reset(&content);
         continue;
       }
@@ -437,6 +435,16 @@ static int is_temporary_file(const char *zName){
 ** nPrefix characters are elided from the filename.
 */
 void vfile_scan(Blob *pPath, int nPrefix, unsigned scanFlags, Glob *pIgnore){
+  vfile_scan2(pPath, nPrefix, scanFlags, pIgnore, 0);
+}
+
+void vfile_scan2(
+  Blob *pPath,
+  int nPrefix,
+  unsigned scanFlags,
+  Glob *pIgnore1,
+  Glob *pIgnore2
+){
   DIR *d;
   int origSize;
   const char *zDir;
@@ -444,12 +452,13 @@ void vfile_scan(Blob *pPath, int nPrefix, unsigned scanFlags, Glob *pIgnore){
   int skipAll = 0;
   static Stmt ins;
   static int depth = 0;
-  void *zMbcs;
+  void *zNative;
 
   origSize = blob_size(pPath);
-  if( pIgnore ){
+  if( pIgnore1 || pIgnore2 ){
     blob_appendf(pPath, "/");
-    if( glob_match(pIgnore, &blob_str(pPath)[nPrefix+1]) ) skipAll = 1;
+    if( glob_match(pIgnore1, &blob_str(pPath)[nPrefix+1]) ) skipAll = 1;
+    if( glob_match(pIgnore2, &blob_str(pPath)[nPrefix+1]) ) skipAll = 1;
     blob_resize(pPath, origSize);
   }
   if( skipAll ) return;
@@ -457,14 +466,15 @@ void vfile_scan(Blob *pPath, int nPrefix, unsigned scanFlags, Glob *pIgnore){
   if( depth==0 ){
     db_prepare(&ins,
        "INSERT OR IGNORE INTO sfile(x) SELECT :file"
-       "  WHERE NOT EXISTS(SELECT 1 FROM vfile WHERE pathname=:file)"
+       "  WHERE NOT EXISTS(SELECT 1 FROM vfile WHERE"
+       " pathname=:file %s)", filename_collation()
     );
   }
   depth++;
 
   zDir = blob_str(pPath);
-  zMbcs = fossil_utf8_to_unicode(zDir);
-  d = opendir(zMbcs);
+  zNative = fossil_utf8_to_filename(zDir);
+  d = opendir(zNative);
   if( d ){
     while( (pEntry=readdir(d))!=0 ){
       char *zPath;
@@ -474,14 +484,15 @@ void vfile_scan(Blob *pPath, int nPrefix, unsigned scanFlags, Glob *pIgnore){
         if( pEntry->d_name[1]==0 ) continue;
         if( pEntry->d_name[1]=='.' && pEntry->d_name[2]==0 ) continue;
       }
-      zUtf8 = fossil_unicode_to_utf8(pEntry->d_name);
+      zUtf8 = fossil_filename_to_utf8(pEntry->d_name);
       blob_appendf(pPath, "/%s", zUtf8);
       zPath = blob_str(pPath);
-      if( glob_match(pIgnore, &zPath[nPrefix+1]) ){
+      if( glob_match(pIgnore1, &zPath[nPrefix+1]) ||
+          glob_match(pIgnore2, &zPath[nPrefix+1]) ){
         /* do nothing */
       }else if( file_wd_isdir(zPath)==1 ){
         if( !vfile_top_of_checkout(zPath) ){
-          vfile_scan(pPath, nPrefix, scanFlags, pIgnore);
+          vfile_scan2(pPath, nPrefix, scanFlags, pIgnore1, pIgnore2);
         }
       }else if( file_wd_isfile_or_link(zPath) ){
         if( (scanFlags & SCAN_TEMP)==0 || is_temporary_file(zUtf8) ){
@@ -490,12 +501,12 @@ void vfile_scan(Blob *pPath, int nPrefix, unsigned scanFlags, Glob *pIgnore){
           db_reset(&ins);
         }
       }
-      fossil_mbcs_free(zUtf8);
+      fossil_filename_free(zUtf8);
       blob_resize(pPath, origSize);
     }
     closedir(d);
   }
-  fossil_mbcs_free(zMbcs);
+  fossil_filename_free(zNative);
 
   depth--;
   if( depth==0 ){

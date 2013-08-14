@@ -22,42 +22,42 @@
 
 /*
 ** COMMAND: finfo
-** 
+**
 ** Usage: %fossil finfo ?OPTIONS? FILENAME
 **
 ** Print the complete change history for a single file going backwards
-** in time.  The default is -l.
+** in time.  The default mode is -l.
 **
-** For the -l|--log option: If "-b|--brief" is specified one line per revision
-** is printed, otherwise the full comment is printed.  The "--limit N"
+** For the -l|--log mode: If "-b|--brief" is specified one line per revision
+** is printed, otherwise the full comment is printed.  The "-n|--limit N"
 ** and "--offset P" options limits the output to the first N changes
 ** after skipping P changes.
 **
-** In the -s form prints the status as <status> <revision>.  This is
+** In the -s mode prints the status as <status> <revision>.  This is
 ** a quick status and does not check for up-to-date-ness of the file.
 **
-** In the -p form, there's an optional flag "-r|--revision REVISION".
+** In the -p mode, there's an optional flag "-r|--revision REVISION".
 ** The specified version (or the latest checked out version) is printed
-** to stdout.
+** to stdout.  The -p mode is another form of the "cat" command.
 **
 ** Options:
-**   --brief|-b           display a brief (one line / revision) summary
-**   --limit N            display the first N changes
-**   --log|-l             select log mode (the default)
-**   --offset P           skip P changes
-**   -p                   select print mode
-**   --revision|-r R      print the given revision (or ckout, if none is given)
-**                        to stdout (only in print mode)
-**   -s                   select status mode (print a status indicator for FILE)
+**   -b|--brief           display a brief (one line / revision) summary
 **   --case-sensitive B   Enable or disable case-sensitive filenames.  B is a
 **                        boolean: "yes", "no", "true", "false", etc.
+**   -l|--log             select log mode (the default)
+**   -n|--limit N         display the first N changes
+**   --offset P           skip P changes
+**   -p|--print           select print mode
+**   -r|--revision R      print the given revision (or ckout, if none is given)
+**                        to stdout (only in print mode)
+**   -s|--status          select status mode (print a status indicator for FILE)
 **
-** See also: artifact, descendants, info, leaves
+** See also: artifact, cat, descendants, info, leaves
 */
 void finfo_cmd(void){
   capture_case_sensitive_option();
   db_must_be_within_tree();
-  if (find_option("status","s",0)) {
+  if( find_option("status","s",0) ){
     Stmt q;
     Blob line;
     Blob fname;
@@ -75,7 +75,7 @@ void finfo_cmd(void){
         "  FROM vfile WHERE vfile.pathname=%B %s",
         &fname, filename_collation());
     blob_zero(&line);
-    if ( db_step(&q)==SQLITE_ROW ) {
+    if( db_step(&q)==SQLITE_ROW ) {
       Blob uuid;
       int isDeleted = db_column_int(&q, 1);
       int isNew = db_column_int(&q,2) == 0;
@@ -142,7 +142,7 @@ void finfo_cmd(void){
     if( find_option("log","l",0) ){
       /* this is the default, no-op */
     }
-    zLimit = find_option("limit",0,1);
+    zLimit = find_option("limit","n",1);
     iLimit = zLimit ? atoi(zLimit) : -1;
     zOffset = find_option("offset",0,1);
     iOffset = zOffset ? atoi(zOffset) : 0;
@@ -187,8 +187,9 @@ void finfo_cmd(void){
       if( zBr==0 ) zBr = "trunk";
       if( iBrief ){
         fossil_print("%s ", zDate);
-        zOut = sqlite3_mprintf("[%.10s] %s (user: %s, artifact: [%.10s], branch: %s)",
-                               zCiUuid, zCom, zUser, zFileUuid, zBr);
+        zOut = sqlite3_mprintf(
+           "[%.10s] %s (user: %s, artifact: [%.10s], branch: %s)",
+           zCiUuid, zCom, zUser, zFileUuid, zBr);
         comment_print(zOut, 11, 79);
         sqlite3_free(zOut);
       }else{
@@ -206,12 +207,49 @@ void finfo_cmd(void){
   }
 }
 
+/*
+** COMMAND: cat
+**
+** Usage: %fossil cat FILENAME ... ?OPTIONS?
+**
+** Print on standard output the content of one or more files as they exist
+** in the repository.  The version currently checked out is shown by default.
+** Other versions may be specified using the -r option.
+**
+** Options:
+**    -R|--repository FILE       Extract artifacts from repository FILE
+**    -r VERSION                 The specific check-in containing the file
+**
+** See also: finfo
+*/
+void cat_cmd(void){
+  int i;
+  int rc;
+  Blob content, fname;
+  const char *zRev;
+  db_find_and_open_repository(0, 0);
+  zRev = find_option("r","r",1);
+  for(i=2; i<g.argc; i++){
+    file_tree_name(g.argv[i], &fname, 1);
+    blob_zero(&content);
+    rc = historical_version_of_file(zRev, blob_str(&fname), &content, 0,0,0,0);
+    if( rc==0 ){
+      fossil_fatal("no such file: %s", g.argv[i]);
+    }
+    blob_write_to_file(&content, "-");
+    blob_reset(&fname);
+    blob_reset(&content);
+  }
+}
+
+/* Values for the debug= query parameter to finfo */
+#define FINFO_DEBUG_MLINK  0x01
 
 /*
 ** WEBPAGE: finfo
 ** URL: /finfo?name=FILENAME
 **
-** Show the change history for a single file. 
+** Show the change history for a single file.
 **
 ** Additional query parameters:
 **
@@ -220,6 +258,7 @@ void finfo_cmd(void){
 **    n=NUM      Show the first NUM changes only
 **    brbg       Background color by branch name
 **    ubg        Background color by user name
+**    ci=UUID    Ancestors of a particular check-in
 **    fco=BOOL   Show only first occurrence of each version if true (default)
 */
 void finfo_page(void){
@@ -229,6 +268,8 @@ void finfo_page(void){
   const char *zA;
   const char *zB;
   int n;
+  int baseCheckin;
+
   Blob title;
   Blob sql;
   HQuery url;
@@ -236,6 +277,7 @@ void finfo_page(void){
   int brBg = P("brbg")!=0;
   int uBg = P("ubg")!=0;
   int firstChngOnly = atoi(PD("fco","1"))!=0;
+  int fDebug = atoi(PD("debug","0"));
 
   login_check_credentials();
   if( !g.perm.Read ){ login_needed(); return; }
@@ -244,36 +286,53 @@ void finfo_page(void){
   url_initialize(&url, "finfo");
   if( brBg ) url_add_parameter(&url, "brbg", 0);
   if( uBg ) url_add_parameter(&url, "ubg", 0);
+  baseCheckin = name_to_rid_www("ci");
+  if( baseCheckin ) firstChngOnly = 1;
   if( firstChngOnly ) url_add_parameter(&url, "fco", "0");
 
   zPrevDate[0] = 0;
   zFilename = PD("name","");
   url_add_parameter(&url, "name", zFilename);
   blob_zero(&sql);
-  blob_appendf(&sql, 
+  blob_appendf(&sql,
     "SELECT"
     " datetime(event.mtime,'localtime'),"            /* Date of change */
     " coalesce(event.ecomment, event.comment),"      /* Check-in comment */
     " coalesce(event.euser, event.user),"            /* User who made chng */
-    " mlink.pid,"                                    /* Parent rid */
+    " mlink.pid,"                                    /* Parent file rid */
     " mlink.fid,"                                    /* File rid */
     " (SELECT uuid FROM blob WHERE rid=mlink.pid),"  /* Parent file uuid */
     " (SELECT uuid FROM blob WHERE rid=mlink.fid),"  /* Current file uuid */
     " (SELECT uuid FROM blob WHERE rid=mlink.mid),"  /* Check-in uuid */
     " event.bgcolor,"                                /* Background color */
     " (SELECT value FROM tagxref WHERE tagid=%d AND tagtype>0"
-                                " AND tagxref.rid=mlink.mid)", /* Tags */
+                                " AND tagxref.rid=mlink.mid)," /* Tags */
+    " mlink.mid,"                                    /* check-in ID */
+    " mlink.pfnid",                                  /* Previous filename */
     TAG_BRANCH
   );
   if( firstChngOnly ){
+#if 0
     blob_appendf(&sql, ", min(event.mtime)");
+#else
+    blob_appendf(&sql, 
+        ", min(CASE (SELECT value FROM tagxref"
+                    " WHERE tagtype>0 AND tagid=%d"
+                    "   AND tagxref.rid=mlink.mid)"
+             " WHEN 'trunk' THEN event.mtime-10000 ELSE event.mtime END)",
+    TAG_BRANCH);
+#endif
   }
   blob_appendf(&sql,
     "  FROM mlink, event"
-    " WHERE mlink.fnid IN (SELECT fnid FROM filename WHERE name=%Q %s)"
+    " WHERE mlink.fnid IN (SELECT fnid FROM filename WHERE name=%Q)"
     "   AND event.objid=mlink.mid",
-    zFilename, filename_collation()
+    zFilename
   );
+  if( baseCheckin ){
+    compute_direct_ancestors(baseCheckin, 10000000);
+    blob_appendf(&sql,"  AND mlink.mid IN (SELECT rid FROM ancestor)");
+  }
   if( (zA = P("a"))!=0 ){
     blob_appendf(&sql, " AND event.mtime>=julianday('%q')", zA);
     url_add_parameter(&url, "a", zA);
@@ -290,22 +349,38 @@ void finfo_page(void){
     blob_appendf(&sql, " LIMIT %d", n);
     url_add_parameter(&url, "n", P("n"));
   }
-  if( firstChngOnly ){
-    style_submenu_element("Full", "Show all changes","%s",
-                          url_render(&url, "fco", "0", 0, 0));
-  }else{
-    style_submenu_element("Simplified", "Show only first use of a change","%s",
-                          url_render(&url, "fco", "1", 0, 0));
+  if( baseCheckin==0 ){
+    if( firstChngOnly ){
+      style_submenu_element("Full", "Show all changes","%s",
+                            url_render(&url, "fco", "0", 0, 0));
+    }else{
+      style_submenu_element("Simplified",
+                            "Show only first use of a change","%s",
+                            url_render(&url, "fco", "1", 0, 0));
+    }
   }
   db_prepare(&q, blob_str(&sql));
+  if( P("showsql")!=0 ){
+    @ <p>SQL: %h(blob_str(&sql))</p>
+  }
   blob_reset(&sql);
   blob_zero(&title);
-  blob_appendf(&title, "History of ");
-  hyperlinked_path(zFilename, &title, 0);
+  if( baseCheckin ){
+    char *zUuid = db_text(0, "SELECT uuid FROM blob WHERE rid=%d", baseCheckin);
+    char *zLink = href("%R/info/%S", zUuid);
+    blob_appendf(&title, "Ancestors of file ");
+    hyperlinked_path(zFilename, &title, zUuid);
+    blob_appendf(&title, " from check-in %z%.10s</a>", zLink, zUuid);
+    fossil_free(zUuid);
+  }else{
+    blob_appendf(&title, "History of files named ");
+    hyperlinked_path(zFilename, &title, 0);
+  }
   @ <h2>%b(&title)</h2>
   blob_reset(&title);
   pGraph = graph_init();
-  @ <div id="canvas" style="position:relative;width:1px;height:1px;"></div>
+  @ <div id="canvas" style="position:relative;width:1px;height:1px;"
+  @  onclick="clickOnGraph(event)"></div>
   @ <table id="timelineTable" class="timelineTable">
   while( db_step(&q)==SQLITE_ROW ){
     const char *zDate = db_column_text(&q, 0);
@@ -318,6 +393,8 @@ void finfo_page(void){
     const char *zCkin = db_column_text(&q,7);
     const char *zBgClr = db_column_text(&q, 8);
     const char *zBr = db_column_text(&q, 9);
+    int fmid = db_column_int(&q, 10);
+    int pfnid = db_column_int(&q, 11);
     int gidx;
     char zTime[10];
     char zShort[20];
@@ -328,12 +405,13 @@ void finfo_page(void){
     }else if( brBg || zBgClr==0 || zBgClr[0]==0 ){
       zBgClr = strcmp(zBr,"trunk")==0 ? "" : hash_color(zBr);
     }
-    gidx = graph_add_row(pGraph, frid, fpid>0 ? 1 : 0, &fpid, zBr, zBgClr, 0);
+    gidx = graph_add_row(pGraph, frid, fpid>0 ? 1 : 0, &fpid, zBr, zBgClr,
+                         zUuid, 0);
     if( memcmp(zDate, zPrevDate, 10) ){
       sqlite3_snprintf(sizeof(zPrevDate), zPrevDate, "%.10s", zDate);
       @ <tr><td>
       @   <div class="divider">%s(zPrevDate)</div>
-      @ </td></tr>
+      @ </td><td></td><td></td></tr>
     }
     memcpy(zTime, &zDate[11], 5);
     zTime[5] = 0;
@@ -348,21 +426,46 @@ void finfo_page(void){
     sqlite3_snprintf(sizeof(zShort), zShort, "%.10s", zUuid);
     sqlite3_snprintf(sizeof(zShortCkin), zShortCkin, "%.10s", zCkin);
     if( zUuid ){
+      if( fpid==0 ){
+        @ <b>Added</b>
+      }else if( pfnid ){
+        char *zPrevName = db_text(0, "SELECT name FROM filename WHERE fnid=%d",
+                                  pfnid);
+        @ <b>Renamed</b> from
+        @ %z(href("%R/finfo?name=%t", zPrevName))%h(zPrevName)</a>
+      }
       @ %z(href("%R/artifact/%s",zUuid))[%S(zUuid)]</a> part of check-in
     }else{
-      @ <b>Deleted</b> by check-in
+      char *zNewName;
+      zNewName = db_text(0,
+        "SELECT name FROM filename WHERE fnid = "
+        "   (SELECT fnid FROM mlink"
+        "     WHERE mid=%d"
+        "       AND pfnid IN (SELECT fnid FROM filename WHERE name=%Q))",
+        fmid, zFilename);
+      if( zNewName ){
+        @ <b>Renamed</b> to
+        @ %z(href("%R/finfo?name=%t",zNewName))%h(zNewName)</a> by check-in
+        fossil_free(zNewName);
+      }else{
+        @ <b>Deleted</b> by check-in
+      }
     }
     hyperlink_to_uuid(zShortCkin);
-    @ %h(zCom) (user: 
+    @ %w(zCom) (user:
     hyperlink_to_user(zUser, zDate, "");
     @ branch: %h(zBr))
     if( g.perm.Hyperlink && zUuid ){
       const char *z = zFilename;
       if( fpid ){
-        @ %z(href("%R/fdiff?v1=%s&v2=%s",zPUuid,zUuid))[diff]</a>
+        @ %z(href("%R/fdiff?v1=%S&v2=%S&sbs=1",zPUuid,zUuid))[diff]</a>
       }
       @ %z(href("%R/annotate?checkin=%S&filename=%h",zCkin,z))
       @ [annotate]</a>
+      @ %z(href("%R/timeline?n=200&uf=%S",zUuid))[checkins&nbsp;using]</a>
+    }
+    if( fDebug & FINFO_DEBUG_MLINK ){
+      @ fid=%d(frid), pid=%d(fpid), mid=%d(fmid)
     }
     @ </td></tr>
   }
@@ -373,12 +476,13 @@ void finfo_page(void){
       graph_free(pGraph);
       pGraph = 0;
     }else{
+      int w = (pGraph->mxRail+1)*pGraph->iRailPitch + 10;
       @ <tr><td></td><td>
-      @ <div id="grbtm" style="width:%d(pGraph->mxRail*20+30)px;"></div>
-      @     </td></tr>
+      @ <div id="grbtm" style="width:%d(w)px;"></div>
+      @     </td><td></td></tr>
     }
   }
   @ </table>
-  timeline_output_graph_javascript(pGraph, 0);
+  timeline_output_graph_javascript(pGraph, 0, 1);
   style_footer();
 }

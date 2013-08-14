@@ -140,9 +140,11 @@ void branch_new(void){
   blob_appendf(&branch, "Z %b\n", &mcksum);
   if( !noSign && clearsign(&branch, &branch) ){
     Blob ans;
+    char cReply;
     blob_zero(&ans);
     prompt_user("unable to sign manifest.  continue (y/N)? ", &ans);
-    if( blob_str(&ans)[0]!='y' ){
+    cReply = blob_str(&ans)[0];
+    if( cReply!='y' && cReply!='Y'){
       db_end_transaction(1);
       fossil_exit(1);
     }
@@ -176,7 +178,7 @@ void branch_new(void){
   db_end_transaction(0);
 
   /* Do an autosync push, if requested */
-  if( !isPrivate ) autosync(AUTOSYNC_PUSH);
+  if( !isPrivate ) autosync(SYNC_PUSH);
 }
 
 /*
@@ -238,11 +240,12 @@ void branch_prepare_list_query(Stmt *pQuery, int which ){
 **        --date-override DATE  DATE to use instead of 'now'
 **        --user-override USER  USER to use instead of the current default
 **
-**    %fossil branch list ?--all | --closed?
-**    %fossil branch ls ?--all | --closed?
+**    %fossil branch list ?-a|--all|-c|--closed?
+**    %fossil branch ls ?-a|--all|-c|--closed?
 **
-**        List all branches.  Use --all or --closed to list all branches
-**        or closed branches.  The default is to show only open branches.
+**        List all branches.  Use -a or --all to list all branches and
+**        -c or --closed to list all closed branches.  The default is to
+**        show only open branches.
 **
 ** Options:
 **    -R|--repository FILE       Run commands on repository FILE
@@ -262,8 +265,8 @@ void branch_cmd(void){
     Stmt q;
     int vid;
     char *zCurrent = 0;
-    int showAll = find_option("all",0,0)!=0;
-    int showClosed = find_option("closed",0,0)!=0;
+    int showAll = find_option("all","a",0)!=0;
+    int showClosed = find_option("closed","c",0)!=0;
 
     if( g.localOpen ){
       vid = db_lget_int("checkout", 0);
