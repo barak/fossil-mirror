@@ -1,3 +1,17 @@
+fossil (1:1.26+dfsg-1) unstable; urgency=low
+
+  * New upstream version (Closes: #718812)
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Wed, 14 Aug 2013 17:17:12 +0200
+
+fossil (1:1.24+dfsg-0.1) unstable; urgency=low
+
+  * Non-maintainer upload with maintainer approval.
+  * Remove non-free src/cson_amalgamation.{c,h} from upstream tarball
+    (closes: #692623, #692624).
+
+ -- Ivo De Decker <ivo.dedecker@ugent.be>  Sat, 01 Dec 2012 15:14:55 +0100
+
 fossil (1:1.24-1) unstable; urgency=low
 
   * New upstream version
