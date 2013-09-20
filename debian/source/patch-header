@@ -2,4 +2,4 @@ This patch contains all the Debian-specific changes mixed together.
 The reason for doing this, rather than maintaining quilt patches, is
 that the Debian-specific changes are maintained as a branch in a
 fossil repository.  To review them separately, please inspect the
-debian branch in http://cvs.bcl.hamilton.ie:8080
+debian branch in http://people.debian.org/~bap/fossil.fsl
