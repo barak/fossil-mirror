@@ -1,3 +1,11 @@
+fossil (1:1.27-1) unstable; urgency=low
+
+  * New upstream version (Closes: #718812)
+  * Include src/cson_amalgamation.{c,h} from upstream tarball: re-released
+    under free license!
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Fri, 20 Sep 2013 09:38:11 +0100
+
 fossil (1:1.26+dfsg-1) unstable; urgency=low
 
   * New upstream version (Closes: #718812)
