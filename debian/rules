@@ -3,7 +3,7 @@
 	dh $@ --parallel
 
 override_dh_auto_configure:
-	dh_auto_configure -- --disable-internal-sqlite
+	dh_auto_configure -- --disable-internal-sqlite --json
 
 override_dh_auto_install:
 
