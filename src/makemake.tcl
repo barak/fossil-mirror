@@ -72,6 +72,7 @@ set src {
   json_wiki
   leaf
   login
+  lookslike
   main
   manifest
   markdown
@@ -298,6 +299,7 @@ writeln "\t\$(XTCC) $opt -c \$(SRCDIR)/sqlite3.c -o \$(OBJDIR)/sqlite3.o\n"
 writeln "\$(OBJDIR)/shell.o:\t\$(SRCDIR)/shell.c \$(SRCDIR)/sqlite3.h"
 set opt {-Dmain=sqlite3_shell}
 append opt " -DSQLITE_OMIT_LOAD_EXTENSION=1"
+append opt " -Dsqlite3_strglob=strglob"
 writeln "\t\$(XTCC) $opt -c \$(SRCDIR)/shell.c -o \$(OBJDIR)/shell.o\n"
 
 writeln "\$(OBJDIR)/th.o:\t\$(SRCDIR)/th.c"
@@ -432,7 +434,7 @@ OPENSSLLIBDIR = $(SRCDIR)/../compat/openssl-1.0.1e
 #    directory and the target Tcl directory.  This removes the need to
 #    hard-code the necessary paths in this Makefile.
 #
-TCLDIR = $(SRCDIR)/../tcl-8.6
+TCLDIR = $(SRCDIR)/../compat/tcl-8.6
 
 #### The Tcl source code directory.  This defaults to the same value as
 #    TCLDIR macro (above), which may not be correct.  This value will
