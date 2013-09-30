@@ -1,5 +1,5 @@
-C tweak\sdebian/README.Debian
-D 2013-09-30T11:44:02.743
+C build\sdependency\son\stcl\swhich\snow\sitself\sprovides\stclsh
+D 2013-09-30T11:44:52.747
 F .fossil-settings/clean-glob c1679d70a381afc39909203441036a736fb4b596
 F .fossil-settings/ignore-glob 531bcff609de3ddf55a639f8dbaa1ded04d9ae51
 F .fossil-settings/keep-glob 531bcff609de3ddf55a639f8dbaa1ded04d9ae51
@@ -304,7 +304,7 @@ F configure 239cde01aca7fc63a2903f85bd2a6414189f1bd4 x
 F debian/README.Debian 4104aa90257a16bdf42bdedf42dbf370132eaeb5
 F debian/changelog fe6dba3a13596f004018ab704434547508a72ecd
 F debian/compat b6abd567fa79cbe0196d093a067271361dc6ca8b
-F debian/control b7a5c97c6cb1d2fcb7c48a2cbc01f1917159b8c4
+F debian/control 2142a7aaaee24ad26b779eff7fb0e44b035a90db
 F debian/copyright 29b63bf8e972b563d99210f6f37a86d2b1208fe7
 F debian/fossil.1 0aa94b217a630021c4b7fcf6b4a91dac1511c704
 F debian/fossil.docs 45a770a8534b1a439a32546145737975a9217b30
@@ -644,8 +644,8 @@ F www/tickets.wiki 74561cedee65fa362e67970911a0415f723457db
 F www/uitest.html b4160b619cb6694c0caebd13422b15a3182e5dee
 F www/webui.wiki c9caec2422fafa1a4d448cd9b36f8f9fd86c727a
 F www/wikitheory.wiki 4100c1164995d26295591cf8d4170a87ad8d1c43
-P 2b598d476d0a8113392e5ac122b4e05683d56a43
-R c2cffec0c519a67299b7e117811105e7
+P 377c406ea1737353491d971fe418dd59483ae618
+R 815f6e23ce61d55b56a5ad39a3048570
 U barak
-Z 7020d90ddb7d370cfcfdf158450df966
+Z 4ac97053bd4599be2985e156fe82ab83
 # Remove this line to create a well-formed Fossil manifest.

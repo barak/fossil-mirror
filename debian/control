@@ -6,7 +6,7 @@ Standards-Version: 3.9.4
 Build-depends: debhelper (>= 9),
 	       libsqlite3-dev,
 	       sqlite3,
-	       tcl8.5 | tclsh,
+	       tcl | tcl8.5 | tclsh,
 	       zlib1g-dev | libz-dev,
 	       libssl-dev
 Vcs-Browser: http://fossil-scm.org
