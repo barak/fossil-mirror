@@ -1,3 +1,10 @@
+fossil (1:1.27-2) unstable; urgency=low
+
+  * Build dependency on tcl for tclsh thanks to
+    Sergei Golovan <sgolovan@debian.org> (closes: #724987)
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Mon, 30 Sep 2013 12:46:31 +0100
+
 fossil (1:1.27-1) unstable; urgency=low
 
   * New upstream version (Closes: #718812)
