@@ -17,8 +17,8 @@
 **
 ** Implementation of the Setup page
 */
-#include <assert.h>
 #include "config.h"
+#include <assert.h>
 #include "setup.h"
 
 /*
@@ -729,7 +729,7 @@ void user_edit(void){
   @ To disable universal access to the repository, make sure no user named
   @ <span class="usertype">nobody</span> exists or that the
   @ <span class="usertype">nobody</span> user has no capabilities
-  @ enabled. The password for <span class="usertype">nobody</span> is ignore.
+  @ enabled. The password for <span class="usertype">nobody</span> is ignored.
   @ To avoid problems with spiders overloading the server, it is recommended
   @ that the <span class="capability">h</span> (Hyperlinks) capability be
   @ turned off for the <span class="usertype">nobody</span> user.
@@ -814,7 +814,7 @@ void entry_attribute(
     db_set(zVar, zQ, 0);
     zVal = zQ;
   }
-  @ <input type="text" name="%s(zQParm)" value="%h(zVal)" size="%d(width)"
+  @ <input type="text" id="%s(zQParm)" name="%s(zQParm)" value="%h(zVal)" size="%d(width)"
   if( disabled ){
     @ disabled="disabled"
   }
@@ -850,6 +850,33 @@ static void textarea_attribute(
       @ <span class="textareaLabel">%s(zLabel)</span>
     }
   }
+}
+
+/*
+** Generate a text box for an attribute.
+*/
+static void multiple_choice_attribute(
+  const char *zLabel,   /* The text label on the menu */
+  const char *zVar,     /* The corresponding row in the VAR table */
+  const char *zQP,      /* The query parameter */
+  const char *zDflt,    /* Default value if VAR table entry does not exist */
+  int nChoice,          /* Number of choices */
+  const char **azChoice /* Choices. 2 per choice: (VAR value, Display) */
+){
+  const char *z = db_get(zVar, (char*)zDflt);
+  const char *zQ = P(zQP);
+  int i;
+  if( zQ && fossil_strcmp(zQ,z)!=0){
+    login_verify_csrf_secret();
+    db_set(zVar, zQ, 0);
+    z = zQ;
+  }
+  @ <select size="1" name="%s(zQP)" id="id%s(zQP)">
+  for(i=0; i<nChoice*2; i+=2){
+    const char *zSel = fossil_strcmp(azChoice[i],z)==0 ? " selected" : "";
+    @ <option value="%h(azChoice[i])"%s(zSel)>%h(azChoice[i+1])</option>
+  }
+  @ </select>
 }
 
 
@@ -1126,6 +1153,12 @@ void setup_login_group(void){
 void setup_timeline(void){
   double tmDiff;
   char zTmDiff[20];
+  static const char *azTimeFormats[] = {
+      "0", "HH:MM",
+      "1", "HH:MM:SS",
+      "2", "YYYY-MM-DD HH:MM",
+      "3", "YYMMDD HH:MM"
+  };
   login_check_credentials();
   if( !g.perm.Setup ){
     login_needed();
@@ -1153,7 +1186,6 @@ void setup_timeline(void){
                   "timeline-utc", "utc", 1, 0);
   @ <p>Show times as UTC (also sometimes called Greenwich Mean Time (GMT) or
   @ Zulu) instead of in local time.  On this server, local time is currently
-  g.fTimeFormat = 2;
   tmDiff = db_double(0.0, "SELECT julianday('now')");
   tmDiff = db_double(0.0,
         "SELECT (julianday(%.17g,'localtime')-julianday(%.17g))*24.0",
@@ -1170,9 +1202,17 @@ void setup_timeline(void){
   }
 
   @ <hr />
+  multiple_choice_attribute("Per-Item Time Format", "timeline-date-format", "tdf", "0",
+                            4, azTimeFormats);
+  @ <p>If the "HH:MM" or "HH:MM:SS" format is selected, then the date is shown
+  @ in a separate box (using CSS class "timelineDate") whenever the date changes.
+  @ With the "YYYY-MM-DD&nbsp;HH:MM" and "YYMMDD ..." formats, the complete date
+  @ and time is shown on every timeline entry (using the CSS class "timelineTime").</p>
+
+  @ <hr />
   onoff_attribute("Show version differences by default",
                   "show-version-diffs", "vdiff", 0, 0);
-  @ <p>On the version-information pages linked from the timeline can either
+  @ <p>The version-information pages linked from the timeline can either
   @ show complete diffs of all file changes, or can just list the names of
   @ the files that have changed.  Users can get to either page by
   @ clicking.  This setting selects the default.</p>
@@ -1201,6 +1241,7 @@ void setup_settings(void){
     login_needed();
   }
 
+  (void) aCmdHelp; /* NOTE: Silence compiler warning. */
   style_header("Settings");
   db_open_local(0);
   db_begin_transaction();
@@ -1274,12 +1315,20 @@ void setup_config(void){
   @ <hr />
   entry_attribute("Project Name", 60, "project-name", "pn", "", 0);
   @ <p>Give your project a name so visitors know what this site is about.
-  @ The project name will also be used as the RSS feed title.</p>
+  @ The project name will also be used as the RSS feed title.
+  @ </p>
   @ <hr />
   textarea_attribute("Project Description", 3, 80,
                      "project-description", "pd", "", 0);
   @ <p>Describe your project. This will be used in page headers for search
   @ engines as well as a short RSS description.</p>
+  @ <hr />
+  entry_attribute("Tarball and ZIP-archive Prefix", 20, "short-project-name", "spn", "", 0);
+  @ <p>This is used as a prefix on the names of generated tarballs and ZIP archive.
+  @ For best results, keep this prefix brief and avoid special characters such
+  @ as "/" and "\".
+  @ If no tarball prefix is specified, then the full Project Name above is used.
+  @ </p>
   @ <hr />
   onoff_attribute("Enable WYSIWYG Wiki Editing",
                   "wysiwyg-wiki", "wysiwyg-wiki", 0, 0);
@@ -1489,7 +1538,7 @@ void setup_modreq(void){
   @ Ticket changes enter the system and are shown locally, but are not
   @ synced until they are approved.  The moderator has the option to
   @ delete the change rather than approve it.  Ticket changes made by
-  @ a user who hwas the Mod-Tkt privilege are never subject to
+  @ a user who has the Mod-Tkt privilege are never subject to
   @ moderation.
   @
   @ <hr />
@@ -1550,9 +1599,11 @@ void setup_adunit(void){
 ** WEBPAGE: setup_logo
 */
 void setup_logo(void){
+  const char *zLogoMtime = db_get_mtime("logo-image", 0, 0);
   const char *zLogoMime = db_get("logo-mimetype","image/gif");
   const char *aLogoImg = P("logoim");
   int szLogoImg = atoi(PD("logoim:bytes","0"));
+  const char *zBgMtime = db_get_mtime("background-image", 0, 0);
   const char *zBgMime = db_get("background-mimetype","image/gif");
   const char *aBgImg = P("bgim");
   int szBgImg = atoi(PD("bgim:bytes","0"));
@@ -1620,7 +1671,7 @@ void setup_logo(void){
   style_header("Edit Project Logo And Background");
   @ <p>The current project logo has a MIME-Type of <b>%h(zLogoMime)</b>
   @ and looks like this:</p>
-  @ <blockquote><p><img src="%s(g.zTop)/logo" alt="logo" border="1" />
+  @ <blockquote><p><img src="%s(g.zTop)/logo/%z(zLogoMtime)" alt="logo" border="1" />
   @ </p></blockquote>
   @
   @ <form action="%s(g.zTop)/setup_logo" method="post"
@@ -1642,7 +1693,7 @@ void setup_logo(void){
   @
   @ <p>The current background image has a MIME-Type of <b>%h(zBgMime)</b>
   @ and looks like this:</p>
-  @ <blockquote><p><img src="%s(g.zTop)/background" alt="background" border=1 />
+  @ <blockquote><p><img src="%s(g.zTop)/background/%z(zBgMtime)" alt="background" border=1 />
   @ </p></blockquote>
   @
   @ <form action="%s(g.zTop)/setup_logo" method="post"

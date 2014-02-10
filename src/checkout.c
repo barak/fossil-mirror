@@ -30,12 +30,12 @@
 **     1:   There is a modified checkout - there are unsaved changes
 **     2:   There is no existing checkout
 */
-int unsaved_changes(void){
+int unsaved_changes(unsigned int cksigFlags){
   int vid;
   db_must_be_within_tree();
   vid = db_lget_int("checkout",0);
   if( vid==0 ) return 2;
-  vfile_check_signature(vid, CKSIG_ENOTFILE);
+  vfile_check_signature(vid, cksigFlags|CKSIG_ENOTFILE);
   return db_exists("SELECT 1 FROM vfile WHERE chnged"
                    " OR coalesce(origname!=pathname,0)");
 }
@@ -105,7 +105,7 @@ void checkout_set_all_exe(int vid){
 
   /* Check the EXE permission status of all files
   */
-  pManifest = manifest_get(vid, CFTYPE_MANIFEST);
+  pManifest = manifest_get(vid, CFTYPE_MANIFEST, 0);
   if( pManifest==0 ) return;
   blob_zero(&filename);
   blob_appendf(&filename, "%s", g.zLocalRoot);
@@ -202,7 +202,7 @@ void checkout_cmd(void){
   if( (latestFlag!=0 && g.argc!=2) || (latestFlag==0 && g.argc!=3) ){
      usage("VERSION|--latest ?--force? ?--keep?");
   }
-  if( !forceFlag && unsaved_changes()==1 ){
+  if( !forceFlag && unsaved_changes(0)==1 ){
     fossil_fatal("there are unsaved changes in the current checkout");
   }
   if( forceFlag ){
@@ -222,7 +222,7 @@ void checkout_cmd(void){
                          " ORDER BY event.mtime DESC");
     }
     if( zVers==0 ){
-      fossil_fatal("cannot locate \"latest\" checkout");
+      return;
     }
   }else{
     zVers = g.argv[2];
@@ -290,7 +290,7 @@ static void unlink_local_database(int manifestOnly){
 void close_cmd(void){
   int forceFlag = find_option("force","f",0)!=0;
   db_must_be_within_tree();
-  if( !forceFlag && unsaved_changes()==1 ){
+  if( !forceFlag && unsaved_changes(0)==1 ){
     fossil_fatal("there are unsaved changes in the current checkout");
   }
   if( !forceFlag

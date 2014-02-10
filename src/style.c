@@ -177,7 +177,14 @@ void style_resolve_href(void){
     @ gebi("form%d(i+1)").action="%s(aFormAction[i])";
   }
   @ }
-  if( db_get_boolean("auto-hyperlink-mouseover",0) ){
+  if( strglob("*Opera Mini/[1-9]*", P("HTTP_USER_AGENT")) ){
+    /* Special case for Opera Mini, which executes JS server-side */
+    @ var isOperaMini = Object.prototype.toString.call(window.operamini)
+    @                   === "[object OperaMini]";
+    @ if( isOperaMini ){
+    @   setTimeout("setAllHrefs();",%d(nDelay));
+    @ }
+  }else if( db_get_boolean("auto-hyperlink-mouseover",0) ){
     /* Require mouse movement prior to activating hyperlinks */
     @ document.getElementsByTagName("body")[0].onmousemove=function(){
     @   setTimeout("setAllHrefs();",%d(nDelay));
@@ -240,6 +247,37 @@ void style_set_current_page(const char *zFormat, ...){
 }
 
 /*
+** Create a TH1 variable containing the URL for the specified config resource.
+** The resulting variable name will be of the form $[zVarPrefix]_url.
+*/
+static void url_var(
+  const char *zVarPrefix,
+  const char *zConfigName,
+  const char *zPageName
+){
+  char *zMtime = db_get_mtime(zConfigName, 0, 0);
+  char *zUrl = mprintf("%s/%s/%s%.5s", g.zTop, zPageName, zMtime,
+                       MANIFEST_UUID);
+  char *zVarName = mprintf("%s_url", zVarPrefix);
+  Th_Store(zVarName, zUrl);
+  free(zMtime);
+  free(zUrl);
+  free(zVarName);
+}
+
+/*
+** Create a TH1 variable containing the URL for the specified config image.
+** The resulting variable name will be of the form $[zImageName]_image_url.
+*/
+static void image_url_var(const char *zImageName){
+  char *zVarPrefix = mprintf("%s_image", zImageName);
+  char *zConfigName = mprintf("%s-image", zImageName);
+  url_var(zVarPrefix, zConfigName, zImageName);
+  free(zVarPrefix);
+  free(zConfigName);
+}
+
+/*
 ** Draw the header.
 */
 void style_header(const char *zTitleFormat, ...){
@@ -270,6 +308,9 @@ void style_header(const char *zTitleFormat, ...){
   Th_Store("manifest_version", MANIFEST_VERSION);
   Th_Store("manifest_date", MANIFEST_DATE);
   Th_Store("compiler_name", COMPILER_NAME);
+  url_var("stylesheet", "css", "style.css");
+  image_url_var("logo");
+  image_url_var("background");
   if( g.zLogin ){
     Th_Store("login", g.zLogin);
   }
@@ -401,13 +442,13 @@ const char zDefaultHeader[] =
 @ <title>$<project_name>: $<title></title>
 @ <link rel="alternate" type="application/rss+xml" title="RSS Feed"
 @       href="$home/timeline.rss" />
-@ <link rel="stylesheet" href="$home/style.css?default" type="text/css"
+@ <link rel="stylesheet" href="$stylesheet_url" type="text/css"
 @       media="screen" />
 @ </head>
 @ <body>
 @ <div class="header">
 @   <div class="logo">
-@     <img src="$home/logo" alt="logo" />
+@     <img src="$logo_image_url" alt="logo" />
 @   </div>
 @   <div class="title"><small>$<project_name></small><br />$<title></div>
 @   <div class="status"><th1>
@@ -425,7 +466,7 @@ const char zDefaultHeader[] =
 @   html "<a href='$home/timeline'>Timeline</a>\n"
 @ }
 @ if {[hascap oh]} {
-@   html "<a href='$home/dir?ci=tip'>Files</a>\n"
+@   html "<a href='$home/tree?ci=tip'>Files</a>\n"
 @ }
 @ if {[hascap o]} {
 @   html "<a href='$home/brlist'>Branches</a>\n"
@@ -681,6 +722,7 @@ const struct strctCssDefaults {
     "the format for the timeline time display",
     @   vertical-align: top;
     @   text-align: right;
+    @   white-space: nowrap;
   },
   { "td.timelineGraph",
     "the format for the grap placeholder cells in timelines",
@@ -730,6 +772,65 @@ const struct strctCssDefaults {
     @   margin-left: 0.5em;
     @   padding-left: 0.5em;
     @   white-space: nowrap;
+  },
+  { ".filetree",
+    "tree-view file browser",
+    @   margin: 1em 0;
+    @   line-height: 1.5;
+  },
+  { ".filetree ul",
+    "tree-view lists",
+    @   margin: 0;
+    @   padding: 0;
+    @   list-style: none;
+  },
+  { ".filetree ul ul",
+    "tree-view lists below the root",
+    @   position: relative;
+    @   margin: 0 0 0 21px;
+  },
+  { ".filetree li",
+    "tree-view lists items",
+    @   position: relative;
+  },
+  { ".filetree li li:before",
+    "tree-view node lines",
+    @   content: '';
+    @   position: absolute;
+    @   top: -.8em;
+    @   left: -14px;
+    @   width: 14px;
+    @   height: 1.5em;
+    @   border-left: 2px solid #aaa;
+    @   border-bottom: 2px solid #aaa;
+  },
+  { ".filetree ul ul:before",
+    "tree-view directory lines",
+    @   content: '';
+    @   position: absolute;
+    @   top: -1.5em;
+    @   bottom: 0;
+    @   left: -35px;
+    @   border-left: 2px solid #aaa;
+  },
+  { ".filetree li:last-child > ul:before",
+    "hide lines for last-child directories",
+    @   display: none;
+  },
+  { ".filetree a",
+    "tree-view links",
+    @   position: relative;
+    @   z-index: 1;
+    @   display: inline-block;
+    @   min-height: 16px;
+    @   padding-left: 21px;
+    @   background-image: url(data:image/gif;base64,R0lGODlhEAAQAJEAAP\/\/\/yEhIf\/\/\/wAAACH5BAEHAAIALAAAAAAQABAAAAIvlIKpxqcfmgOUvoaqDSCxrEEfF14GqFXImJZsu73wepJzVMNxrtNTj3NATMKhpwAAOw==);
+    @   background-position: center left;
+    @   background-repeat: no-repeat;
+  },
+  { ".filetree .dir > a",
+    "tree-view directory links",
+    @   background-image: url(data:image/gif;base64,R0lGODlhEAAQAJEAAP/WVCIiIv\/\/\/wAAACH5BAEHAAIALAAAAAAQABAAAAInlI9pwa3XYniCgQtkrAFfLXkiFo1jaXpo+jUs6b5Z/K4siDu5RPUFADs=);
   },
   { "table.login_out",
     "table format for login/out label/input table",
@@ -1108,14 +1209,14 @@ void cgi_append_default_css(void) {
   for (i=0;cssDefaultList[i].elementClass;i++){
     if (cssDefaultList[i].elementClass[0]){
       cgi_printf("/* %s */\n%s {\n%s\n}\n\n",
-		 cssDefaultList[i].comment,
-		 cssDefaultList[i].elementClass,
-		 cssDefaultList[i].value
-		);
+                 cssDefaultList[i].comment,
+                 cssDefaultList[i].elementClass,
+                 cssDefaultList[i].value
+                );
     }else{
       cgi_printf("%s",
-		 cssDefaultList[i].value
-		);
+                 cssDefaultList[i].value
+                );
     }
   }
 }
@@ -1145,6 +1246,8 @@ void page_style_css(void){
   */
   Th_Store("baseurl", g.zBaseURL);
   Th_Store("home", g.zTop);
+  image_url_var("logo");
+  image_url_var("background");
   Th_Render(blob_str(&css));
 
   /* Tell CGI that the content returned by this page is considered cacheable */
@@ -1220,5 +1323,5 @@ void page_test_env(void){
 */
 void honeypot_page(void){
   cgi_set_status(403, "Forbidden");
-  @ <p>Access by spiders and robots is forbidden</p>
+  @ <p>Please enable javascript or log in to see this content</p>
 }
