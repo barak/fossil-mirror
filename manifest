@@ -1,5 +1,5 @@
-C accept\subuntu\sautotools-dev\spatch
-D 2014-03-07T11:21:53.215
+C log\schanges
+D 2014-03-07T11:25:54.019
 F .fossil-settings/clean-glob c1679d70a381afc39909203441036a736fb4b596
 F .fossil-settings/ignore-glob 402e93887552ebde5e8c4757982630b7de319b59
 F .fossil-settings/keep-glob 402e93887552ebde5e8c4757982630b7de319b59
@@ -306,7 +306,7 @@ F compat/zlib/zutil.c e1af709bff21ae0d4331119a7fc4c19f82932043
 F compat/zlib/zutil.h b909d27ef9ce51639f76b7ea6b62721e7d1b6bf7
 F configure 239cde01aca7fc63a2903f85bd2a6414189f1bd4 x
 F debian/README.Debian 4104aa90257a16bdf42bdedf42dbf370132eaeb5
-F debian/changelog 9a68a46d3348ba1a73c30b32f1ebc2ed57ba8301
+F debian/changelog f447ef0da64bdd8e1e5e57c0d9f9c64aeba15130
 F debian/compat b6abd567fa79cbe0196d093a067271361dc6ca8b
 F debian/control f56292969af917f33fe6feab9c3b0f1ae80a7748
 F debian/copyright 29b63bf8e972b563d99210f6f37a86d2b1208fe7
@@ -652,8 +652,8 @@ F www/tickets.wiki 74561cedee65fa362e67970911a0415f723457db
 F www/uitest.html b4160b619cb6694c0caebd13422b15a3182e5dee
 F www/webui.wiki c9caec2422fafa1a4d448cd9b36f8f9fd86c727a
 F www/wikitheory.wiki 4100c1164995d26295591cf8d4170a87ad8d1c43
-P bcc2e17b3a70134f1addc7555da4bbb1078a7d6b
-R b467683f8b375c5cac1eb2d2b2636d74
+P 67baa1caf0e993fc60ef44c60aae9caf0aafd530
+R 73a90b31901d5ba81a65de27a3756b30
 U barak
-Z aeaf38e6cdc681f8c6893961436f59eb
+Z c3b2f84fd0360bb96b09393dd37d7420
 # Remove this line to create a well-formed Fossil manifest.

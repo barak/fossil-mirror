@@ -1,8 +1,12 @@
-fossil (1:1.27-2ubuntu1) trusty; urgency=low
+fossil (1:1.28-2) unstable; urgency=medium
 
+  [ Daniel T Chen ]
   * Use autotools-dev for arm64.
 
- -- Daniel T Chen <crimsun@ubuntu.com>  Thu, 13 Feb 2014 12:25:25 -0500
+  [ Barak A. Pearlmutter ]
+  * Merge ubuntu patch
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Fri, 07 Mar 2014 11:25:19 +0000
 
 fossil (1:1.28-1) unstable; urgency=medium
 
