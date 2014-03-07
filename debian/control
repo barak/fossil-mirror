@@ -4,6 +4,7 @@ Priority: optional
 Maintainer: Barak A. Pearlmutter <bap@debian.org>
 Standards-Version: 3.9.5
 Build-depends: debhelper (>= 9),
+	       autotools-dev,
 	       libsqlite3-dev,
 	       sqlite3,
 	       tcl | tcl8.5 | tclsh,
