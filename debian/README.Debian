@@ -32,7 +32,7 @@ Brief "cheat sheet" of relevant fossil commands.
  fossil tag add upstream_${VER} ${ID}
  fossil merge upstream_${VER}
  fossil commit -m "merge upstream_${VER}"
- debchange --append --newversion=${VER}-${DEBVER} New upstream version
+ debchange --newversion=${VER}-${DEBVER} New upstream version
  fossil commit -m 'update debian/changelog'
 
  # build debian release
@@ -72,4 +72,4 @@ Brief "cheat sheet" of relevant fossil commands.
  # less recently created checkouts may have _FOSSIL_ instead of
  # .fslckout, edit any commands mentioning this file appropriately.
 
- -- Barak A. Pearlmutter <bap@debian.org>, Mon, 30 Sep 2013 12:43:12 +0100
+ -- Barak A. Pearlmutter <bap@debian.org>, Sat, 21 Jun 2014 19:50:01 +0200
