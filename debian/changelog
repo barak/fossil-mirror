@@ -2,8 +2,9 @@ fossil (1:1.29-1) unstable; urgency=medium
 
   * New upstream version
   * debchange --newversion no longer needs --append (README.Debian)
+  * disable dh_auto_test due to scary warning in src/main.mk target test
 
- -- Barak A. Pearlmutter <bap@debian.org>  Sat, 21 Jun 2014 19:51:02 +0200
+ -- Barak A. Pearlmutter <bap@debian.org>  Sat, 21 Jun 2014 21:32:47 +0200
 
 fossil (1:1.28-2) unstable; urgency=medium
 
