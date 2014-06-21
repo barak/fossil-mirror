@@ -50,6 +50,13 @@ if {[llength $argv]==0} {
   }
 }
 
+set tempPath [expr {[info exists env(TEMP)] ? \
+    $env(TEMP) : [file dirname [info script]]}]
+
+if {$tcl_platform(platform) eq "windows"} then {
+  set tempPath [string map [list \\ /] $tempPath]
+}
+
 # start protocol
 #
 proc protInit {cmd} {
@@ -91,7 +98,7 @@ proc fossil {args} {
   set RESULT $result
 }
 
-# Read a file into memory. 
+# Read a file into memory.
 #
 proc read_file {filename} {
   set in [open $filename r]
@@ -121,6 +128,60 @@ proc same_file {a b} {
   set y [read_file $b]
   regsub -all { +\n} $y \n y
   return [expr {$x==$y}]
+}
+
+# Create and open a new Fossil repository and clean the checkout
+#
+proc repo_init {{filename ".rep.fossil"}} {
+  if {$::env(HOME) ne [pwd]} {
+    catch {exec $::fossilexe info} res
+    if {![regexp {use --repository} $res]} {
+      error "In an open checkout: cannot initialize a new repository here."
+    }
+    # Fossil will write data on $HOME, running 'fossil new' here.
+    # We need not to clutter the $HOME of the test caller.
+    #
+    set ::env(HOME) [pwd]
+  }
+  catch {exec $::fossilexe close -f}
+  file delete $filename
+  exec $::fossilexe new $filename
+  exec $::fossilexe open $filename
+  exec $::fossilexe clean -f
+  exec $::fossilexe set mtime-changes off
+}
+
+# Normalize file status lists (like those returned by 'fossil changes')
+# so they can be compared using simple string comparison
+#
+proc normalize_status_list {list} {
+  set normalized [list]
+  set matches [regexp -all -inline -line {^\s*([A-Z_]+:?)\x20+(\S.*)$} $list]
+  foreach {_ status file} $matches {
+    lappend normalized [list $status [string trim $file]]
+  }
+  set normalized [lsort -index 1 $normalized]
+  return $normalized
+}
+
+# Perform a test comparing two status lists
+#
+proc test_status_list {name result expected} {
+  set expected [normalize_status_list $expected]
+  set result [normalize_status_list $result]
+  if {$result eq $expected} {
+    test $name 1
+  } else {
+    protOut "  Expected:\n    [join $expected "\n    "]"
+    protOut "  Got:\n    [join $result "\n    "]"
+    test $name 0
+  }
+}
+
+# Append all arguments into a single value and then returns it.
+#
+proc appendArgs {args} {
+  eval append result $args
 }
 
 # Perform a test

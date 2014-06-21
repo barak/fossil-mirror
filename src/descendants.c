@@ -159,38 +159,21 @@ void compute_leaves(int iBase, int closeMode){
 ** the "ok" table.
 */
 void compute_ancestors(int rid, int N, int directOnly){
-  Bag seen;
-  PQueue queue;
-  Stmt ins;
-  Stmt q;
-  bag_init(&seen);
-  pqueuex_init(&queue);
-  bag_insert(&seen, rid);
-  pqueuex_insert(&queue, rid, 0.0, 0);
-  db_prepare(&ins, "INSERT OR IGNORE INTO ok VALUES(:rid)");
-  db_prepare(&q,
-    "SELECT a.pid, b.mtime FROM plink a LEFT JOIN plink b ON b.cid=a.pid"
-    " WHERE a.cid=:rid %s",
-    directOnly ? " AND a.isprim" : ""
+  db_multi_exec(
+    "WITH RECURSIVE "
+    "  ancestor(rid, mtime) AS ("
+    "    SELECT %d, mtime FROM event WHERE objid=%d "
+    "    UNION "
+    "    SELECT plink.pid, event.mtime"
+    "      FROM ancestor, plink, event"
+    "     WHERE plink.cid=ancestor.rid"
+    "       AND event.objid=plink.pid %s"
+    "     ORDER BY mtime DESC LIMIT %d"
+    "  )"
+    "INSERT INTO ok"
+    "  SELECT rid FROM ancestor;",
+    rid, rid, directOnly ? "AND plink.isPrim" : "", N
   );
-  while( (N--)>0 && (rid = pqueuex_extract(&queue, 0))!=0 ){
-    db_bind_int(&ins, ":rid", rid);
-    db_step(&ins);
-    db_reset(&ins);
-    db_bind_int(&q, ":rid", rid);
-    while( db_step(&q)==SQLITE_ROW ){
-      int pid = db_column_int(&q, 0);
-      double mtime = db_column_double(&q, 1);
-      if( bag_insert(&seen, pid) ){
-        pqueuex_insert(&queue, pid, -mtime, 0);
-      }
-    }
-    db_reset(&q);
-  }
-  bag_clear(&seen);
-  pqueuex_clear(&queue);
-  db_finalize(&ins);
-  db_finalize(&q);
 }
 
 /*
@@ -348,10 +331,12 @@ void descendants_cmd(void){
 ** repository database to be recomputed.
 **
 ** Options:
-**   -a|--all     show ALL leaves
-**   -c|--closed  show only closed leaves
-**   --bybranch   order output by branch name
-**   --recompute  recompute the "leaf" table in the repository DB
+**   -a|--all         show ALL leaves
+**   -c|--closed      show only closed leaves
+**   --bybranch       order output by branch name
+**   --recompute      recompute the "leaf" table in the repository DB
+**   -W|--width <num> With of lines (default 79). Must be >39 or 0
+**                    (= no limit, resulting in a single line per entry).
 **
 ** See also: descendants, finfo, info, branch
 */
@@ -362,10 +347,19 @@ void leaves_cmd(void){
   int showClosed = find_option("closed", "c", 0)!=0;
   int recomputeFlag = find_option("recompute",0,0)!=0;
   int byBranch = find_option("bybranch",0,0)!=0;
+  const char *zWidth = find_option("width","W",1);
   char *zLastBr = 0;
-  int n;
+  int n, width;
   char zLineNo[10];
 
+  if( zWidth ){
+    width = atoi(zWidth);
+    if( (width!=0) && (width<=39) ){
+      fossil_fatal("-W|--width value must be >39 or 0");
+    }
+  }else{
+    width = 79;
+  }
   db_find_and_open_repository(0,0);
   if( recomputeFlag ) leaf_rebuild();
   blob_zero(&sql);
@@ -401,7 +395,7 @@ void leaves_cmd(void){
     sqlite3_snprintf(sizeof(zLineNo), zLineNo, "(%d)", n);
     fossil_print("%6s ", zLineNo);
     z = mprintf("%s [%.10s] %s", zDate, zId, zCom);
-    comment_print(z, 7, 79);
+    comment_print(z, 7, width);
     fossil_free(z);
   }
   fossil_free(zLastBr);
@@ -466,12 +460,6 @@ void leaves_page(void){
   www_print_timeline(&q, TIMELINE_LEAFONLY, 0, 0, 0);
   db_finalize(&q);
   @ <br />
-  @ <script  type="text/JavaScript">
-  @ function xin(id){
-  @ }
-  @ function xout(id){
-  @ }
-  @ </script>
   style_footer();
 }
 

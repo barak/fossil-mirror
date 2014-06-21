@@ -227,6 +227,15 @@ void blob_set(Blob *pBlob, const char *zStr){
 }
 
 /*
+** Initialize a blob to a nul-terminated string obtained from fossil_malloc().
+** The blob will take responsibility for freeing the string.
+*/
+void blob_set_dynamic(Blob *pBlob, char *zStr){
+  blob_init(pBlob, zStr, -1);
+  pBlob->xRealloc = blobReallocMalloc;
+}
+
+/*
 ** Initialize a blob to an empty string.
 */
 void blob_zero(Blob *pBlob){
@@ -779,44 +788,13 @@ int blob_write_to_file(Blob *pBlob, const char *zFilename){
 #endif
     fwrite(blob_buffer(pBlob), 1, nWrote, stdout);
   }else{
-    int i, nName;
-    char *zName, zBuf[1000];
-
-    nName = strlen(zFilename);
-    if( nName>=sizeof(zBuf) ){
-      zName = mprintf("%s", zFilename);
-    }else{
-      zName = zBuf;
-      memcpy(zName, zFilename, nName+1);
-    }
-    nName = file_simplify_name(zName, nName, 0);
-    for(i=1; i<nName; i++){
-      if( zName[i]=='/' ){
-        zName[i] = 0;
-#if defined(_WIN32) || defined(__CYGWIN__)
-        /*
-        ** On Windows, local path looks like: C:/develop/project/file.txt
-        ** The if stops us from trying to create a directory of a drive letter
-        ** C: in this example.
-        */
-        if( !(i==2 && zName[1]==':') ){
-#endif
-          if( file_mkdir(zName, 1) && file_isdir(zName)!=1 ){
-            fossil_fatal_recursive("unable to create directory %s", zName);
-            return 0;
-          }
-#if defined(_WIN32) || defined(__CYGWIN__)
-        }
-#endif
-        zName[i] = '/';
-      }
-    }
-    out = fossil_fopen(zName, "wb");
+    file_mkfolder(zFilename, 1);
+    out = fossil_fopen(zFilename, "wb");
     if( out==0 ){
-      fossil_fatal_recursive("unable to open file \"%s\" for writing", zName);
+      fossil_fatal_recursive("unable to open file \"%s\" for writing",
+                             zFilename);
       return 0;
     }
-    if( zName!=zBuf ) free(zName);
     blob_is_init(pBlob);
     nWrote = fwrite(blob_buffer(pBlob), 1, blob_size(pBlob), out);
     fclose(out);
@@ -1097,9 +1075,7 @@ void blob_swap( Blob *pLeft, Blob *pRight ){
 void blob_to_utf8_no_bom(Blob *pBlob, int useMbcs){
   char *zUtf8;
   int bomSize = 0;
-#if defined(_WIN32) || defined(__CYGWIN__)
   int bomReverse = 0;
-#endif
   if( starts_with_utf8_bom(pBlob, &bomSize) ){
     struct Blob temp;
     zUtf8 = blob_str(pBlob) + bomSize;
@@ -1107,7 +1083,6 @@ void blob_to_utf8_no_bom(Blob *pBlob, int useMbcs){
     blob_append(&temp, zUtf8, -1);
     blob_swap(pBlob, &temp);
     blob_reset(&temp);
-#if defined(_WIN32) || defined(__CYGWIN__)
   }else if( starts_with_utf16_bom(pBlob, &bomSize, &bomReverse) ){
     zUtf8 = blob_buffer(pBlob);
     if( bomReverse ){
@@ -1124,10 +1099,7 @@ void blob_to_utf8_no_bom(Blob *pBlob, int useMbcs){
     blob_append(pBlob, "", 1);
     zUtf8 = blob_str(pBlob) + bomSize;
     zUtf8 = fossil_unicode_to_utf8(zUtf8);
-    blob_zero(pBlob);
-    blob_append(pBlob, zUtf8, -1);
-    fossil_unicode_free(zUtf8);
-#endif /* _WIN32 ||  __CYGWIN__ */
+    blob_set_dynamic(pBlob, zUtf8);
 #if defined(_WIN32)
   }else if( useMbcs ){
     zUtf8 = fossil_mbcs_to_utf8(blob_str(pBlob));

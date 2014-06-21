@@ -26,6 +26,7 @@ set src {
   blob
   branch
   browse
+  cache
   captcha
   cgi
   checkin
@@ -71,6 +72,7 @@ set src {
   json_user
   json_wiki
   leaf
+  loadctrl
   login
   lookslike
   main
@@ -148,11 +150,14 @@ set SQLITE_OPTIONS {
 set SHELL_OPTIONS {
   -Dmain=sqlite3_shell
   -DSQLITE_OMIT_LOAD_EXTENSION=1
+  -DUSE_SYSTEM_SQLITE=$(USE_SYSTEM_SQLITE)
+  -DSQLITE_SHELL_DBNAME_PROC=fossil_open
 }
 
 # Options used to compile the included SQLite shell on Windows.
 #
 set SHELL_WIN32_OPTIONS $SHELL_OPTIONS
+lappend SHELL_WIN32_OPTIONS -Daccess=file_access
 lappend SHELL_WIN32_OPTIONS -Dgetenv=fossil_getenv
 lappend SHELL_WIN32_OPTIONS -Dfopen=fossil_fopen
 
@@ -266,19 +271,12 @@ SQLITE3_OBJ.1 =
 SQLITE3_OBJ.0 = $(OBJDIR)/sqlite3.o
 SQLITE3_OBJ.  = $(SQLITE3_OBJ.0)
 
-# The FOSSIL_ENABLE_TCL variable may be undefined, set to 0, or set to 1.
-# If it is set to 1, then we need to build the Tcl integration code and
-# link to the Tcl library.
-TCL_OBJ.0 = 
-TCL_OBJ.1 = $(OBJDIR)/th_tcl.o
-TCL_OBJ. = $(TCL_OBJ.0)
-
 EXTRAOBJ = \
   $(SQLITE3_OBJ.$(USE_SYSTEM_SQLITE)) \
   $(OBJDIR)/shell.o \
   $(OBJDIR)/th.o \
   $(OBJDIR)/th_lang.o \
-  $(TCL_OBJ.$(FOSSIL_ENABLE_TCL)) \
+  $(OBJDIR)/th_tcl.o \
   $(OBJDIR)/cson_amalgamation.o
 
 $(APPNAME):	$(OBJDIR)/headers $(OBJ) $(EXTRAOBJ)
@@ -425,6 +423,10 @@ BCC = gcc
 #
 # FOSSIL_ENABLE_TCL_PRIVATE_STUBS = 1
 
+#### Use 'system' sqlite
+#
+# USE_SYSTEM_SQLITE = 1
+
 #### Use the Tcl source directory instead of the install directory?
 #    This is useful when Tcl has been compiled statically with MinGW.
 #
@@ -449,8 +451,8 @@ ZLIBDIR = $(SRCDIR)/../compat/zlib
 #    to create a hard link between an "openssl-1.x" sub-directory of the
 #    Fossil source code directory and the target OpenSSL source directory.
 #
-OPENSSLINCDIR = $(SRCDIR)/../compat/openssl-1.0.1f/include
-OPENSSLLIBDIR = $(SRCDIR)/../compat/openssl-1.0.1f
+OPENSSLINCDIR = $(SRCDIR)/../compat/openssl-1.0.1h/include
+OPENSSLLIBDIR = $(SRCDIR)/../compat/openssl-1.0.1h
 
 #### Either the directory where the Tcl library is installed or the Tcl
 #    source code directory resides (depending on the value of the macro
@@ -570,6 +572,10 @@ LIB = -static
 # MinGW: If available, use the Unicode capable runtime startup code.
 ifndef MINGW_IS_32BIT_ONLY
 LIB += -municode
+endif
+
+ifdef USE_SYSTEM_SQLITE
+LIB += -lsqlite3
 endif
 
 # OpenSSL: Add the necessary libraries required, if enabled.
@@ -717,16 +723,21 @@ test:	$(OBJDIR) $(APPNAME)
 $(OBJDIR)/VERSION.h:	$(SRCDIR)/../manifest.uuid $(SRCDIR)/../manifest $(VERSION)
 	$(VERSION) $(SRCDIR)/../manifest.uuid $(SRCDIR)/../manifest $(SRCDIR)/../VERSION >$(OBJDIR)/VERSION.h
 
+# The USE_SYSTEM_SQLITE variable may be undefined, set to 0, or set
+# to 1. If it is set to 1, then there is no need to build or link
+# the sqlite3.o object. Instead, the system sqlite will be linked
+# using -lsqlite3.
+SQLITE3_OBJ.1 =
+SQLITE3_OBJ.0 = $(OBJDIR)/sqlite3.o
+SQLITE3_OBJ.  = $(SQLITE3_OBJ.0)
+
 EXTRAOBJ = \
-  $(OBJDIR)/sqlite3.o \
+  $(SQLITE3_OBJ.$(USE_SYSTEM_SQLITE)) \
   $(OBJDIR)/shell.o \
   $(OBJDIR)/th.o \
   $(OBJDIR)/th_lang.o \
+  $(OBJDIR)/th_tcl.o \
   $(OBJDIR)/cson_amalgamation.o
-
-ifdef FOSSIL_ENABLE_TCL
-EXTRAOBJ +=  $(OBJDIR)/th_tcl.o
-endif
 
 zlib:
 	$(MAKE) -C $(ZLIBDIR) PREFIX=$(PREFIX) -f win32/Makefile.gcc libz.a
@@ -797,7 +808,7 @@ foreach s [lsort $src] {
 }
 
 set MINGW_SQLITE_OPTIONS $SQLITE_OPTIONS
-lappend MINGW_SQLITE_OPTIONS -D_HAVE_SQLITE_CONFIG_H
+lappend MINGW_SQLITE_OPTIONS -D_HAVE__MINGW_H
 lappend MINGW_SQLITE_OPTIONS -DSQLITE_USE_MALLOC_H
 lappend MINGW_SQLITE_OPTIONS -DSQLITE_USE_MSIZE
 
@@ -806,14 +817,14 @@ writeln "SQLITE_OPTIONS = [join $MINGW_SQLITE_OPTIONS $j]\n"
 set j " \\\n                "
 writeln "SHELL_OPTIONS = [join $SHELL_WIN32_OPTIONS $j]\n"
 
-writeln "\$(OBJDIR)/sqlite3.o:\t\$(SRCDIR)/sqlite3.c win/Makefile.mingw"
+writeln "\$(OBJDIR)/sqlite3.o:\t\$(SRCDIR)/sqlite3.c \$(SRCDIR)/../win/Makefile.mingw"
 writeln "\t\$(XTCC) \$(SQLITE_OPTIONS) \$(SQLITE_CFLAGS) -c \$(SRCDIR)/sqlite3.c -o \$(OBJDIR)/sqlite3.o\n"
 
 writeln "\$(OBJDIR)/cson_amalgamation.o:\t\$(SRCDIR)/cson_amalgamation.c"
 writeln "\t\$(XTCC) -c \$(SRCDIR)/cson_amalgamation.c -o \$(OBJDIR)/cson_amalgamation.o\n"
 writeln "\$(OBJDIR)/json.o \$(OBJDIR)/json_artifact.o \$(OBJDIR)/json_branch.o \$(OBJDIR)/json_config.o \$(OBJDIR)/json_diff.o \$(OBJDIR)/json_dir.o \$(OBJDIR)/jsos_finfo.o \$(OBJDIR)/json_login.o \$(OBJDIR)/json_query.o \$(OBJDIR)/json_report.o \$(OBJDIR)/json_status.o \$(OBJDIR)/json_tag.o \$(OBJDIR)/json_timeline.o \$(OBJDIR)/json_user.o \$(OBJDIR)/json_wiki.o : \$(SRCDIR)/json_detail.h\n"
 
-writeln "\$(OBJDIR)/shell.o:\t\$(SRCDIR)/shell.c \$(SRCDIR)/sqlite3.h win/Makefile.mingw"
+writeln "\$(OBJDIR)/shell.o:\t\$(SRCDIR)/shell.c \$(SRCDIR)/sqlite3.h \$(SRCDIR)/../win/Makefile.mingw"
 writeln "\t\$(XTCC) \$(SHELL_OPTIONS) \$(SHELL_CFLAGS) -c \$(SRCDIR)/shell.c -o \$(OBJDIR)/shell.o\n"
 
 writeln "\$(OBJDIR)/th.o:\t\$(SRCDIR)/th.c"
@@ -822,10 +833,8 @@ writeln "\t\$(XTCC) -c \$(SRCDIR)/th.c -o \$(OBJDIR)/th.o\n"
 writeln "\$(OBJDIR)/th_lang.o:\t\$(SRCDIR)/th_lang.c"
 writeln "\t\$(XTCC) -c \$(SRCDIR)/th_lang.c -o \$(OBJDIR)/th_lang.o\n"
 
-writeln {ifdef FOSSIL_ENABLE_TCL
-$(OBJDIR)/th_tcl.o:	$(SRCDIR)/th_tcl.c
-	$(XTCC) -c $(SRCDIR)/th_tcl.c -o $(OBJDIR)/th_tcl.o
-endif}
+writeln "\$(OBJDIR)/th_tcl.o:\t\$(SRCDIR)/th_tcl.c"
+writeln "\t\$(XTCC) -c \$(SRCDIR)/th_tcl.c -o \$(OBJDIR)/th_tcl.o\n"
 
 close $output_file
 #
@@ -1018,10 +1027,19 @@ P      = .pdb
 # Uncomment to enable SSL support
 # FOSSIL_ENABLE_SSL = 1
 
+# Uncomment to enable Tcl support
+# FOSSIL_ENABLE_TCL = 1
+
 !ifdef FOSSIL_ENABLE_SSL
-SSLINCDIR = $(B)\compat\openssl-1.0.1f\include
-SSLLIBDIR = $(B)\compat\openssl-1.0.1f\out32
+SSLINCDIR = $(B)\compat\openssl-1.0.1h\include
+SSLLIBDIR = $(B)\compat\openssl-1.0.1h\out32
 SSLLIB    = ssleay32.lib libeay32.lib user32.lib gdi32.lib
+!endif
+
+!ifdef FOSSIL_ENABLE_TCL
+TCLDIR    = $(B)\compat\tcl-8.6
+TCLSRCDIR = $(TCLDIR)
+TCLINCDIR = $(TCLSRCDIR)\generic
 !endif
 
 # zlib options
@@ -1029,38 +1047,53 @@ ZINCDIR   = $(B)\compat\zlib
 ZLIBDIR   = $(B)\compat\zlib
 ZLIB      = zlib.lib
 
-INCL      = -I. -I$(SRCDIR) -I$B\win\include -I$(ZINCDIR)
+INCL      = /I. /I$(SRCDIR) /I$B\win\include /I$(ZINCDIR)
 
 !ifdef FOSSIL_ENABLE_SSL
-INCL      = $(INCL) -I$(SSLINCDIR)
+INCL      = $(INCL) /I$(SSLINCDIR)
 !endif
 
-CFLAGS    = -nologo
+!ifdef FOSSIL_ENABLE_TCL
+INCL      = $(INCL) /I$(TCLINCDIR)
+!endif
+
+CFLAGS    = /nologo
 LDFLAGS   = /NODEFAULTLIB:msvcrt /MANIFEST:NO
 
 !ifdef DEBUG
-CFLAGS    = $(CFLAGS) -Zi -MTd -Od
+CFLAGS    = $(CFLAGS) /Zi /MTd /Od
 LDFLAGS   = $(LDFLAGS) /DEBUG
 !else
-CFLAGS    = $(CFLAGS) -MT -O2
+CFLAGS    = $(CFLAGS) /MT /O2
 !endif
 
 BCC       = $(CC) $(CFLAGS)
-TCC       = $(CC) -c $(CFLAGS) $(MSCDEF) $(INCL)
-RCC       = rc -D_WIN32 -D_MSC_VER $(MSCDEF) $(INCL)
+TCC       = $(CC) /c $(CFLAGS) $(MSCDEF) $(INCL)
+RCC       = rc /D_WIN32 /D_MSC_VER $(MSCDEF) $(INCL)
 LIBS      = $(ZLIB) ws2_32.lib advapi32.lib
-LIBDIR    = -LIBPATH:$(ZLIBDIR)
+LIBDIR    = /LIBPATH:$(ZLIBDIR)
 
 !ifdef FOSSIL_ENABLE_JSON
-TCC       = $(TCC) -DFOSSIL_ENABLE_JSON=1
-RCC       = $(RCC) -DFOSSIL_ENABLE_JSON=1
+TCC       = $(TCC) /DFOSSIL_ENABLE_JSON=1
+RCC       = $(RCC) /DFOSSIL_ENABLE_JSON=1
 !endif
 
 !ifdef FOSSIL_ENABLE_SSL
-TCC       = $(TCC) -DFOSSIL_ENABLE_SSL=1
-RCC       = $(RCC) -DFOSSIL_ENABLE_SSL=1
+TCC       = $(TCC) /DFOSSIL_ENABLE_SSL=1
+RCC       = $(RCC) /DFOSSIL_ENABLE_SSL=1
 LIBS      = $(LIBS) $(SSLLIB)
-LIBDIR    = $(LIBDIR) -LIBPATH:$(SSLLIBDIR)
+LIBDIR    = $(LIBDIR) /LIBPATH:$(SSLLIBDIR)
+!endif
+
+!ifdef FOSSIL_ENABLE_TCL
+TCC       = $(TCC) /DFOSSIL_ENABLE_TCL=1
+RCC       = $(RCC) /DFOSSIL_ENABLE_TCL=1
+TCC       = $(TCC) /DFOSSIL_ENABLE_TCL_STUBS=1
+RCC       = $(RCC) /DFOSSIL_ENABLE_TCL_STUBS=1
+TCC       = $(TCC) /DFOSSIL_ENABLE_TCL_PRIVATE_STUBS=1
+RCC       = $(RCC) /DFOSSIL_ENABLE_TCL_PRIVATE_STUBS=1
+TCC       = $(TCC) /DUSE_TCL_STUBS=1
+RCC       = $(RCC) /DUSE_TCL_STUBS=1
 !endif
 }
 regsub -all {[-]D} [join $SQLITE_OPTIONS { }] {/D} MSC_SQLITE_OPTIONS
@@ -1081,7 +1114,7 @@ foreach s [lsort $src] {
   writeln -nonewline "${s}_.c"; incr i
 }
 writeln "\n"
-set AdditionalObj [list shell sqlite3 th th_lang cson_amalgamation]
+set AdditionalObj [list shell sqlite3 th th_lang th_tcl cson_amalgamation]
 writeln -nonewline "OBJ   = "
 set i 0
 foreach s [lsort [concat $src $AdditionalObj]] {
@@ -1092,7 +1125,7 @@ foreach s [lsort [concat $src $AdditionalObj]] {
   writeln -nonewline "\$(OX)\\$s\$O"; incr i
 }
 writeln " \\"
-writeln -nonewline "        \$(OX)\\fossil.res\n"
+writeln -nonewline "        \$(OX)\\fossil.res\n\n"
 writeln {
 APPNAME = $(OX)\fossil$(E)
 PDBNAME = $(OX)\fossil$(P)
@@ -1105,7 +1138,7 @@ zlib:
 
 $(APPNAME) : translate$E mkindex$E headers $(OBJ) $(OX)\linkopts zlib
 	cd $(OX) 
-	link $(LDFLAGS) -OUT:$@ $(LIBDIR) Wsetargv.obj fossil.res @linkopts
+	link $(LDFLAGS) /OUT:$@ $(LIBDIR) Wsetargv.obj fossil.res @linkopts
 
 $(OX)\linkopts: $B\win\Makefile.msc}
 set redir {>}
@@ -1113,10 +1146,9 @@ foreach s [lsort [concat $src $AdditionalObj]] {
   writeln "\techo \$(OX)\\$s.obj $redir \$@"
   set redir {>>}
 }
-writeln "\techo \$(LIBS) >> \$@\n\n"
-
+set redir {>>}
+writeln "\techo \$(LIBS) $redir \$@"
 writeln {
-
 $(OX):
 	@-mkdir $@
 
@@ -1144,10 +1176,13 @@ $(OX)\th$O : $(SRCDIR)\th.c
 $(OX)\th_lang$O : $(SRCDIR)\th_lang.c
 	$(TCC) /Fo$@ -c $**
 
+$(OX)\th_tcl$O : $(SRCDIR)\th_tcl.c
+	$(TCC) /Fo$@ -c $**
+
 VERSION.h : mkversion$E $B\manifest.uuid $B\manifest $B\VERSION
 	$** > $@
 $(OX)\cson_amalgamation$O : $(SRCDIR)\cson_amalgamation.c
-	$(TCC) /Fo$@ -c $**
+	$(TCC) /Fo$@ /c $**
 
 page_index.h: mkindex$E $(SRC) 
 	$** > $@
@@ -1186,7 +1221,6 @@ $(OBJDIR)\json_tag$O : $(SRCDIR)\json_detail.h
 $(OBJDIR)\json_timeline$O : $(SRCDIR)\json_detail.h
 $(OBJDIR)\json_user$O : $(SRCDIR)\json_detail.h
 $(OBJDIR)\json_wiki$O : $(SRCDIR)\json_detail.h
-
 }
 foreach s [lsort $src] {
   writeln "\$(OX)\\$s\$O : ${s}_.c ${s}.h"
@@ -1196,7 +1230,7 @@ foreach s [lsort $src] {
 }
 
 writeln "fossil.res : \$B\\win\\fossil.rc"
-writeln "\t\$(RCC)  -fo \$@ \$**"
+writeln "\t\$(RCC)  /fo \$@ \$**\n"
 
 writeln "headers: makeheaders\$E page_index.h VERSION.h"
 writeln -nonewline "\tmakeheaders\$E "

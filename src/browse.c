@@ -87,7 +87,7 @@ void hyperlinked_path(
     for(j=i; zPath[j] && zPath[j]!='/'; j++){}
     if( zPath[j] && g.perm.Hyperlink ){
       if( zCI ){
-        char *zLink = href("%R/%s?ci=%S&name=%#T%s", zURI, zCI, j, zPath,zREx);
+        char *zLink = href("%R/%s?name=%#T%s&ci=%s", zURI, j, zPath, zREx, zCI);
         blob_appendf(pOut, "%s%z%#h</a>",
                      zSep, zLink, j-i, &zPath[i]);
       }else{
@@ -181,14 +181,11 @@ void page_dir(void){
                           url_render(&sURI, "ci", "tip", 0, 0));
   }
   if( zCI ){
-    char zShort[20];
-    memcpy(zShort, zUuid, 10);
-    zShort[10] = 0;
-    @ <h2>Files of check-in [%z(href("vinfo?name=%T",zUuid))%s(zShort)</a>]
+    @ <h2>Files of check-in [%z(href("vinfo?name=%s",zUuid))%.10s(zUuid)</a>]
     @ %s(blob_str(&dirname))</h2>
-    zSubdirLink = mprintf("%R/dir?ci=%S&name=%T", zUuid, zPrefix);
+    zSubdirLink = mprintf("%R/dir?ci=%s&name=%T", zUuid, zPrefix);
     if( nD==0 ){
-      style_submenu_element("File Ages", "File Ages", "%R/fileage?name=%S",
+      style_submenu_element("File Ages", "File Ages", "%R/fileage?name=%s",
                             zUuid);
     }
   }else{
@@ -420,6 +417,7 @@ void page_tree(void){
   HQuery sURI;             /* Hyperlink */
   int startExpanded;       /* True to start out with the tree expanded */
   int showDirOnly;         /* Show directories only.  Omit files */
+  int nDir = 0;            /* Number of directories. Used for ID attributes */
   char *zProjectName = db_get("project-name", 0);
 
   if( strcmp(PD("type",""),"flat")==0 ){ page_dir(); return; }
@@ -491,7 +489,7 @@ void page_tree(void){
     style_submenu_element("All", "All", "%s",
                           url_render(&sURI, "ci", 0, 0, 0));
     if( nD==0 && !showDirOnly ){
-      style_submenu_element("File Ages", "File Ages", "%R/fileage?name=%S",
+      style_submenu_element("File Ages", "File Ages", "%R/fileage?name=%s",
                             zUuid);
     }
   }
@@ -518,9 +516,7 @@ void page_tree(void){
         "CREATE TEMP TABLE filelist("
         "   x TEXT PRIMARY KEY COLLATE nocase,"
         "   uuid TEXT"
-        ")%s;",
-        /* Can be removed as soon as SQLite 3.8.2 is sufficiently wide-spread */
-        sqlite3_libversion_number()>=3008002 ? " WITHOUT ROWID" : ""
+        ") WITHOUT ROWID;"
     );
     db_prepare(&ins, "INSERT OR IGNORE INTO filelist VALUES(:f,:u)");
     manifest_file_rewind(pM);
@@ -577,7 +573,7 @@ void page_tree(void){
     if( sqlite3_strnicmp(zCI, zUuid, (int)strlen(zCI))!=0 ){
       @ "%h(zCI)"
     }
-    @ [%z(href("vinfo?name=%T",zUuid))%S(zUuid)</a>] %s(blob_str(&dirname))</h2>
+    @ [%z(href("vinfo?name=%s",zUuid))%S(zUuid)</a>] %s(blob_str(&dirname))</h2>
   }else{
     int n = db_int(0, "SELECT count(*) FROM plink");
     @ <h2>%d(nFile) %s(zObjType) from all %d(n) check-ins
@@ -598,33 +594,33 @@ void page_tree(void){
   */
   @ <div class="filetree"><ul>
   if( nD ){
-    @ <li class="dir">
+    @ <li class="dir last">
   }else{
-    @ <li class="dir subdir">
+    @ <li class="dir subdir last">
   }
   @ %z(href("%s",url_render(&sURI,"name",0,0,0)))%h(zProjectName)</a>
   @ <ul>
-  for(p=sTree.pFirst; p; p=p->pNext){
+  for(p=sTree.pFirst, nDir=0; p; p=p->pNext){
+    const char *zLastClass = p->isLast ? " last" : "";
     if( p->isDir ){
-      if( p->nFullName==nD-1 ){
-        @ <li class="dir subdir">
-      }else{
-        @ <li class="dir">
-      }
+      const char *zSubdirClass = p->nFullName==nD-1 ? " subdir" : "";
+      @ <li class="dir%s(zSubdirClass)%s(zLastClass)">
       @ %z(href("%s",url_render(&sURI,"name",p->zFullName,0,0)))%h(p->zName)</a>
       if( startExpanded || p->nFullName<=nD ){
-        @ <ul>
+        @ <ul id="dir%d(nDir)">
       }else{
-        @ <ul style='display:none;'>
+        @ <ul id="dir%d(nDir)" class="collapsed">
       }
+      nDir++;
     }else if( !showDirOnly ){
+      const char *zFileClass = fileext_class(p->zName);
       char *zLink;
       if( zCI ){
-        zLink = href("%R/artifact/%S",p->zUuid);
+        zLink = href("%R/artifact/%s",p->zUuid);
       }else{
         zLink = href("%R/finfo?name=%T",p->zFullName);
       }
-      @ <li class="%z(fileext_class(p->zName))">%z(zLink)%h(p->zName)</a>
+      @ <li class="%z(zFileClass)%s(zLastClass)">%z(zLink)%h(p->zName)</a>
     }
     if( p->isLast ){
       int nClose = p->iLevel - (p->pNext ? p->pNext->iLevel : 0);
@@ -636,38 +632,72 @@ void page_tree(void){
   @ </ul>
   @ </ul></div>
   @ <script>(function(){
-  @ function style(elem, prop){
-  @   return window.getComputedStyle(elem).getPropertyValue(prop);
+  @ function isExpanded(ul){
+  @   return ul.className=='';
   @ }
   @
-  @ function toggleAll(tree){
-  @   var lists = tree.querySelectorAll('.subdir > ul > li ul');
-  @   var display = 'block';  /* Default action: make all sublists visible */
-  @   for( var i=0; lists[i]; i++ ){
-  @     if( style(lists[i], 'display')!='none'){
-  @       display = 'none'; /* Any already visible - make them all hidden */
-  @       break;
-  @     }
+  @ function toggleDir(ul, useInitValue){
+  @   if( !useInitValue ){
+  @     expandMap[ul.id] = !isExpanded(ul);
+  @     history.replaceState(expandMap, '');
   @   }
+  @   ul.className = expandMap[ul.id] ? '' : 'collapsed';
+  @ }
+  @
+  @ function toggleAll(tree, useInitValue){
+  @   var lists = tree.querySelectorAll('.subdir > ul > li ul');
+  @   if( !useInitValue ){
+  @     var expand = true;  /* Default action: make all sublists visible */
+  @     for( var i=0; lists[i]; i++ ){
+  @       if( isExpanded(lists[i]) ){
+  @         expand = false; /* Any already visible - make them all hidden */
+  @         break;
+  @       }
+  @     }
+  @     expandMap = {'*': expand};
+  @     history.replaceState(expandMap, '');
+  @   }
+  @   var className = expandMap['*'] ? '' : 'collapsed';
   @   for( var i=0; lists[i]; i++ ){
-  @     lists[i].style.display = display;
+  @     lists[i].className = className;
   @   }
   @ }
-  @ 
+  @
+  @ function checkState(){
+  @   expandMap = history.state || {};
+  @   if( '*' in expandMap ) toggleAll(outer_ul, true);
+  @   for( var id in expandMap ){
+  @     if( id!=='*' ) toggleDir(gebi(id), true);
+  @   }
+  @ }
+  @
+  @ function belowSubdir(node){
+  @   do{
+  @     node = node.parentNode;
+  @     if( node==subdir ) return true;
+  @   } while( node && node!=outer_ul );
+  @   return false;
+  @ }
+  @
+  @ var history = window.history || {};
+  @ if( !history.replaceState ) history.replaceState = function(){};
   @ var outer_ul = document.querySelector('.filetree > ul');
   @ var subdir = outer_ul.querySelector('.subdir');
-  @ outer_ul.onclick = function( e ){
-  @   var a = e.target;
+  @ var expandMap = {};
+  @ checkState();
+  @ outer_ul.onclick = function(e){
+  @   e = e || window.event;
+  @   var a = e.target || e.srcElement;
   @   if( a.nodeName!='A' ) return true;
   @   if( a.parentNode==subdir ){
   @     toggleAll(outer_ul);
   @     return false;
   @   }
-  @   if( !subdir.contains(a) ) return true;
+  @   if( !belowSubdir(a) ) return true;
   @   var ul = a.nextSibling;
   @   while( ul && ul.nodeName!='UL' ) ul = ul.nextSibling;
   @   if( !ul ) return true; /* This is a file link, not a directory */
-  @   ul.style.display = style(ul, 'display')=='none' ? 'block' : 'none';
+  @   toggleDir(ul);
   @   return false;
   @ }
   @ }())</script>
@@ -701,9 +731,10 @@ const char *fileext_class(const char *zFilename){
 ** Look at all file containing in the version "vid".  Construct a
 ** temporary table named "fileage" that contains the file-id for each
 ** files, the pathname, the check-in where the file was added, and the
-** mtime on that checkin.
+** mtime on that checkin. If zGlob and *zGlob then only files matching
+** the given glob are computed.
 */
-int compute_fileage(int vid){
+int compute_fileage(int vid, char const * zGlob){
   Manifest *pManifest;
   ManifestFile *pFile;
   int nFile = 0;
@@ -711,6 +742,7 @@ int compute_fileage(int vid){
   Stmt ins;
   Stmt q1, q2, q3;
   Stmt upd;
+  if(zGlob && !*zGlob) zGlob = NULL;
   db_multi_exec(
     /*"DROP TABLE IF EXISTS temp.fileage;"*/
     "CREATE TEMP TABLE fileage("
@@ -729,6 +761,7 @@ int compute_fileage(int vid){
      "  SELECT rid, :path FROM blob WHERE uuid=:uuid"
   );
   while( (pFile = manifest_file_next(pManifest, 0))!=0 ){
+    if(zGlob && !strglob(zGlob, pFile->zName)) continue;
     db_bind_text(&ins, ":uuid", pFile->zUuid);
     db_bind_text(&ins, ":path", pFile->zName);
     db_step(&ins);
@@ -776,16 +809,18 @@ int compute_fileage(int vid){
 ** WEBPAGE:  fileage
 **
 ** Parameters:
-**   name=VERSION
+**   name=VERSION   Selects the checkin version (default=tip).
+**   glob=STRING    Only shows files matching this glob pattern
+**                  (e.g. *.c or *.txt).
 */
 void fileage_page(void){
   int rid;
   const char *zName;
   char *zBaseTime;
+  char const * zGlob;
   Stmt q;
   double baseTime;
   int lastMid = -1;
-
   login_check_credentials();
   if( !g.perm.Read ){ login_needed(); return; }
   zName = P("name");
@@ -796,7 +831,8 @@ void fileage_page(void){
   }
   style_submenu_element("Tree-View", "Tree-View", "%R/tree?ci=%T", zName);
   style_header("File Ages", zName);
-  compute_fileage(rid);
+  zGlob = P("glob");
+  compute_fileage(rid,zGlob);
   baseTime = db_double(0.0, "SELECT mtime FROM event WHERE objid=%d", rid);
   zBaseTime = db_text("","SELECT datetime(%.20g%s)", baseTime, timeline_utc());
   @ <h2>File Ages For Check-in
@@ -838,7 +874,7 @@ void fileage_page(void){
     @ <tr>
     @ <td>%s(zAge)
     @ <td width="25">
-    @ <td>%z(href("%R/artifact/%S?ln", zFUuid))%h(db_column_text(&q, 3))</a>
+    @ <td>%z(href("%R/artifact/%s?ln", zFUuid))%h(db_column_text(&q, 3))</a>
     @ </tr>
     @
   }

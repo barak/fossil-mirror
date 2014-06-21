@@ -36,8 +36,9 @@ int comment_print(const char *zText, int indent, int lineLength){
   int doIndent = 0;
   char *zBuf;
   char zBuffer[400];
-  int lineCnt = 0; 
+  int lineCnt = 0;
 
+  if( zText==0 ) zText = "(NULL)";
   if( tlen<=0 ){
     tlen = strlen(zText);
   }
