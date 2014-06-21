@@ -5,6 +5,15 @@
 override_dh_auto_configure:
 	dh_auto_configure -- --disable-internal-sqlite --json
 
+# From src/main.mk:
+#
+# WARNING. DANGER. Running the test suite modifies the repository the
+# build is done from, i.e. the checkout belongs to. Do not sync/push
+# the repository after running the tests.
+
+override_dh_auto_test:
+	@echo skipping test due to scary warning in src/main.mk
+
 override_dh_auto_install:
 
 override_dh_installdocs:
