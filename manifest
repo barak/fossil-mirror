@@ -1,5 +1,5 @@
-C merge\supstream_1:1.33
-D 2015-07-10T20:38:08.118
+C update\sdebian/changelog
+D 2015-07-10T20:51:45.013
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/clean-glob c1679d70a381afc39909203441036a736fb4b596
 F .fossil-settings/encoding-glob f72f509f8101fb1f252c5719175a300aaabce8e0
@@ -307,7 +307,7 @@ F compat/zlib/zutil.c e1af709bff21ae0d4331119a7fc4c19f82932043
 F compat/zlib/zutil.h b909d27ef9ce51639f76b7ea6b62721e7d1b6bf7
 F configure 239cde01aca7fc63a2903f85bd2a6414189f1bd4 x
 F debian/README.Debian 8c466f7a600c1fcf21c6507921a9279a86fb151d
-F debian/changelog 539f22800d1590794fbbe819120dc079cee9f3ec
+F debian/changelog 7fe3da4f8cb4f1e7e4fd76337778039d467df426
 F debian/compat b6abd567fa79cbe0196d093a067271361dc6ca8b
 F debian/control f56292969af917f33fe6feab9c3b0f1ae80a7748
 F debian/copyright 29b63bf8e972b563d99210f6f37a86d2b1208fe7
@@ -322,7 +322,7 @@ F debian/source/patch-header 84c8aca673f2fc094c29a10bd519fca36a57e9f6
 F debian/watch 6761f44df048b7be1ed9ac89d23c31d24c091ec7
 F fossil.1 2947f4d66ede5508f4fbe501e1e965df3b3a243d
 F setup/fossil.iss 57e01e1feb0198de025417c0a98f1d4b1c444f53
-F setup/fossil.nsi 688d5a732b08facc529dceeb9fb1ce5c9aa050ab w fossil.nsi
+F setup/fossil.nsi 688d5a732b08facc529dceeb9fb1ce5c9aa050ab
 F skins/README.md d81aeb05fb12f16afde4760671d3d45fe87a37f3
 F skins/aht/details.txt b8f20e99b2dd421f72f686b286f04c0283f242c5
 F skins/black_and_white/css.txt 569f06d046846930594299a1e38714b50e0c74a7
@@ -724,7 +724,7 @@ F www/mkdownload.tcl 2adb240f61ff7f6027e5f00b5920f74b9e6680f2
 F www/mkindex.tcl fc48247219c0dde8e35b723a25de85e11c63d58f
 F www/newrepo.wiki f0b0a01e2dcf85b2d50f14196775e89c808a3b0b
 F www/password.wiki 336916afde4ff470e87fc43066063623a9a74c8a
-F www/permutedindex.html 2499997e14dba536be940b5e856164c21a276ebe w www/permutedindex.wiki
+F www/permutedindex.html 2499997e14dba536be940b5e856164c21a276ebe
 F www/pop.wiki 759734461ff700ab2cf94bec8f1eba08b239a092
 F www/private.wiki 72344489bbae6f7955369559b6ab22e01a64259b
 F www/qandc.wiki e07b21da221b05afeb1905f17af3765045952ba8
@@ -749,8 +749,8 @@ F www/uitest.html b4160b619cb6694c0caebd13422b15a3182e5dee
 F www/webpage-ex.md 72a7965e3c53ea04beb0bbac5e11757b308b2059
 F www/webui.wiki 7fe551ac712f1036d3927f983e6469962fe4402d
 F www/wikitheory.wiki 06d46f731993c0d0ab1c9b202fea77a6dbd6a7a8
-P 568dced21aba8e60577f9d92556deeca88fa381c 9c65b5432e4aeecf3556e5550c338ce93fd861cc
-R 2452514916fef407e758ff9159bb5fa3
+P 3f07cf9724117c1b3c2ceda451db6c076483e5c9
+R d7d8850c562e0496a6b037288c9d1162
 U barak
-Z d2c8a86621f7410f7f5e5958efe0c0bd
+Z a8ee23d8ff5145cbc775cc0c7a1e7cc8
 # Remove this line to create a well-formed Fossil manifest.
