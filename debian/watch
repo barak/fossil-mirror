@@ -1,3 +1,6 @@
 version=3
-http://www.fossil-scm.org/download.html \
- download/fossil-src-(\d\d\d\d)(\d\d)(\d\d)(.*).tar.gz
+
+# new version style
+opts="downloadurlmangle=s:/download.html/:/:" \
+https://www.fossil-scm.org/download.html \
+ .*/fossil-src-(\d*\.\d*)\.(?:zip|tgz|tbz|txz|(?:tar\.(?:gz|bz2|xz)))
