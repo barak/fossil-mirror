@@ -1,5 +1,5 @@
-C change\sunknown\sconfiguration\soption\sfrom\serror\sto\swarning
-D 2015-07-11T20:57:50.051
+C update\sdebian/changelog
+D 2015-07-11T21:01:27.588
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/clean-glob c1679d70a381afc39909203441036a736fb4b596
 F .fossil-settings/encoding-glob f72f509f8101fb1f252c5719175a300aaabce8e0
@@ -307,7 +307,7 @@ F compat/zlib/zutil.c e1af709bff21ae0d4331119a7fc4c19f82932043
 F compat/zlib/zutil.h b909d27ef9ce51639f76b7ea6b62721e7d1b6bf7
 F configure 239cde01aca7fc63a2903f85bd2a6414189f1bd4 x
 F debian/README.Debian 8c466f7a600c1fcf21c6507921a9279a86fb151d
-F debian/changelog 7fe3da4f8cb4f1e7e4fd76337778039d467df426
+F debian/changelog 182cf7ee598ba035ffa4c7500c5798ea9b06b9d0
 F debian/compat b6abd567fa79cbe0196d093a067271361dc6ca8b
 F debian/control f56292969af917f33fe6feab9c3b0f1ae80a7748
 F debian/copyright 29b63bf8e972b563d99210f6f37a86d2b1208fe7
@@ -749,8 +749,8 @@ F www/uitest.html b4160b619cb6694c0caebd13422b15a3182e5dee
 F www/webpage-ex.md 72a7965e3c53ea04beb0bbac5e11757b308b2059
 F www/webui.wiki 7fe551ac712f1036d3927f983e6469962fe4402d
 F www/wikitheory.wiki 06d46f731993c0d0ab1c9b202fea77a6dbd6a7a8
-P c4a31e0545b75ed7c10269c72381fde0703173d8
-R 2a0dd7c7400a28d2fa18bc9fa872366b
+P 049545857cecd1ca97d98f80fc7058f72ccd7366
+R 032f997f097edcafeaaa5d3764428c01
 U barak
-Z c5e5106bac068355577077f9f0f7c9e8
+Z 9a7a473007e223640a978d805d9d7ece
 # Remove this line to create a well-formed Fossil manifest.
