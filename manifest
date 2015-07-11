@@ -1,5 +1,5 @@
-C update\sdebian/changelog
-D 2015-07-11T23:38:04.565
+C use\supstream\sman\spage\sfollil.1,\sremove\sdebian/fossil.1
+D 2015-07-11T23:49:21.303
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/clean-glob c1679d70a381afc39909203441036a736fb4b596
 F .fossil-settings/encoding-glob f72f509f8101fb1f252c5719175a300aaabce8e0
@@ -311,10 +311,9 @@ F debian/changelog 7104df90329cb028c315f2167570fed406006307
 F debian/compat b6abd567fa79cbe0196d093a067271361dc6ca8b
 F debian/control d8ff692f49133213e4f1151806c53c88a298f440
 F debian/copyright 29b63bf8e972b563d99210f6f37a86d2b1208fe7
-F debian/fossil.1 0aa94b217a630021c4b7fcf6b4a91dac1511c704
 F debian/fossil.docs 45a770a8534b1a439a32546145737975a9217b30
 F debian/fossil.install 8ae909034651ad9b0a72cd10460fed7b9e51f627
-F debian/fossil.manpages a54d8f1ffdace2473552a7903f51d059edc38a07
+F debian/fossil.manpages 8ca3a843375393ec37484e4dbae3d4dfe5b4ddcf
 F debian/rules 7d6814d13a021f24cdb66bf021da9ec585032df7 x
 F debian/source/format 1064dc0ce263680c076a1005f35ec906a5cf5a32
 F debian/source/local-options 58a65fc3dfe4bbb8692c99e80334fba1e913f072
@@ -749,8 +748,8 @@ F www/uitest.html b4160b619cb6694c0caebd13422b15a3182e5dee
 F www/webpage-ex.md 72a7965e3c53ea04beb0bbac5e11757b308b2059
 F www/webui.wiki 7fe551ac712f1036d3927f983e6469962fe4402d
 F www/wikitheory.wiki 06d46f731993c0d0ab1c9b202fea77a6dbd6a7a8
-P 2f685e7e3ecabb6b4e39c36274c88392a0590b0f
-R 3185dda9e0685c069a43b32b98ec3032
+P bd97cb73068243a100517b7465c1f9f8acf8d24f
+R 2596b7280b9e1b59e92f33848d269079
 U barak
-Z 840d47f63454f01ee979438a655bb0fc
+Z 8246160feb8056c206f47a5e126245ac
 # Remove this line to create a well-formed Fossil manifest.
