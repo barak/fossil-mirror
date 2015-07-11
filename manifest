@@ -1,5 +1,5 @@
-C debian\sbuild\sdependency\son\slibreadline-dev,\sto\senable\sfunctionality
-D 2015-07-11T23:36:08.068
+C debian\sbuild\sdependency\son\slibfuse-dev,\sto\senable\sfunctionality
+D 2015-07-11T23:36:44.729
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/clean-glob c1679d70a381afc39909203441036a736fb4b596
 F .fossil-settings/encoding-glob f72f509f8101fb1f252c5719175a300aaabce8e0
@@ -309,7 +309,7 @@ F configure 239cde01aca7fc63a2903f85bd2a6414189f1bd4 x
 F debian/README.Debian 8c466f7a600c1fcf21c6507921a9279a86fb151d
 F debian/changelog 182cf7ee598ba035ffa4c7500c5798ea9b06b9d0
 F debian/compat b6abd567fa79cbe0196d093a067271361dc6ca8b
-F debian/control 306ac716afda3ce7e20ddc9300c32dc1dab90743
+F debian/control d8ff692f49133213e4f1151806c53c88a298f440
 F debian/copyright 29b63bf8e972b563d99210f6f37a86d2b1208fe7
 F debian/fossil.1 0aa94b217a630021c4b7fcf6b4a91dac1511c704
 F debian/fossil.docs 45a770a8534b1a439a32546145737975a9217b30
@@ -749,8 +749,8 @@ F www/uitest.html b4160b619cb6694c0caebd13422b15a3182e5dee
 F www/webpage-ex.md 72a7965e3c53ea04beb0bbac5e11757b308b2059
 F www/webui.wiki 7fe551ac712f1036d3927f983e6469962fe4402d
 F www/wikitheory.wiki 06d46f731993c0d0ab1c9b202fea77a6dbd6a7a8
-P 9d5d38c07ec0b328ca696f3944ee7200c1ab790b
-R 72a59cc25ea8ac5a5d4ebd6646fede0f
+P 18b9f90e92c7ac3d82db9949e3bd2c4f2b6753c6
+R 4eb6e622149a07a3abc9731c9e2a4602
 U barak
-Z bfa38be4385c0377b86bc7ced72c31aa
+Z 4240fbd034232ff7273b872c92518d46
 # Remove this line to create a well-formed Fossil manifest.
