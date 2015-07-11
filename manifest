@@ -1,5 +1,5 @@
-C update\sdebian/changelog
-D 2015-07-10T20:51:45.013
+C change\sunknown\sconfiguration\soption\sfrom\serror\sto\swarning
+D 2015-07-11T20:57:50.051
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/clean-glob c1679d70a381afc39909203441036a736fb4b596
 F .fossil-settings/encoding-glob f72f509f8101fb1f252c5719175a300aaabce8e0
@@ -48,7 +48,7 @@ F art/encode9.tex 84df5abf42b007748ec0ea1e3bd4ad2628502335
 F auto.def e70a82048f77a7f67461cd7a06a287313e066531
 F autosetup/LICENSE 34b2f1d7acba3eeb992e4281307640989cd08d0a
 F autosetup/README.autosetup 4e0b671b54288fc64d851d056822ee5fec4d3365
-F autosetup/autosetup f80eb8d3ebc34b06b08095daf8d964a898ea2777 x
+F autosetup/autosetup 81cb02c15279da3890a59576594c240fa2f997f1 x
 F autosetup/cc-db.tcl 2789d831c2f4ac5364d6aaf0ea922b5fad382f4d
 F autosetup/cc-lib.tcl 3c6bbfcb75eacfd4d5b060b9da74bfbf6e932305
 F autosetup/cc-shared.tcl 6634fa62ced64692179819ef83eb0ade13f6f7d0
@@ -749,8 +749,8 @@ F www/uitest.html b4160b619cb6694c0caebd13422b15a3182e5dee
 F www/webpage-ex.md 72a7965e3c53ea04beb0bbac5e11757b308b2059
 F www/webui.wiki 7fe551ac712f1036d3927f983e6469962fe4402d
 F www/wikitheory.wiki 06d46f731993c0d0ab1c9b202fea77a6dbd6a7a8
-P 3f07cf9724117c1b3c2ceda451db6c076483e5c9
-R d7d8850c562e0496a6b037288c9d1162
+P c4a31e0545b75ed7c10269c72381fde0703173d8
+R 2a0dd7c7400a28d2fa18bc9fa872366b
 U barak
-Z a8ee23d8ff5145cbc775cc0c7a1e7cc8
+Z c5e5106bac068355577077f9f0f7c9e8
 # Remove this line to create a well-formed Fossil manifest.
