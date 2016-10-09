@@ -97,7 +97,7 @@ int looks_like_utf8(const Blob *pContent, int stopFlags){
   }else if( c=='\r' ){
     flags |= LOOK_CR;
     if( n<=1 || z[1]!='\n' ){
-      flags |= LOOK_LONE_CR;  /* More chars, next char is not LF */
+      flags |= LOOK_LONE_CR;  /* Not enough chars or next char not LF */
     }
   }
   j = (c!='\n');
@@ -121,7 +121,7 @@ int looks_like_utf8(const Blob *pContent, int stopFlags){
     }else if( c=='\r' ){
       flags |= LOOK_CR;
       if( n<=1 || z[1]!='\n' ){
-        flags |= LOOK_LONE_CR;  /* More chars, next char is not LF */
+        flags |= LOOK_LONE_CR;  /* Not enough chars or next char not LF */
       }
     }
   }
@@ -159,11 +159,18 @@ int invalid_utf8(const Blob *pContent){
     c2 = c;
     c = *++z;
     if( c2>=0x80 ){
-      if( ((c2<0xc2) || (c2>=0xf4) || ((c&0xc0)!=0x80)) &&
-          (((c2!=0xf4) || (c>=0x90)) && ((c2!=0xc0) || (c!=0x80))) ){
+      if( ((c&0xc0)!=0x80) || (((c2<0xc2) || (c2>=0xf4)) &&
+          (((c2!=0xf4) || (c>=0x90)) && ((c2!=0xc0) || (c!=0x80)))) ){
         return LOOK_INVALID; /* Invalid UTF-8 */
       }
-      c = (c2 >= 0xe0) ? (c2<<1)+1 : ' ';
+      if( c2>=0xe0 ){
+        if ((c2==0xf0 && c<0x90)||(c2==0xe0 && c<0xa0) ){
+          return LOOK_INVALID; /* Invalid UTF-8, too short */
+        }
+        c = (c2<<1)|3;
+      }else{
+        c = ' ';
+      }
     }
   }
   return (c>=0x80) ? LOOK_INVALID : 0; /* Last byte must be ASCII. */
@@ -246,7 +253,7 @@ int looks_like_utf16(const Blob *pContent, int bReverse, int stopFlags){
   }else if( c=='\r' ){
     flags |= LOOK_CR;
     if( n<(2*sizeof(WCHAR_T)) || UTF16_SWAP_IF(bReverse, z[1])!='\n' ){
-      flags |= LOOK_LONE_CR;  /* More chars, next char is not LF */
+      flags |= LOOK_LONE_CR;  /* Not enough chars or next char not LF */
     }
   }
   j = (c!='\n');
@@ -274,7 +281,7 @@ int looks_like_utf16(const Blob *pContent, int bReverse, int stopFlags){
     }else if( c=='\r' ){
       flags |= LOOK_CR;
       if( n<(2*sizeof(WCHAR_T)) || UTF16_SWAP_IF(bReverse, z[1])!='\n' ){
-        flags |= LOOK_LONE_CR;  /* More chars, next char is not LF */
+        flags |= LOOK_LONE_CR;  /* Not enough chars or next char not LF */
       }
     }
   }
