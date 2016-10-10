@@ -1,6 +1,6 @@
 fossil (1:1.35-2) unstable; urgency=medium
 
-  * Merge NMU (thanks Osamu and Sergei!)
+  * Acknowledge and merge NMU (thanks Osamu and Sergei!)
     - migrate debian/patches/ to fossil commits
     - changes to debian/rules:
       - Use upstream build and install script
@@ -12,8 +12,9 @@ fossil (1:1.35-2) unstable; urgency=medium
       - tweak VCS fields for https
       - multi-arch
   * Re-enable parallel build
+  * Fix some upstream spelling errors (thanks, lintian!)
 
- -- Barak A. Pearlmutter <bap@debian.org>  Mon, 10 Oct 2016 16:11:13 +0100
+ -- Barak A. Pearlmutter <bap@debian.org>  Mon, 10 Oct 2016 16:37:06 +0100
 
 fossil (1:1.35-1.1) unstable; urgency=low
 
