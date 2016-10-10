@@ -1,9 +1,17 @@
 #!/usr/bin/make -f
+
+DEB_BUILD_MAINT_OPTIONS=hardening=+all
+export DEB_BUILD_MAINT_OPTIONS
+include /usr/share/dpkg/architecture.mk
+
 %:
 	dh $@ --parallel --with autotools-dev
 
 override_dh_auto_configure:
-	dh_auto_configure -- --disable-internal-sqlite --json
+	dh_auto_configure -- --disable-internal-sqlite --json \
+			     --with-th1-docs --with-th1-hooks \
+			     --with-tcl=/usr/lib/$(DEB_HOST_MULTIARCH) \
+			     --with-tcl-stubs
 
 # From src/main.mk:
 #
@@ -14,7 +22,13 @@ override_dh_auto_configure:
 override_dh_auto_test:
 	@echo skipping test due to scary warning in src/main.mk
 
+# Currently, test fails for json.  Needs to be investigated.
+
 override_dh_auto_install:
+	dh_auto_install
+	mkdir -p debian/fossil/usr/share/bash-completion/completions
+	cp tools/fossil-autocomplete.bash \
+	   debian/fossil/usr/share/bash-completion/completions/fossil
 
 override_dh_installdocs:
 	dh_installdocs

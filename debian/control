@@ -2,22 +2,25 @@ Source: fossil
 Section: vcs
 Priority: optional
 Maintainer: Barak A. Pearlmutter <bap@debian.org>
-Standards-Version: 3.9.5
-Build-depends: debhelper (>= 9),
-	       autotools-dev,
-	       libreadline-dev,
-	       libfuse-dev,
-	       libsqlite3-dev,
-	       sqlite3,
-	       tcl | tcl8.5 | tclsh,
-	       zlib1g-dev | libz-dev,
-	       libssl-dev
-Vcs-Browser: http://fossil-scm.org
-Homepage: http://fossil-scm.org
+Standards-Version: 3.9.8
+Build-depends: autotools-dev,
+               debhelper (>= 9),
+               libfuse-dev,
+               libreadline-dev,
+               libsqlite3-dev,
+               libssl-dev,
+               sqlite3,
+               tcl | tclsh,
+               tcl-dev,
+               zlib1g-dev | libz-dev
+Vcs-Fossil: https://fossil-scm.org
+Vcs-Browser: https://www.fossil-scm.org/index.html/dir
+Homepage: https://fossil-scm.org
 
 Package: fossil
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Multi-Arch: foreign
+Depends: libtcl8.6 | libtcl, ${misc:Depends}, ${shlibs:Depends}
 Suggests: gnupg | gnupg2
 Description: DSCM with built-in wiki, http interface and server, tickets database
  Fossil is an easy-to-use Distributed Source Control Management system
