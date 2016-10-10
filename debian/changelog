@@ -1,4 +1,4 @@
-fossil (1:1.35-1) unstable; urgency=medium
+fossil (1:1.35-2) unstable; urgency=medium
 
   * Merge NMU (thanks Osamu and Sergei!)
     - migrate debian/patches/ to fossil commits
