@@ -1226,7 +1226,7 @@ const struct strctCssDefaults {
     @   color: blue;
   },
   { "p.shunned",
-    "format for artifact lines beeing shunned",
+    "format for artifact lines being shunned",
     @   color: blue;
   },
   { "span.brokenlink",
