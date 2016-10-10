@@ -1,3 +1,38 @@
+fossil (1:1.35-1) unstable; urgency=medium
+
+  * Merge NMU (thanks Osamu and Sergei!)
+    - migrate debian/patches/ to fossil commits
+    - changes to debian/rules:
+      - Use upstream build and install script
+      - Install upstream bash completion script
+      - Hardening
+    - fixed debian/copyright
+    - changes to debian/control
+      - add dependencies for enhanced functionality
+      - tweak VCS fields for https
+      - multi-arch
+  * Re-enable parallel build
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Mon, 10 Oct 2016 16:11:13 +0100
+
+fossil (1:1.35-1.1) unstable; urgency=low
+
+  [ Osamu Aoki ]
+  * Non-maintainer upload.
+  * New upstream release
+  * Merge Sergei's patch with Multi-arch: foreign
+  * Use upstream manpage
+  * Update VCS-Browser to show the source tree but leave #638475
+    since usually VCS-* are pointing to Debian packaging tree.
+  * Fix d/copyright (closes: #840122)
+
+  [ Sergei Golovan ]
+  * enable TH1 for embedded documentation pages
+  * enable TH1 hooks for commands and web pages
+  * enable Tcl integration (closes: #808069)
+
+ -- Osamu Aoki <osamu@debian.org>  Sun, 09 Oct 2016 15:41:58 +0900
+
 fossil (1:1.33-3) unstable; urgency=medium
 
   * enable line editing via build dependency on libreadline-dev
