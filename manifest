@@ -1,5 +1,5 @@
-C spelling,\sbeeing\sto\sbeing
-D 2016-10-10T15:30:28.414
+C sed\ss:accidently:accidentally:
+D 2016-10-10T15:34:07.794
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/clean-glob c1679d70a381afc39909203441036a736fb4b596
 F .fossil-settings/encoding-glob f72f509f8101fb1f252c5719175a300aaabce8e0
@@ -492,7 +492,7 @@ F src/shun.c a31e037850f11b14ffecaa2f46972e6175acec9a
 F src/sitemap.c 6fbec2fbaf3bb39566f2550b12f58127c9bfa850
 F src/skins.c 4927e792a7cbb90faea0ee5efffc7051a91de7ac
 F src/sqlcmd.c 67a6b4ac894633d8346dc890a5b179a0ac3b1925
-F src/sqlite3.c 9b9171b1e6ce7a980e6b714e9c0d9112657ad552
+F src/sqlite3.c fc69abcdcf6dce997d85c0651e1134f8341b3f8c
 F src/sqlite3.h a41446e48e7bfdcb052e1773572ad7bc662c68e1
 F src/stash.c ccb0d94252422f28178119825a99c6bce45924d6
 F src/stat.c 82a4439d096fe0fb231e27f49f2b2ff13dacf014
@@ -512,7 +512,7 @@ F src/tktsetup.c c7af6bda5acc77a83532e5662494ba6233c0eec8
 F src/translate.c 144427e4ae2bfa1966f138462181d224fb86c2de
 F src/undo.c 52ec5c24a6dcf1937026e2d9f86791fd1913cdf6
 F src/unicode.c f26b9f26d4ac399f7b03cfac16ec72336c7f06c9
-F src/update.c 8a39e2408a6a6d274d805dd9baab7ccaaa8bf7a9
+F src/update.c 01ee8804a1b55ee04da7aca202fe9c9f265bdfeb
 F src/url.c be48911fa1624051538157f2dfc815ec082e7206
 F src/user.c b76f44f85f5df5aeab9eba0c892d73a9335f5ea8
 F src/utf8.c 5c85c7e88b82b5fb48649c46f063ac94ab58eb20
@@ -738,7 +738,7 @@ F www/newrepo.wiki f0b0a01e2dcf85b2d50f14196775e89c808a3b0b
 F www/password.wiki 336916afde4ff470e87fc43066063623a9a74c8a
 F www/permutedindex.html 24480ebfa9589c59a27671385f72e9888d644c92
 F www/pop.wiki 759734461ff700ab2cf94bec8f1eba08b239a092
-F www/private.wiki 72344489bbae6f7955369559b6ab22e01a64259b
+F www/private.wiki 9cd31c065d752409a671a5c50c4865a507012793
 F www/qandc.wiki e07b21da221b05afeb1905f17af3765045952ba8
 F www/quickstart.wiki d4ead37f048c87a56497d475023d1678e22dfa61
 F www/quotes.wiki 09a040dcc9ae1c3a9121940e3a2255471f8d59cf
@@ -762,8 +762,8 @@ F www/webpage-ex.md 0356f2201738e1434eb7bfcb898a3f66799e3f30
 F www/webui.wiki 9efb7f22521c203fd35e4dd1533ac203a8330a99
 F www/wikitheory.wiki 16ff4640b1d9c9950f12a43cc1958687378204ac
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P cb0df0165a3f8c9944f5d57618c48ade4ad6eade
-R 12c5d835ca5b691bef90f544d2636054
+P 676efa78217cb83b86bd164a5e536b556da3ea22
+R 11d5a74e28f1b0c08969d9584f61f923
 U barak
-Z 53792c843fd91f6602c125dbaeadc152
+Z 9a218cea84a125bb50547c5967974c83
 # Remove this line to create a well-formed Fossil manifest.
