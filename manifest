@@ -1,5 +1,5 @@
-C log\schanges:\sspelling,\skowtow\sto\slintian
-D 2016-10-10T15:39:15.426
+C revert\sto\supstream:\sautosetup/config.{guess,sub}
+D 2016-10-17T23:18:41.839
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/clean-glob c1679d70a381afc39909203441036a736fb4b596
 F .fossil-settings/encoding-glob f72f509f8101fb1f252c5719175a300aaabce8e0
@@ -53,8 +53,8 @@ F autosetup/cc-db.tcl 2789d831c2f4ac5364d6aaf0ea922b5fad382f4d
 F autosetup/cc-lib.tcl 3c6bbfcb75eacfd4d5b060b9da74bfbf6e932305
 F autosetup/cc-shared.tcl 6634fa62ced64692179819ef83eb0ade13f6f7d0
 F autosetup/cc.tcl 1a4ebad038952b8631efa8e76e788157c5a39517
-F autosetup/config.guess 2721371267147908fe73ab1ae8f919baf8878979 x
-F autosetup/config.sub 7d66e32bb3cce017e1cc9bef59fb6f8271fb7fec x
+F autosetup/config.guess 3646b015d9a91423feaf2bac86fd2df7ab3564f6 x
+F autosetup/config.sub 0a7de3085aaa4ea3655c4221574dc9e503035428 x
 F autosetup/default.auto f78163e478676728918cbb7360abddb9c830e882
 F autosetup/find-tclsh f973558ad74bd8e4d55b677d9c166cbb35f34186 x
 F autosetup/jimsh0.c c4b6eb336c5fb548e747b1dc50ffc710fc0f7df0
@@ -762,8 +762,8 @@ F www/webpage-ex.md 0356f2201738e1434eb7bfcb898a3f66799e3f30
 F www/webui.wiki 9efb7f22521c203fd35e4dd1533ac203a8330a99
 F www/wikitheory.wiki 16ff4640b1d9c9950f12a43cc1958687378204ac
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P 825f303be908f77e3a54e98fa1d16de5079fb82f
-R ebb0c7d6593fd8e85011ff0c2a5d6b60
+P c99deb22c86c853e8cd8c2c1ad605bf1d758b61a
+R 817dc3cbb1c825880827ceb9778c31b2
 U barak
-Z 1186ac14abe1897ad9d78216cceab37c
+Z a1b21bb31bdd7dd86a6edb333417b1b6
 # Remove this line to create a well-formed Fossil manifest.
