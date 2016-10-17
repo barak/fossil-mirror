@@ -1,5 +1,5 @@
-C use\supstream-approved\suknown\sconfiguration\soption\snon-error\soption
-D 2016-10-17T23:26:27.247
+C use\sdh_bash-completion\sto\ssimplify\sdebian/rules
+D 2016-10-17T23:35:12.341
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/clean-glob c1679d70a381afc39909203441036a736fb4b596
 F .fossil-settings/encoding-glob f72f509f8101fb1f252c5719175a300aaabce8e0
@@ -309,11 +309,12 @@ F configure 239cde01aca7fc63a2903f85bd2a6414189f1bd4 x
 F debian/README.Debian 2135674f15d3dab289ed5a98c472c56bdb8dbfc1
 F debian/changelog f75686fb5631f41de4ad7f4e211d4122f2eb5451
 F debian/compat b6abd567fa79cbe0196d093a067271361dc6ca8b
-F debian/control c10fd345c3e7bf4e318d3e456471552136815794
+F debian/control 224144212502a118f8707ca50cc8d3126f08009d
 F debian/copyright 3d850ea9194da4d2322fcf11b61174f7e9a6818a
+F debian/fossil.bash-completion e1e460f40668463a8e3e8df9a99de8f9301c9730
 F debian/fossil.docs 45a770a8534b1a439a32546145737975a9217b30
 F debian/fossil.manpages 8ca3a843375393ec37484e4dbae3d4dfe5b4ddcf
-F debian/rules 67c9c978e3f34fbab64eb2425c04bc115ab12797 x
+F debian/rules 26faeba99e125920f67dec92110dda970c974a52 x
 F debian/source/format 1064dc0ce263680c076a1005f35ec906a5cf5a32
 F debian/source/local-options 58a65fc3dfe4bbb8692c99e80334fba1e913f072
 F debian/source/patch-header 84c8aca673f2fc094c29a10bd519fca36a57e9f6
@@ -762,8 +763,8 @@ F www/webpage-ex.md 0356f2201738e1434eb7bfcb898a3f66799e3f30
 F www/webui.wiki 9efb7f22521c203fd35e4dd1533ac203a8330a99
 F www/wikitheory.wiki 16ff4640b1d9c9950f12a43cc1958687378204ac
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P db89a48e57741446830a427c70f9ad3419a9cdc2
-R d11a94d6b5c708406b251f17700f0688
+P df0885211e3f99ad854d317ee6544c386a56c55f
+R e8fde1148930e63f82b1c56bb773a614
 U barak
-Z 2054e47eeac007a1a9323ef185ef8d71
+Z 6ce2ec4f97d5716eb17164e73e08be1a
 # Remove this line to create a well-formed Fossil manifest.

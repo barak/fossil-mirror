@@ -5,6 +5,7 @@ Maintainer: Barak A. Pearlmutter <bap@debian.org>
 Standards-Version: 3.9.8
 Build-depends: autotools-dev,
                debhelper (>= 9),
+               bash-completion,
                libfuse-dev,
                libreadline-dev,
                libsqlite3-dev,

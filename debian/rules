@@ -25,12 +25,6 @@ override_dh_auto_test:
 
 # Currently, test fails for json.  Needs to be investigated.
 
-override_dh_auto_install:
-	dh_auto_install
-	mkdir -p debian/fossil/usr/share/bash-completion/completions
-	cp tools/fossil-autocomplete.bash \
-	   debian/fossil/usr/share/bash-completion/completions/fossil
-
 override_dh_installdocs:
 	dh_installdocs
 	mv debian/fossil/usr/share/doc/fossil/changes.wiki \
