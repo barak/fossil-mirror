@@ -1,5 +1,5 @@
-C revert\sto\supstream:\sautosetup/config.{guess,sub}
-D 2016-10-17T23:18:41.839
+C revert\sto\supstream:\sautosetup/autosetup
+D 2016-10-17T23:19:16.395
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/clean-glob c1679d70a381afc39909203441036a736fb4b596
 F .fossil-settings/encoding-glob f72f509f8101fb1f252c5719175a300aaabce8e0
@@ -48,7 +48,7 @@ F art/encode9.tex 84df5abf42b007748ec0ea1e3bd4ad2628502335
 F auto.def c42d2c88ca519ec04f62d0499873173ab45cb2f0
 F autosetup/LICENSE 34b2f1d7acba3eeb992e4281307640989cd08d0a
 F autosetup/README.autosetup 4e0b671b54288fc64d851d056822ee5fec4d3365
-F autosetup/autosetup 0692240632f4405f591e82796fa73cecb30b19fb x
+F autosetup/autosetup 7b5ae324561a38804875517af9b7c6e7f42f930d x
 F autosetup/cc-db.tcl 2789d831c2f4ac5364d6aaf0ea922b5fad382f4d
 F autosetup/cc-lib.tcl 3c6bbfcb75eacfd4d5b060b9da74bfbf6e932305
 F autosetup/cc-shared.tcl 6634fa62ced64692179819ef83eb0ade13f6f7d0
@@ -762,8 +762,8 @@ F www/webpage-ex.md 0356f2201738e1434eb7bfcb898a3f66799e3f30
 F www/webui.wiki 9efb7f22521c203fd35e4dd1533ac203a8330a99
 F www/wikitheory.wiki 16ff4640b1d9c9950f12a43cc1958687378204ac
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P c99deb22c86c853e8cd8c2c1ad605bf1d758b61a
-R 817dc3cbb1c825880827ceb9778c31b2
+P 420e2a51cd6353cadcd38404cac2632e20f564d1
+R 7979d7ac81ed984ab26e6707939e8719
 U barak
-Z a1b21bb31bdd7dd86a6edb333417b1b6
+Z 44aa5226ff2b1b2c1d59729b2562f708
 # Remove this line to create a well-formed Fossil manifest.

@@ -422,7 +422,7 @@ proc options {optlist} {
 	if {[opt-bool option-checking]} {
 		foreach o [array names ::useropts] {
 			if {$o ni $::autosetup(options)} {
-				user-warning "Unknown option --$o"
+				user-error "Unknown option --$o"
 			}
 		}
 	}
@@ -757,12 +757,6 @@ proc user-error {msg} {
 	puts stderr "Error: $msg"
 	puts stderr "Try: '[file tail $::autosetup(exe)] --help' for options"
 	exit 1
-}
-
-proc user-warning {msg} {
-	show-notices
-	puts stderr "Warning: $msg"
-	puts stderr "Try: '[file tail $::autosetup(exe)] --help' for options"
 }
 
 # @user-notice msg
