@@ -1,5 +1,5 @@
-C revert\sto\supstream:\sautosetup/autosetup
-D 2016-10-17T23:19:16.395
+C use\supstream-approved\suknown\sconfiguration\soption\snon-error\soption
+D 2016-10-17T23:26:27.247
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/clean-glob c1679d70a381afc39909203441036a736fb4b596
 F .fossil-settings/encoding-glob f72f509f8101fb1f252c5719175a300aaabce8e0
@@ -313,7 +313,7 @@ F debian/control c10fd345c3e7bf4e318d3e456471552136815794
 F debian/copyright 3d850ea9194da4d2322fcf11b61174f7e9a6818a
 F debian/fossil.docs 45a770a8534b1a439a32546145737975a9217b30
 F debian/fossil.manpages 8ca3a843375393ec37484e4dbae3d4dfe5b4ddcf
-F debian/rules f314185f9ead9a10ba7fe22c50631dfcf868a1c8 x
+F debian/rules 67c9c978e3f34fbab64eb2425c04bc115ab12797 x
 F debian/source/format 1064dc0ce263680c076a1005f35ec906a5cf5a32
 F debian/source/local-options 58a65fc3dfe4bbb8692c99e80334fba1e913f072
 F debian/source/patch-header 84c8aca673f2fc094c29a10bd519fca36a57e9f6
@@ -762,8 +762,8 @@ F www/webpage-ex.md 0356f2201738e1434eb7bfcb898a3f66799e3f30
 F www/webui.wiki 9efb7f22521c203fd35e4dd1533ac203a8330a99
 F www/wikitheory.wiki 16ff4640b1d9c9950f12a43cc1958687378204ac
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P 420e2a51cd6353cadcd38404cac2632e20f564d1
-R 7979d7ac81ed984ab26e6707939e8719
+P db89a48e57741446830a427c70f9ad3419a9cdc2
+R d11a94d6b5c708406b251f17700f0688
 U barak
-Z 44aa5226ff2b1b2c1d59729b2562f708
+Z 2054e47eeac007a1a9323ef185ef8d71
 # Remove this line to create a well-formed Fossil manifest.
