@@ -1,5 +1,5 @@
-C use\sdh_bash-completion\sto\ssimplify\sdebian/rules
-D 2016-10-17T23:35:12.341
+C log\schanges
+D 2016-10-17T23:37:22.412
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/clean-glob c1679d70a381afc39909203441036a736fb4b596
 F .fossil-settings/encoding-glob f72f509f8101fb1f252c5719175a300aaabce8e0
@@ -307,7 +307,7 @@ F compat/zlib/zutil.c e1af709bff21ae0d4331119a7fc4c19f82932043
 F compat/zlib/zutil.h b909d27ef9ce51639f76b7ea6b62721e7d1b6bf7
 F configure 239cde01aca7fc63a2903f85bd2a6414189f1bd4 x
 F debian/README.Debian 2135674f15d3dab289ed5a98c472c56bdb8dbfc1
-F debian/changelog f75686fb5631f41de4ad7f4e211d4122f2eb5451
+F debian/changelog e363751f11e27ee513181a628ac5ff7f41411dfa
 F debian/compat b6abd567fa79cbe0196d093a067271361dc6ca8b
 F debian/control 224144212502a118f8707ca50cc8d3126f08009d
 F debian/copyright 3d850ea9194da4d2322fcf11b61174f7e9a6818a
@@ -763,8 +763,8 @@ F www/webpage-ex.md 0356f2201738e1434eb7bfcb898a3f66799e3f30
 F www/webui.wiki 9efb7f22521c203fd35e4dd1533ac203a8330a99
 F www/wikitheory.wiki 16ff4640b1d9c9950f12a43cc1958687378204ac
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P df0885211e3f99ad854d317ee6544c386a56c55f
-R e8fde1148930e63f82b1c56bb773a614
+P b8e05a713513fa67c7f6cc3093885719ae9068e3
+R ffebe9b973d13211991514ec2841db04
 U barak
-Z 6ce2ec4f97d5716eb17164e73e08be1a
+Z 3827d4a2302b320230f82b69f0b11a96
 # Remove this line to create a well-formed Fossil manifest.

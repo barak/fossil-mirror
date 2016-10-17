@@ -1,3 +1,12 @@
+fossil (1:1.35-3) unstable; urgency=medium
+
+  * flush unused local changes to autosetup/config.{sub,guess}
+  * flush local changes to autosetup/autosetup, add
+    unknown-option-ignoring-option to debian/rules
+  * use dh_bash-completion
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Tue, 18 Oct 2016 00:37:06 +0100
+
 fossil (1:1.35-2) unstable; urgency=medium
 
   * Acknowledge and merge NMU (thanks Osamu and Sergei!)
