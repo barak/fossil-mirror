@@ -1,3 +1,9 @@
+fossil (1:1.35-4) unstable; urgency=medium
+
+  * dh --with bash-completion
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Tue, 18 Oct 2016 13:42:16 +0100
+
 fossil (1:1.35-3) unstable; urgency=medium
 
   * flush unused local changes to autosetup/config.{sub,guess}
