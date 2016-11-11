@@ -4,3 +4,6 @@ version=3
 opts="downloadurlmangle=s:/download.html/:/:" \
 https://www.fossil-scm.org/download.html \
  .*/fossil-src-(\d*\.\d*)\.(?:zip|tgz|tbz|txz|(?:tar\.(?:gz|bz2|xz)))
+
+http://fossil-scm.org/index.html/uv/download.html \
+ .*/fossil-src-(\d*\.\d*)\.(?:zip|tgz|tbz|txz|(?:tar\.(?:gz|bz2|xz)))

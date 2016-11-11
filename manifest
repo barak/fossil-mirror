@@ -1,5 +1,5 @@
-C log\schanges
-D 2016-10-18T12:45:25.823
+C add\ssecondary\supstream\sdownload\spage\swhich\shas\slater\sversion
+D 2016-11-11T20:55:57.796
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/clean-glob c1679d70a381afc39909203441036a736fb4b596
 F .fossil-settings/encoding-glob f72f509f8101fb1f252c5719175a300aaabce8e0
@@ -318,7 +318,7 @@ F debian/rules 4826f83efcb42999165406b56c9d1c113fdf0a85 x
 F debian/source/format 1064dc0ce263680c076a1005f35ec906a5cf5a32
 F debian/source/local-options 58a65fc3dfe4bbb8692c99e80334fba1e913f072
 F debian/source/patch-header 84c8aca673f2fc094c29a10bd519fca36a57e9f6
-F debian/watch 6761f44df048b7be1ed9ac89d23c31d24c091ec7
+F debian/watch 67d53e080fe1197b707533c8738633cfc7719c1d
 F fossil.1 5dafc0a0e37de8b6d38ca807a12e9e56619812d5
 F setup/fossil.iss 57e01e1feb0198de025417c0a98f1d4b1c444f53
 F setup/fossil.nsi 806b01761d5d42543d1c90b95b927c0ea8b251bf
@@ -763,8 +763,8 @@ F www/webpage-ex.md 0356f2201738e1434eb7bfcb898a3f66799e3f30
 F www/webui.wiki 9efb7f22521c203fd35e4dd1533ac203a8330a99
 F www/wikitheory.wiki 16ff4640b1d9c9950f12a43cc1958687378204ac
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P 97fe11dc6d80ddf0b62b1b6bb4b5e4799fd90315
-R bacb23d31d5c28f20c97c1e7b2af756f
+P 1a1af29b6559cbb3f97e4bfde36b9564c7f152f5
+R 0fd0ee4e1ff5c0109474832481dbcd9d
 U barak
-Z 24ba3ea18e4528f602c78ad024445641
+Z 84a2bf14cce2d52fe812d213fe3fe0c5
 # Remove this line to create a well-formed Fossil manifest.
