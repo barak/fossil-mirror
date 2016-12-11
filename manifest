@@ -1,5 +1,5 @@
-C update\sdebian/changelog
-D 2016-11-11T21:12:14.486
+C allow\shttps\swith\sopenssl\slibrary
+D 2016-12-11T23:51:25.423
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/clean-glob c1679d70a381afc39909203441036a736fb4b596
 F .fossil-settings/encoding-glob f72f509f8101fb1f252c5719175a300aaabce8e0
@@ -433,7 +433,7 @@ F src/graph.c 1e8070d743acae021523e423418c4c13d81b5a0f
 F src/gzip.c b0d60daf0cf3e17c848906ec952ef0a4812d8a49
 F src/http.c 5d5c19958bad3b0de0be4f47ad022c689be0d543
 F src/http_socket.c c38d7bff255b35cc7cfe13405b67c32878f9d838
-F src/http_ssl.c 0d21a4842ad8c8902309a93cbc5ec2b4768a5710
+F src/http_ssl.c a64ed129e847162f23fe96b501d911576054370c
 F src/http_transport.c c6f2ce84687a4f210c62f99948154232abf46bec
 F src/import.c cc5b8328ac8675fd59176508df2e56ffd40be6c1
 F src/info.c 7e61b79de46ef4ecce409b079434fa9ef942aac6
@@ -780,8 +780,8 @@ F www/webui.wiki 411350e0bfcabd3e3e8a750d5e69ba840ce50e45
 F www/whyusefossil.wiki fa8a5e30aac0090380f65a1d3fb8482f56054327
 F www/wikitheory.wiki 16ff4640b1d9c9950f12a43cc1958687378204ac
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P 23bf5a0978d5d6988b9bf8e017e79ae195c38103
-R 03d04c5af790e74ba6bf049251e3e70f
+P 5664ec2a5141169f6ea1bf3b36b0afba84579701
+R 47f660df434c2b7228201b2ab21237c7
 U barak
-Z 8db3b785b2afcf940a4ba0dfc1d38e55
+Z 400485acbf51e51f6679e45065f61349
 # Remove this line to create a well-formed Fossil manifest.
