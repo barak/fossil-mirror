@@ -23,7 +23,10 @@ Brief "cheat sheet" of relevant fossil commands.
  fossil commit -m 'update debian/changelog'
 
  # build debian release
- dpkg-buildpackage -i.fslckout
+ dpkg-buildpackage -i.fslckout -i_FOSSIL_
+ # but its better to use a chroot
+ pdebuild --pbuilder cowbuilder --debbuildopts "-i.fslckout -i_FOSSIL_"
+ sudo mv --no-clobber /var/cache/pbuilder/result/fossil* ../
 
  # tag debian release
  fossil tag add debian_${VER}-${DEBVER} debian
@@ -34,11 +37,12 @@ Brief "cheat sheet" of relevant fossil commands.
  ## TO START DEVELOPMENT
 
  # create local repository by cloning mine
- #  (I would have made a repo on chiselapp.com but never managed to
- #  get it to work for me on a repo of this size.)
- wget http://people.debian.org/~bap/fossil.fsl
+ #  (Would have made a repo on chiselapp.com but couldn't get it to
+ #  work for me on a repo of this size.  But this was a while ago...)
+ wget https://people.debian.org/~bap/fossil.fsl
 
  # make a working checkout
+ sudo apt install fossil
  mkdir fossil
  cd fossil
  fossil open ../fossil.fsl
@@ -59,4 +63,4 @@ Brief "cheat sheet" of relevant fossil commands.
  # less recently created checkouts may have _FOSSIL_ instead of
  # .fslckout, edit any commands mentioning this file appropriately.
 
- -- Barak A. Pearlmutter <bap@debian.org>, Sun,  9 Oct 2016 21:26:06 +0100
+ -- Barak A. Pearlmutter <bap@debian.org>, Mon, 12 Dec 2016 12:49:10 +0000
