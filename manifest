@@ -1,5 +1,5 @@
-C allow\shttps\swith\sopenssl\slibrary
-D 2016-12-11T23:51:25.423
+C log\schanges
+D 2016-12-12T00:16:47.217
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/clean-glob c1679d70a381afc39909203441036a736fb4b596
 F .fossil-settings/encoding-glob f72f509f8101fb1f252c5719175a300aaabce8e0
@@ -310,7 +310,7 @@ F compat/zlib/zutil.c e1af709bff21ae0d4331119a7fc4c19f82932043
 F compat/zlib/zutil.h b909d27ef9ce51639f76b7ea6b62721e7d1b6bf7
 F configure 239cde01aca7fc63a2903f85bd2a6414189f1bd4 x
 F debian/README.Debian 2135674f15d3dab289ed5a98c472c56bdb8dbfc1
-F debian/changelog 0fa38aa829d4a5543dbc7d84ed82073a62b1aaf9
+F debian/changelog 206c9194a3c3c2fdc9ae9e6e3bb49c22ba6dbff3
 F debian/compat b6abd567fa79cbe0196d093a067271361dc6ca8b
 F debian/control 224144212502a118f8707ca50cc8d3126f08009d
 F debian/copyright 3d850ea9194da4d2322fcf11b61174f7e9a6818a
@@ -780,8 +780,8 @@ F www/webui.wiki 411350e0bfcabd3e3e8a750d5e69ba840ce50e45
 F www/whyusefossil.wiki fa8a5e30aac0090380f65a1d3fb8482f56054327
 F www/wikitheory.wiki 16ff4640b1d9c9950f12a43cc1958687378204ac
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P 5664ec2a5141169f6ea1bf3b36b0afba84579701
-R 47f660df434c2b7228201b2ab21237c7
+P ba2d62bc603d334090af59b4b07229a2390f7961
+R c4111685e5ce1065361df9f4ed05e18e
 U barak
-Z 400485acbf51e51f6679e45065f61349
+Z 3f9998a55eaf884c4b52b3f77ef7467c
 # Remove this line to create a well-formed Fossil manifest.
