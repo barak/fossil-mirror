@@ -1,5 +1,5 @@
-C add\scowbuild\sinstructions\sto\sREADME.Debian
-D 2016-12-12T12:58:53.556
+C comment\sout\suscan\sstanza\sthat\scauses\sa\swarning
+D 2017-01-18T11:37:49.459
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/clean-glob c1679d70a381afc39909203441036a736fb4b596
 F .fossil-settings/encoding-glob f72f509f8101fb1f252c5719175a300aaabce8e0
@@ -321,7 +321,7 @@ F debian/rules 4826f83efcb42999165406b56c9d1c113fdf0a85 x
 F debian/source/format 1064dc0ce263680c076a1005f35ec906a5cf5a32
 F debian/source/local-options 58a65fc3dfe4bbb8692c99e80334fba1e913f072
 F debian/source/patch-header 84c8aca673f2fc094c29a10bd519fca36a57e9f6
-F debian/watch c55c64fe52e77ba8aef17d832de56b93bb439eac
+F debian/watch 4bde5f99cfdf4e7e307e1aafacc2f1d37af73030
 F fossil.1 5dafc0a0e37de8b6d38ca807a12e9e56619812d5
 F setup/fossil.iss 57e01e1feb0198de025417c0a98f1d4b1c444f53
 F setup/fossil.nsi 806b01761d5d42543d1c90b95b927c0ea8b251bf
@@ -780,8 +780,8 @@ F www/webui.wiki 411350e0bfcabd3e3e8a750d5e69ba840ce50e45
 F www/whyusefossil.wiki fa8a5e30aac0090380f65a1d3fb8482f56054327
 F www/wikitheory.wiki 16ff4640b1d9c9950f12a43cc1958687378204ac
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P 4c00f86886192b539fe9483f75ff612f57b28b05
-R 099fec124a5434f7b64ca5611ec39da2
+P 5a93f1ffefea489f450b5ed85d042a9b02fd116a
+R 535edf7d86569238828721010d0a8930
 U barak
-Z 15df408f8b3970aaba3a1cac84beec03
+Z 3cb40d3dae4464e539e0298bea31b3dc
 # Remove this line to create a well-formed Fossil manifest.

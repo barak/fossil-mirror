@@ -1,9 +1,8 @@
 version=3
 
-# new version style
-opts="downloadurlmangle=s:/download.html/:/:" \
-https://www.fossil-scm.org/download.html \
- .*/fossil-src-(\d*\.\d*)\.(?:zip|tgz|tbz|txz|(?:tar\.(?:gz|bz2|xz)))
+# opts="downloadurlmangle=s:/download.html/:/:" \
+# https://www.fossil-scm.org/download.html \
+#  .*/fossil-src-(\d*\.\d*)\.(?:zip|tgz|tbz|txz|(?:tar\.(?:gz|bz2|xz)))
 
 opts="downloadurlmangle=s:/download.html/:/:" \
 http://fossil-scm.org/index.html/uv/download.html \
