@@ -14,8 +14,7 @@ Build-depends: autotools-dev,
                tcl | tclsh,
                tcl-dev,
                zlib1g-dev | libz-dev
-Vcs-Fossil: https://fossil-scm.org
-Vcs-Browser: https://www.fossil-scm.org/index.html/dir
+Vcs-Fossil: https://people.debian.org/~bap/fossil.fsl
 Homepage: https://fossil-scm.org
 
 Package: fossil
