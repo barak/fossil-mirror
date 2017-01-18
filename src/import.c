@@ -78,14 +78,22 @@ static struct {
 /*
 ** Duplicate a string.
 */
-char *fossil_strdup(const char *zOrig){
+char *fossil_strndup(const char *zOrig, int len){
   char *z = 0;
   if( zOrig ){
-    int n = strlen(zOrig);
+    int n;
+    if( len<0 ){
+      n = strlen(zOrig);
+    }else{
+      for( n=0; zOrig[n] && n<len; ++n );
+    }
     z = fossil_malloc( n+1 );
     memcpy(z, zOrig, n+1);
   }
   return z;
+}
+char *fossil_strdup(const char *zOrig){
+  return fossil_strndup(zOrig, -1);
 }
 
 /*
@@ -1614,7 +1622,7 @@ void import_cmd(void){
     {"rename-rev"   , &gsvn.zRevPre, "svn-rev-", &gsvn.zRevSuf      , "", 2},
   }, *renOpt = renOpts;
   int i;
-  for( i = 0; i < sizeof(renOpts) / sizeof(*renOpts); ++i, ++renOpt ){
+  for( i = 0; i < count(renOpts); ++i, ++renOpt ){
     if( 1 << svnFlag & renOpt->format ){
       const char *zArgument = find_option(renOpt->zOpt, 0, 1);
       if( zArgument ){
@@ -1763,6 +1771,7 @@ void import_cmd(void){
     */
     db_multi_exec(
        "CREATE TEMP TABLE xmark(tname TEXT UNIQUE, trid INT, tuuid TEXT);"
+       "CREATE INDEX temp.i_xmark ON xmark(trid);"
        "CREATE TEMP TABLE xbranch(tname TEXT UNIQUE, brnm TEXT);"
        "CREATE TEMP TABLE xtag(tname TEXT UNIQUE, tcontent TEXT);"
     );
@@ -1772,7 +1781,7 @@ void import_cmd(void){
       if( !f ){
         fossil_fatal("cannot open %s for reading", markfile_in);
       }
-      if(import_marks(f, &blobs, NULL)<0){
+      if( import_marks(f, &blobs, NULL, NULL)<0 ){
         fossil_fatal("error importing marks from file: %s", markfile_in);
       }
       fclose(f);
@@ -1797,9 +1806,9 @@ void import_cmd(void){
         rid = db_column_int(&q_marks, 0);
         if( db_int(0, "SELECT count(objid) FROM event"
                       " WHERE objid=%d AND type='ci'", rid)==0 ){
-          if( bag_find(&blobs, rid)==0 ){
-            bag_insert(&blobs, rid);
-          }
+          /* Blob marks exported by git aren't saved between runs, so they need
+          ** to be left free for git to re-use in the future.
+          */
         }else{
           bag_insert(&vers, rid);
         }

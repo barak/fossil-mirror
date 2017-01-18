@@ -240,7 +240,8 @@ static int contains_whitespace(const char *zName){
 **                            -v|--verbose     Extra diagnostic output
 **                            -n|--dryrun      Show what would have happened
 **
-**    remove | rm FILE ... Remove unversioned files from the local repository.
+**    remove|rm|delete FILE ...
+**                         Remove unversioned files from the local repository.
 **                         Changes are not pushed to other repositories until
 **                         the next sync.
 **
@@ -412,7 +413,8 @@ void unversioned_cmd(void){
     g.argv[1] = "sync";
     g.argv[2] = "--uv-noop";
     sync_unversioned(syncFlags);
-  }else if( memcmp(zCmd, "remove", nCmd)==0 || memcmp(zCmd, "rm", nCmd)==0 ){
+  }else if( memcmp(zCmd, "remove", nCmd)==0 || memcmp(zCmd, "rm", nCmd)==0
+         || memcmp(zCmd, "delete", nCmd)==0 ){
     int i;
     verify_all_options();
     db_begin_transaction();
@@ -454,6 +456,7 @@ void unversioned_cmd(void){
 ** Query parameters:
 **
 **    byage=1          Order the initial display be decreasing age
+**    showdel=0        Show deleted files
 */
 void uvstat_page(void){
   Stmt q;
@@ -462,6 +465,7 @@ void uvstat_page(void){
   int cnt = 0;
   int n = 0;
   const char *zOrderBy = "name";
+  int showDel = 0;
   char zSzName[100];
 
   login_check_credentials();
@@ -473,6 +477,7 @@ void uvstat_page(void){
     return;
   }
   if( PB("byage") ) zOrderBy = "mtime DESC";
+  if( PB("showdel") ) showDel = 1;
   db_prepare(&q,
      "SELECT"
      "   name,"
@@ -482,7 +487,8 @@ void uvstat_page(void){
      "   (SELECT login FROM rcvfrom, user"
      "     WHERE user.uid=rcvfrom.uid AND rcvfrom.rcvid=unversioned.rcvid),"
      "   rcvid"
-     " FROM unversioned ORDER BY %s",
+     " FROM unversioned %s ORDER BY %s",
+     showDel ? "" : "WHERE hash IS NOT NULL" /*safe-for-%s*/,
      zOrderBy/*safe-for-%s*/
    );
    iNow = db_int64(0, "SELECT strftime('%%s','now');");

@@ -305,8 +305,10 @@ void diff_file_mem(
     blob_reset(&out);
   }else{
     Blob cmd;
-    char zTemp1[300];
-    char zTemp2[300];
+    Blob temp1;
+    Blob temp2;
+    Blob prefix1;
+    Blob prefix2;
 
     if( !fIncludeBinary ){
       if( isBin1 || isBin2 ){
@@ -324,25 +326,36 @@ void diff_file_mem(
       }
     }
 
+    /* Construct a prefix for the temporary file names */
+    blob_zero(&prefix1);
+    blob_zero(&prefix2);
+    blob_appendf(&prefix1, "%s-v1", zName);
+    blob_appendf(&prefix2, "%s-v2", zName);
+
     /* Construct a temporary file names */
-    file_tempname(sizeof(zTemp1), zTemp1);
-    file_tempname(sizeof(zTemp2), zTemp2);
-    blob_write_to_file(pFile1, zTemp1);
-    blob_write_to_file(pFile2, zTemp2);
+    file_tempname(&temp1, blob_str(&prefix1));
+    file_tempname(&temp2, blob_str(&prefix2));
+    blob_write_to_file(pFile1, blob_str(&temp1));
+    blob_write_to_file(pFile2, blob_str(&temp2));
 
     /* Construct the external diff command */
     blob_zero(&cmd);
     blob_appendf(&cmd, "%s ", zDiffCmd);
-    shell_escape(&cmd, zTemp1);
+    shell_escape(&cmd, blob_str(&temp1));
     blob_append(&cmd, " ", 1);
-    shell_escape(&cmd, zTemp2);
+    shell_escape(&cmd, blob_str(&temp2));
 
     /* Run the external diff command */
     fossil_system(blob_str(&cmd));
 
     /* Delete the temporary file and clean up memory used */
-    file_delete(zTemp1);
-    file_delete(zTemp2);
+    file_delete(blob_str(&temp1));
+    file_delete(blob_str(&temp2));
+
+    blob_reset(&prefix1);
+    blob_reset(&prefix2);
+    blob_reset(&temp1);
+    blob_reset(&temp2);
     blob_reset(&cmd);
   }
 }
@@ -414,6 +427,7 @@ static void diff_against_disk(
     );
   }
   db_prepare(&q, "%s", blob_sql_text(&sql));
+  blob_reset(&sql);
   while( db_step(&q)==SQLITE_ROW ){
     const char *zPathname = db_column_text(&q,0);
     int isDeleted = db_column_int(&q, 1);
@@ -799,6 +813,7 @@ const char *diff_get_binary_glob(void){
 **   --branch BRANCH            Show diff of all changes on BRANCH
 **   --brief                    Show filenames only
 **   --checkin VERSION          Show diff of all changes in VERSION
+**   --command PROG             External diff program - overrides "diff-command"
 **   --context|-c N             Use N lines of context
 **   --diff-binary BOOL         Include binary files when using external commands
 **   --exec-abs-paths           Force absolute path names with external commands.
@@ -870,7 +885,8 @@ void diff_cmd(void){
     db_find_and_open_repository(0, 0);
   }
   if( !isInternDiff ){
-    zDiffCmd = diff_command_external(isGDiff);
+    zDiffCmd = find_option("command", 0, 1);
+    if( zDiffCmd==0 ) zDiffCmd = diff_command_external(isGDiff);
   }
   zBinGlob = diff_get_binary_glob();
   fIncludeBinary = diff_include_binary_files();
