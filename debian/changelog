@@ -1,3 +1,9 @@
+fossil (1:1.37-1) unstable; urgency=medium
+
+  * New upstream version
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Wed, 18 Jan 2017 11:44:50 +0000
+
 fossil (1:1.36-2) unstable; urgency=medium
 
   * Fix openssl https issue, thanks to Sergei Golovan <sgolovan@nes.ru>
@@ -8,6 +14,8 @@ fossil (1:1.36-2) unstable; urgency=medium
 fossil (1:1.36-1) unstable; urgency=medium
 
   * New upstream version (closes: #828301)
+  * Use upstream option to ignore unknown configuration options instead of
+    patching the configuration script (closes: #840807)
 
  -- Barak A. Pearlmutter <bap@debian.org>  Fri, 11 Nov 2016 21:10:04 +0000
 
