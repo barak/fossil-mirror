@@ -1,8 +1,10 @@
 fossil (1:1.37-1) unstable; urgency=medium
 
   * New upstream version
+  * Bump to debhelper 10
+  * Point to packaging repo in debian/control (closes: #638475)
 
- -- Barak A. Pearlmutter <bap@debian.org>  Wed, 18 Jan 2017 11:44:50 +0000
+ -- Barak A. Pearlmutter <bap@debian.org>  Wed, 18 Jan 2017 12:24:18 +0000
 
 fossil (1:1.36-2) unstable; urgency=medium
 

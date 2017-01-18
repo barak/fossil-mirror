@@ -1,5 +1,5 @@
-C point\sto\spackaging\srepo,\ssee\sbugs.debian.org/638475
-D 2017-01-18T12:23:50.100
+C log\schanges
+D 2017-01-18T12:25:23.954
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/binary-glob 34cc11b3b509fd5064afe327e70765799f314c9a
 F .fossil-settings/clean-glob 50327fe7150c88e5daf5150f240dc805398665fb
@@ -324,7 +324,7 @@ F compat/zlib/zutil.c 2f1fcc93488ac84acf984415b6ea0bd63c72aa49
 F compat/zlib/zutil.h f32dab3880d47eca1b71c308cf6542b32941b23c
 F configure 239cde01aca7fc63a2903f85bd2a6414189f1bd4 x
 F debian/README.Debian 4f504cbfd2afbe917ad659e85f995c5e5bd27cd2
-F debian/changelog afee2c6acdb83254743105dbcf3be18c82da0b24
+F debian/changelog 729b4359d5905962adf3b5d2fc0b69b951495b3e
 F debian/compat b6abd567fa79cbe0196d093a067271361dc6ca8b
 F debian/control d00ad12cfaf7edfc9cf3d4a29efc8df757de8ee7
 F debian/copyright 3d850ea9194da4d2322fcf11b61174f7e9a6818a
@@ -795,8 +795,8 @@ F www/webui.wiki 411350e0bfcabd3e3e8a750d5e69ba840ce50e45
 F www/whyusefossil.wiki fab03dc861eb75931673f2bc9dc3432b102df0fc
 F www/wikitheory.wiki bd20172d783835606043b15bba0c69c9f606a87b
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P 6bc2827c85b4095847b5745e92da28e968a12dee
-R 729b8d2aaf33a9236253ea07b02fa798
+P 52e8f38b8fd5c61895a66c20bccad7827f919925
+R 5ec40ca4970d9b3c259883df360ef67a
 U barak
-Z 1f7e4d85ce6d2d0094ad39c22c4ab3cd
+Z 688000b57e3c45fc5691b9f7da8b88e9
 # Remove this line to create a well-formed Fossil manifest.
