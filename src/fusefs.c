@@ -296,7 +296,7 @@ static struct fuse_operations fusefs_methods = {
 ** repository.  The names of files are DIRECTORY/checkins/VERSION/PATH
 ** where DIRECTORY is the root of the mount, VERSION is any valid
 ** check-in name (examples: "trunk" or "tip" or a tag or any unique
-** prefix of a SHA1 hash, etc) and PATH is the pathname of the file in
+** prefix of an artifact hash, etc) and PATH is the pathname of the file in
 ** the check-in.  If DIRECTORY does not exist, then an attempt is made
 ** to create it.
 **
@@ -339,3 +339,24 @@ void fusefs_cmd(void){
   fusefs_clear_path();
 }
 #endif /* FOSSIL_HAVE_FUSEFS */
+
+/*
+** Return version numbers for the FUSE header that was used at compile-time
+** and/or the FUSE library that was loaded at runtime.
+*/
+const char *fusefs_lib_version(void){
+#if defined(FOSSIL_HAVE_FUSEFS) && FUSE_MAJOR_VERSION>=3
+  return fuse_pkgversion();
+#else
+  return "unknown";
+#endif
+}
+
+const char *fusefs_inc_version(void){
+#ifdef FOSSIL_HAVE_FUSEFS
+  return COMPILER_STRINGIFY(FUSE_MAJOR_VERSION) "."
+         COMPILER_STRINGIFY(FUSE_MINOR_VERSION);
+#else
+  return "unknown";
+#endif
+}

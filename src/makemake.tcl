@@ -60,6 +60,7 @@ set src {
   glob
   graph
   gzip
+  hname
   http
   http_socket
   http_transport
@@ -109,6 +110,8 @@ set src {
   search
   setup
   sha1
+  sha1hard
+  sha3
   shun
   sitemap
   skins
@@ -672,7 +675,7 @@ endif
 #    to create a hard link between an "openssl-1.x" sub-directory of the
 #    Fossil source code directory and the target OpenSSL source directory.
 #
-OPENSSLDIR = $(SRCDIR)/../compat/openssl-1.0.2j
+OPENSSLDIR = $(SRCDIR)/../compat/openssl-1.0.2k
 OPENSSLINCDIR = $(OPENSSLDIR)/include
 OPENSSLLIBDIR = $(OPENSSLDIR)
 
@@ -1503,7 +1506,7 @@ USE_SEE = 0
 !endif
 
 !if $(FOSSIL_ENABLE_SSL)!=0
-SSLDIR    = $(B)\compat\openssl-1.0.2j
+SSLDIR    = $(B)\compat\openssl-1.0.2k
 SSLINCDIR = $(SSLDIR)\inc32
 !if $(FOSSIL_DYNAMIC_BUILD)!=0
 SSLLIBDIR = $(SSLDIR)\out32dll

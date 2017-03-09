@@ -8,7 +8,7 @@ and painlessly.</p>
 
     <p>Fossil is a single self-contained C program.  You need to
     either download a
-    <a href="https://www.fossil-scm.org/fossil/uv/download.html">precompiled 
+    <a href="https://www.fossil-scm.org/fossil/uv/download.html">precompiled
     binary</a>
     or <a href="build.wiki">compile it yourself</a> from sources.
     Install fossil by putting the fossil binary
@@ -270,7 +270,7 @@ and painlessly.</p>
 
     To merge two branches back together, first
     [/help/update | update] to the branch you want to merge into.
-    Then do a [/help/merge|merge] another branch that you want to incorporate
+    Then do a [/help/merge|merge] of the other branch that you want to incorporate
     the changes from.  For example, to merge "featureX" changes into "trunk"
     do this:</p>
 

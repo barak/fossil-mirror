@@ -173,7 +173,7 @@ static void status_report(
       blob_append_sql(&sql, " UNION ALL");
     }
     blob_append_sql(&sql,
-      " SELECT pathname, %s, %s, 0, 0, 0, 0, 0, 0"
+      " SELECT pathname, %s, %s, 0, 0, 0, 0, 0"
       " FROM sfile WHERE pathname NOT IN (%s)%s",
       flags & C_MTIME ? "datetime(mtime, 'unixepoch', toLocal())" : "''",
       flags & C_SIZE ? "size" : "0",
@@ -379,7 +379,7 @@ static int determine_cwd_relative_option()
 ** in by the commit command.
 **
 ** If no filter options are used, or if the --merge option is used, the
-** SHA1 hash of each merge contributor check-in version is displayed at
+** artifact hash of each merge contributor check-in version is displayed at
 ** the end of the report.  The --no-merge option is useful to display the
 ** default set of changed files without the merge contributors.
 **
@@ -414,11 +414,12 @@ static int determine_cwd_relative_option()
 **    --abs-paths       Display absolute pathnames.
 **    --rel-paths       Display pathnames relative to the current working
 **                      directory.
-**    --sha1sum         Verify file status using SHA1 hashing rather than
+**    --hash            Verify file status using hashing rather than
 **                      relying on file mtimes.
 **    --case-sensitive <BOOL>  Override case-sensitive setting.
 **    --dotfiles        Include unmanaged files beginning with a dot.
 **    --ignore <CSG>    Ignore unmanaged files matching CSG glob patterns.
+**    --no-dir-symlinks Disables support for directory symlinks.
 **
 ** Options specific to the changes command:
 **    --header          Identify the repository if report is non-empty.
@@ -465,7 +466,7 @@ void status_cmd(void){
 
   Blob report = BLOB_INITIALIZER;
   enum {CHANGES, STATUS} command = *g.argv[1]=='s' ? STATUS : CHANGES;
-  int useSha1sum = find_option("sha1sum", 0, 0)!=0;
+  int useHash = find_option("hash", 0, 0)!=0;
   int showHdr = command==CHANGES && find_option("header", 0, 0);
   int verboseFlag = command==CHANGES && find_option("verbose", "v", 0);
   const char *zIgnoreFlag = find_option("ignore", 0, 1);
@@ -529,7 +530,7 @@ void status_cmd(void){
   verify_all_options();
 
   /* Check for changed files. */
-  vfile_check_signature(vid, useSha1sum ? CKSIG_SHA1 : 0);
+  vfile_check_signature(vid, useHash ? CKSIG_HASH : 0);
 
   /* Search for unmanaged files if requested. */
   if( flags & C_EXTRA ){
@@ -826,6 +827,7 @@ void ls_cmd(void){
 **    --dotfiles       include files beginning with a dot (".")
 **    --header         Identify the repository if there are extras
 **    --ignore <CSG>   ignore files matching patterns from the argument
+**    --no-dir-symlinks Disables support for directory symlinks.
 **    --rel-paths      Display pathnames relative to the current working
 **                     directory.
 **
@@ -857,7 +859,6 @@ void extras_cmd(void){
   pIgnore = glob_create(zIgnoreFlag);
   locate_unmanaged_files(g.argc-2, g.argv+2, scanFlags, pIgnore);
   glob_free(pIgnore);
-  g.allowSymlinks = 1;  /* Report on symbolic links */
 
   blob_zero(&report);
   status_report(&report, flags);
@@ -901,9 +902,10 @@ void extras_cmd(void){
 ** the (versionable) clean-glob, ignore-glob, and keep-glob settings.
 **
 ** The --verily option ignores the keep-glob and ignore-glob settings and
-** turns on --force, --emptydirs, --dotfiles, and --disable-undo.  Use the
-** --verily option when you really want to clean up everything.  Extreme
-** care should be exercised when using the --verily option.
+** turns on the options --force, --emptydirs, --dotfiles, --disable-undo,
+** and --no-dir-symlinks.  Use the --verily option when you really want
+** to clean up everything.  Extreme care should be exercised when using
+** the --verily option.
 **
 ** Options:
 **    --allckouts      Check for empty directories within any checkouts
@@ -933,10 +935,10 @@ void extras_cmd(void){
 **    -x|--verily      WARNING: Removes everything that is not a managed
 **                     file or the repository itself.  This option
 **                     implies the --force, --emptydirs, --dotfiles, and
-**                     --disable-undo options.  Furthermore, it completely
-**                     disregards the keep-glob and ignore-glob settings.
-**                     However, it does honor the --ignore and --keep
-**                     options.
+**                     --disable-undo, and --no-dir-symlinks options.
+**                     Furthermore, it completely disregards the keep-glob
+**                     and ignore-glob settings.  However, it does honor
+**                     the --ignore and --keep options.
 **    --clean <CSG>    WARNING: Never prompt to delete any files matching
 **                     this comma separated list of glob patterns.  Also,
 **                     deletions of any files matching this pattern list
@@ -949,6 +951,7 @@ void extras_cmd(void){
 **                     deleted.
 **    --no-prompt      This option disables prompting the user for input
 **                     and assumes an answer of 'No' for every question.
+**    --no-dir-symlinks Disables support for directory symlinks.
 **    --temp           Remove only Fossil-generated temporary files.
 **    -v|--verbose     Show all files as they are removed.
 **
@@ -997,6 +1000,8 @@ void clean_cmd(void){
     disableUndo = 1;
     scanFlags |= SCAN_ALL;
     zCleanFlag = 0;
+    g.fNoDirSymlinks = 1; /* Forbid symlink directory traversal. */
+    g.allowSymlinks = 1;  /* Treat symlink files as content. */
   }
   if( zIgnoreFlag==0 && !verilyFlag ){
     zIgnoreFlag = db_get("ignore-glob", 0);
@@ -1013,7 +1018,6 @@ void clean_cmd(void){
   pKeep = glob_create(zKeepFlag);
   pClean = glob_create(zCleanFlag);
   nRoot = (int)strlen(g.zLocalRoot);
-  g.allowSymlinks = 1;  /* Find symlinks too */
   if( !dirsOnlyFlag ){
     Stmt q;
     Blob repo;
@@ -1983,8 +1987,8 @@ static int tagCmp(const void *a, const void *b){
 **
 ** The --tag option applies the symbolic tag name to the check-in.
 **
-** The --sha1sum option detects edited files by computing each file's
-** SHA1 hash rather than just checking for changes to its size or mtime.
+** The --hash option detects edited files by computing each file's
+** artifact hash rather than just checking for changes to its size or mtime.
 **
 ** Options:
 **    --allow-conflict           allow unresolved merge conflicts
@@ -2008,7 +2012,7 @@ static int tagCmp(const void *a, const void *b){
 **    --no-warnings              omit all warnings about file contents
 **    --nosign                   do not attempt to sign this commit with gpg
 **    --private                  do not sync changes and their descendants
-**    --sha1sum                  verify file status using SHA1 hashing rather
+**    --hash                     verify file status using hashing rather
 **                               than relying on file mtimes
 **    --tag TAG-NAME             assign given tag TAG-NAME to the check-in
 **    --date-override DATETIME   DATE to use instead of 'now'
@@ -2031,7 +2035,7 @@ void commit_cmd(void){
   const char *zComment;  /* Check-in comment */
   Stmt q;                /* Various queries */
   char *zUuid;           /* UUID of the new check-in */
-  int useSha1sum = 0;    /* True to verify file status using SHA1 hashing */
+  int useHash = 0;       /* True to verify file status using hashing */
   int noSign = 0;        /* True to omit signing the manifest using GPG */
   int isAMerge = 0;      /* True if checking in a merge */
   int noWarningFlag = 0; /* True if skipping all warnings */
@@ -2066,7 +2070,7 @@ void commit_cmd(void){
 
   memset(&sCiInfo, 0, sizeof(sCiInfo));
   url_proxy_options();
-  useSha1sum = find_option("sha1sum", 0, 0)!=0;
+  useHash = find_option("hash", 0, 0)!=0;
   noSign = find_option("nosign",0,0)!=0;
   forceDelta = find_option("delta",0,0)!=0;
   forceBaseline = find_option("baseline",0,0)!=0;
@@ -2114,6 +2118,13 @@ void commit_cmd(void){
   useCksum = db_get_boolean("repo-cksum", 1);
   outputManifest = db_get_manifest_setting();
   verify_all_options();
+
+  /* Do not allow the creation of a new branch using an existing open
+  ** branch name unless the --force flag is used */
+  if( sCiInfo.zBranch!=0 && !forceFlag && branch_is_open(sCiInfo.zBranch) ){
+    fossil_fatal("an open branch named \"%s\" already exists - use --force"
+                 " to override", sCiInfo.zBranch);
+  }
 
   /* Escape special characters in tags and put all tags in sorted order */
   if( nTag ){
@@ -2223,7 +2234,7 @@ void commit_cmd(void){
     fossil_fatal("no such user: %s", g.zLogin);
   }
 
-  hasChanges = unsaved_changes(useSha1sum ? CKSIG_SHA1 : 0);
+  hasChanges = unsaved_changes(useHash ? CKSIG_HASH : 0);
   db_begin_transaction();
   db_record_repository_filename(0);
   if( hasChanges==0 && !isAMerge && !allowEmpty && !forceFlag ){

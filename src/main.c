@@ -52,7 +52,12 @@
 #endif
 
 /*
-** Size of a UUID in characters
+** Size of a UUID in characters.   A UUID is a randomly generated
+** lower-case hexadecimal number used to identify tickets.
+**
+** In Fossil 1.x, UUID also referred to a SHA1 artifact hash.  But that
+** usage is now obsolete.  The term UUID should now mean only a very large
+** random number used as a unique identifier for tickets or other objects.
 */
 #define UUID_SIZE 40
 
@@ -137,6 +142,7 @@ struct Global {
   int localOpen;          /* True if the local database is open */
   char *zLocalRoot;       /* The directory holding the  local database */
   int minPrefix;          /* Number of digits needed for a distinct UUID */
+  int fNoDirSymlinks;     /* True if --no-dir-symlinks flag is present */
   int fSqlTrace;          /* True if --sqltrace flag is present */
   int fSqlStats;          /* True if --sqltrace or --sqlstats are present */
   int fSqlPrint;          /* True if -sqlprint flag is present */
@@ -615,6 +621,7 @@ int main(int argc, char **argv)
     const char *zChdir = find_option("chdir",0,1);
     g.isHTTP = 0;
     g.rcvid = 0;
+    g.fNoDirSymlinks = find_option("no-dir-symlinks", 0, 0)!=0;
     g.fQuiet = find_option("quiet", 0, 0)!=0;
     g.fSqlTrace = find_option("sqltrace", 0, 0)!=0;
     g.fSqlStats = find_option("sqlstats", 0, 0)!=0;
@@ -930,20 +937,33 @@ static void get_version_blob(
 #else
   blob_appendf(pOut, "zlib %s, loaded %s\n", ZLIB_VERSION, zlibVersion());
 #endif
+#if FOSSIL_HARDENED_SHA1
+  blob_appendf(pOut, "hardened-SHA1 by Marc Stevens and Dan Shumow\n");
+#endif
 #if defined(FOSSIL_ENABLE_SSL)
   blob_appendf(pOut, "SSL (%s)\n", SSLeay_version(SSLEAY_VERSION));
 #endif
+#if defined(FOSSIL_HAVE_FUSEFS)
+  blob_appendf(pOut, "libfuse %s, loaded %s\n", fusefs_inc_version(),
+               fusefs_lib_version());
+#endif
+#if defined(FOSSIL_DEBUG)
+  blob_append(pOut, "FOSSIL_DEBUG\n", -1);
+#endif
+#if defined(FOSSIL_OMIT_DELTA_CKSUM_TEST)
+  blob_append(pOut, "FOSSIL_OMIT_DELTA_CKSUM_TEST\n", -1);
+#endif
 #if defined(FOSSIL_ENABLE_LEGACY_MV_RM)
-  blob_append(pOut, "LEGACY_MV_RM\n", -1);
+  blob_append(pOut, "FOSSIL_ENABLE_LEGACY_MV_RM\n", -1);
 #endif
 #if defined(FOSSIL_ENABLE_EXEC_REL_PATHS)
-  blob_append(pOut, "EXEC_REL_PATHS\n", -1);
+  blob_append(pOut, "FOSSIL_ENABLE_EXEC_REL_PATHS\n", -1);
 #endif
 #if defined(FOSSIL_ENABLE_TH1_DOCS)
-  blob_append(pOut, "TH1_DOCS\n", -1);
+  blob_append(pOut, "FOSSIL_ENABLE_TH1_DOCS\n", -1);
 #endif
 #if defined(FOSSIL_ENABLE_TH1_HOOKS)
-  blob_append(pOut, "TH1_HOOKS\n", -1);
+  blob_append(pOut, "FOSSIL_ENABLE_TH1_HOOKS\n", -1);
 #endif
 #if defined(FOSSIL_ENABLE_TCL)
   Th_FossilInit(TH_INIT_DEFAULT | TH_INIT_FORCE_TCL);
@@ -957,10 +977,10 @@ static void get_version_blob(
   blob_append(pOut, "USE_TCL_STUBS\n", -1);
 #endif
 #if defined(FOSSIL_ENABLE_TCL_STUBS)
-  blob_append(pOut, "TCL_STUBS\n", -1);
+  blob_append(pOut, "FOSSIL_TCL_STUBS\n", -1);
 #endif
 #if defined(FOSSIL_ENABLE_TCL_PRIVATE_STUBS)
-  blob_append(pOut, "TCL_PRIVATE_STUBS\n", -1);
+  blob_append(pOut, "FOSSIL_ENABLE_TCL_PRIVATE_STUBS\n", -1);
 #endif
 #if defined(FOSSIL_ENABLE_JSON)
   blob_appendf(pOut, "JSON (API %s)\n", FOSSIL_JSON_API_VERSION);
@@ -971,21 +991,26 @@ static void get_version_blob(
   blob_append(pOut, "UNICODE_COMMAND_LINE\n", -1);
 #endif
 #if defined(FOSSIL_DYNAMIC_BUILD)
-  blob_append(pOut, "DYNAMIC_BUILD\n", -1);
+  blob_append(pOut, "FOSSIL_DYNAMIC_BUILD\n", -1);
 #else
-  blob_append(pOut, "STATIC_BUILD\n", -1);
+  blob_append(pOut, "FOSSIL_STATIC_BUILD\n", -1);
 #endif
 #if defined(USE_SEE)
   blob_append(pOut, "USE_SEE\n", -1);
+#endif
+#if defined(FOSSIL_ALLOW_OUT_OF_ORDER_DATES)
+  blob_append(pOut, "FOSSIL_ALLOW_OUT_OF_ORDER_DATES\n");
 #endif
   blob_appendf(pOut, "SQLite %s %.30s\n", sqlite3_libversion(),
                sqlite3_sourceid());
   if( g.db==0 ) sqlite3_open(":memory:", &g.db);
   db_prepare(&q,
-     "SELECT compile_options FROM pragma_compile_options"
-     " WHERE compile_options NOT LIKE 'COMPILER=%%'");
+     "pragma compile_options");
   while( db_step(&q)==SQLITE_ROW ){
-    blob_appendf(pOut, "SQLITE_%s\n", db_column_text(&q, 0));
+    const char *text = db_column_text(&q, 0);
+    if( strncmp(text, "COMPILER", 8) ){
+      blob_appendf(pOut, "SQLITE_%s\n", text);
+    }
   }
   db_finalize(&q);
 }
