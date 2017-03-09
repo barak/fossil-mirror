@@ -9,7 +9,7 @@ include /usr/share/dpkg/architecture.mk
 
 override_dh_auto_configure:
 	dh_auto_configure -- --disable-option-checking \
-			     --disable-internal-sqlite --json \
+			     --with-see --disable-internal-sqlite --json \
 			     --with-th1-docs --with-th1-hooks \
 			     --with-tcl=/usr/lib/$(DEB_HOST_MULTIARCH) \
 			     --with-tcl-stubs
