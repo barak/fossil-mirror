@@ -1,5 +1,5 @@
-C update\sdebian/changelog
-D 2017-03-09T09:33:59.626
+C debhelper\s10
+D 2017-03-09T09:47:04.230
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/binary-glob 34cc11b3b509fd5064afe327e70765799f314c9a
 F .fossil-settings/clean-glob 50327fe7150c88e5daf5150f240dc805398665fb
@@ -325,7 +325,7 @@ F compat/zlib/zutil.h f32dab3880d47eca1b71c308cf6542b32941b23c
 F configure 239cde01aca7fc63a2903f85bd2a6414189f1bd4 x
 F debian/README.Debian 4f504cbfd2afbe917ad659e85f995c5e5bd27cd2
 F debian/changelog 2eaf48ab9aaeb9bccf41d7e720773edd910ed346
-F debian/compat b6abd567fa79cbe0196d093a067271361dc6ca8b
+F debian/compat 4143d3a341877154d6e95211464e1df1015b74bd
 F debian/control d00ad12cfaf7edfc9cf3d4a29efc8df757de8ee7
 F debian/copyright 3d850ea9194da4d2322fcf11b61174f7e9a6818a
 F debian/fossil.bash-completion e1e460f40668463a8e3e8df9a99de8f9301c9730
@@ -798,8 +798,8 @@ F www/webui.wiki 411350e0bfcabd3e3e8a750d5e69ba840ce50e45
 F www/whyusefossil.wiki 730056ead695df82c7aa9dd099cf34b4bfbfd473
 F www/wikitheory.wiki bd20172d783835606043b15bba0c69c9f606a87b
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P 358871676fba5e062cccf62fbd484c2f40ac3506
-R 06681e7f4eb7397877747190b50baaa0
+P a5265bb21c6ee7b48847fe94ca703c977a0570f7
+R 2f4802cc1af6b21cae8730e3f3b2749c
 U barak
-Z d0d073282a334bc791941daea5288a00
+Z f32a6e6ee1801a08bd4dc8ef2aefe177
 # Remove this line to create a well-formed Fossil manifest.
