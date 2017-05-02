@@ -1,5 +1,33 @@
 <title>Change Log</title>
 
+<a name='v2_2'></a>
+<h2>Changes for Version 2.2 (2017-04-11)</h2>
+
+  *  GIT comment tags are now handled by Fossil during import/export.
+  *  Show the content of README files on directory listings.
+     ([/file/skins|example])
+  *  Support for Basic Authentication if enabled (default off).
+  *  Show the hash algorithms used on the
+     [/help?cmd=/rcvfromlist|/rcvfromlist] page.
+  *  The [/help?cmd=/tarball|/tarball] and [/help?cmd=/zip|/zip] pages
+     now use the the r= query parameter
+     to select which check-in to deliver.  The uuid= query parameter
+     is still accepted for backwards compatibility.
+  *  Update the built-in SQLite to version 3.18.0.
+  *  Run "[https://www.sqlite.org/pragma.html#pragma_optimize|PRAGMA optimize]"
+     on the database connection as it is closing.
+
+<a name='v2_1'></a>
+<h2>Changes for Version 2.1 (2017-03-10)</h2>
+
+  *  Add support for [./hashpolicy.wiki|hash policies] that control which
+     of the Hardened-SHA1 or SHA3-256 algorithms is used to name new
+     artifacts.
+  *  Add the "gshow" and "gcat" subcommands to [/help?cmd=stash|fossil stash].
+  *  Add the [/help?cmd=/juvlist|/juvlist] web page and use it to construct
+     the [/uv/download.html|Download Page] of the Fossil self-hosting website
+     using Ajax.
+
 <a name='v2_0'></a>
 <h2>Changes for Version 2.0 (2017-03-03)</h2>
 
@@ -17,7 +45,7 @@
 
   *  Add checkbox widgets to various web pages.  See [/technote/8d18bf27e9|
      this technote] for more information.  To get the checkboxes to look as
-	 intended, you must update the CSS in your repository and all clones.
+     intended, you must update the CSS in your repository and all clones.
   *  Add the [/help/all|fossil all ui] command
   *  Add the [/help?cmd=/file|/file] webpage
   *  Enhance the [/help?cmd=/brlist|/brlist] webpage to make use of branch colors.

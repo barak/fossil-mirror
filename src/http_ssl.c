@@ -254,10 +254,8 @@ int ssl_open(UrlData *pUrlData){
 
   if( pUrlData->useProxy ){
     int rc;
-    BIO *sBio;
-    char *connStr;
-    connStr = mprintf("%s:%d", g.url.name, pUrlData->port);
-    sBio = BIO_new_connect(connStr);
+    char *connStr = mprintf("%s:%d", g.url.name, pUrlData->port);
+    BIO *sBio = BIO_new_connect(connStr);
     free(connStr);
     if( BIO_do_connect(sBio)<=0 ){
       ssl_set_errmsg("SSL: cannot connect to proxy %s:%d (%s)",
@@ -295,8 +293,7 @@ int ssl_open(UrlData *pUrlData){
   SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
 
   if( !pUrlData->useProxy ){
-    char *connStr;
-    connStr = mprintf("%s:%d", pUrlData->name, pUrlData->port);
+    char *connStr = mprintf("%s:%d", pUrlData->name, pUrlData->port);
     BIO_set_conn_hostname(iBio, connStr);
     free(connStr);
     if( BIO_do_connect(iBio)<=0 ){

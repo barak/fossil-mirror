@@ -466,7 +466,8 @@ void status_cmd(void){
 
   Blob report = BLOB_INITIALIZER;
   enum {CHANGES, STATUS} command = *g.argv[1]=='s' ? STATUS : CHANGES;
-  int useHash = find_option("hash", 0, 0)!=0;
+  /* --sha1sum is an undocumented alias for --hash for backwards compatiblity */
+  int useHash = find_option("hash",0,0)!=0 || find_option("sha1sum",0,0)!=0;
   int showHdr = command==CHANGES && find_option("header", 0, 0);
   int verboseFlag = command==CHANGES && find_option("verbose", "v", 0);
   const char *zIgnoreFlag = find_option("ignore", 0, 1);
@@ -1203,8 +1204,9 @@ void prompt_for_user_comment(Blob *pComment, Blob *pPrompt){
   }else{
     Blob fname;
     blob_zero(&fname);
+    assert( g.zLocalRoot!=0 );
     file_relative_name(g.zLocalRoot, &fname, 1);
-    zFile = db_text(0, "SELECT '%qci-comment-' || hex(randomblob(6)) || '.txt'",
+    zFile = db_text(0, "SELECT '%qci-comment-'||hex(randomblob(6))||'.txt'",
                     blob_str(&fname));
     blob_reset(&fname);
   }
@@ -2070,7 +2072,8 @@ void commit_cmd(void){
 
   memset(&sCiInfo, 0, sizeof(sCiInfo));
   url_proxy_options();
-  useHash = find_option("hash", 0, 0)!=0;
+  /* --sha1sum is an undocumented alias for --hash for backwards compatiblity */
+  useHash = find_option("hash",0,0)!=0 || find_option("sha1sum",0,0)!=0;
   noSign = find_option("nosign",0,0)!=0;
   forceDelta = find_option("delta",0,0)!=0;
   forceBaseline = find_option("baseline",0,0)!=0;
