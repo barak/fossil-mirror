@@ -1,5 +1,5 @@
-C merge\supstream_2.3
-D 2017-07-26T12:41:24.419
+C bump\sdebian\sstandards\sversion
+D 2017-07-26T14:39:29.913
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/binary-glob 34cc11b3b509fd5064afe327e70765799f314c9a
 F .fossil-settings/clean-glob 50327fe7150c88e5daf5150f240dc805398665fb
@@ -321,7 +321,7 @@ F configure 239cde01aca7fc63a2903f85bd2a6414189f1bd4 x
 F debian/README.Debian f0f10ef30732c830b5a0eab2eb1cb7eaa5857671c243b50aab04fe4da6833673
 F debian/changelog 2cd8967659741a65a281aa61a42bddbc800e00c5723a145a3caf16094bdedd96
 F debian/compat 4143d3a341877154d6e95211464e1df1015b74bd
-F debian/control d00ad12cfaf7edfc9cf3d4a29efc8df757de8ee7
+F debian/control 7f87187e102e6c66bba0a723f8df2ffd76c560f85a5cbec60c73fad863e223dc
 F debian/copyright 3d850ea9194da4d2322fcf11b61174f7e9a6818a
 F debian/fossil.bash-completion e1e460f40668463a8e3e8df9a99de8f9301c9730
 F debian/fossil.docs 45a770a8534b1a439a32546145737975a9217b30
@@ -803,8 +803,8 @@ F www/webui.wiki 411350e0bfcabd3e3e8a750d5e69ba840ce50e45
 F www/whyusefossil.wiki 730056ead695df82c7aa9dd099cf34b4bfbfd473
 F www/wikitheory.wiki bd20172d783835606043b15bba0c69c9f606a87b
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P 19d54340f4a9a929cfe78e4f27b23b43a922a01f943992923aa339eabd18aeb9 f7914bfdfacad19a8bb7a5fe9152234f8f20de1270f60cfa65880adf3bb31850
-R c0301c8dc488d7485c0178c4a7e87867
+P 4dc1de2f4028846ebabee31cc14d89cc5233140a1379603e3b45ec1e950f106a
+R 09159452375212c7bf1e861c43b3cd92
 U barak
-Z 9dc9caede7b1f2c4fbc50639119c9c0b
+Z aa34674496efb31b7224a7a7dbe4ae5a
 # Remove this line to create a well-formed Fossil manifest.
