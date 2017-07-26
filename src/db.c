@@ -36,6 +36,9 @@
 #else
 #  include <pwd.h>
 #endif
+#if USE_SEE && !defined(SQLITE_HAS_CODEC)
+#  define SQLITE_HAS_CODEC
+#endif
 #include <sqlite3.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -241,21 +244,33 @@ void db_commit_hook(int (*x)(void), int sequence){
   db.nCommitHook++;
 }
 
+#if INTERFACE
+/*
+** Possible flags to db_vprepare
+*/
+#define DB_PREPARE_IGNORE_ERROR  0x001  /* Suppress errors */
+#define DB_PREPARE_PERSISTENT    0x002  /* Stmt will stick around for a while */
+#endif
+
 /*
 ** Prepare a Stmt.  Assume that the Stmt is previously uninitialized.
 ** If the input string contains multiple SQL statements, only the first
 ** one is processed.  All statements beyond the first are silently ignored.
 */
-int db_vprepare(Stmt *pStmt, int errOk, const char *zFormat, va_list ap){
+int db_vprepare(Stmt *pStmt, int flags, const char *zFormat, va_list ap){
   int rc;
+  int prepFlags = 0;
   char *zSql;
   blob_zero(&pStmt->sql);
   blob_vappendf(&pStmt->sql, zFormat, ap);
   va_end(ap);
   zSql = blob_str(&pStmt->sql);
   db.nPrepare++;
-  rc = sqlite3_prepare_v2(g.db, zSql, -1, &pStmt->pStmt, 0);
-  if( rc!=0 && !errOk ){
+  if( flags & DB_PREPARE_PERSISTENT ){
+    prepFlags = SQLITE_PREPARE_PERSISTENT;
+  }
+  rc = sqlite3_prepare_v3(g.db, zSql, -1, prepFlags, &pStmt->pStmt, 0);
+  if( rc!=0 && (flags & DB_PREPARE_IGNORE_ERROR)!=0 ){
     db_err("%s\n%s", sqlite3_errmsg(g.db), zSql);
   }
   pStmt->pNext = pStmt->pPrev = 0;
@@ -274,7 +289,7 @@ int db_prepare_ignore_error(Stmt *pStmt, const char *zFormat, ...){
   int rc;
   va_list ap;
   va_start(ap, zFormat);
-  rc = db_vprepare(pStmt, 1, zFormat, ap);
+  rc = db_vprepare(pStmt, DB_PREPARE_IGNORE_ERROR, zFormat, ap);
   va_end(ap);
   return rc;
 }
@@ -283,7 +298,7 @@ int db_static_prepare(Stmt *pStmt, const char *zFormat, ...){
   if( blob_size(&pStmt->sql)==0 ){
     va_list ap;
     va_start(ap, zFormat);
-    rc = db_vprepare(pStmt, 0, zFormat, ap);
+    rc = db_vprepare(pStmt, DB_PREPARE_PERSISTENT, zFormat, ap);
     pStmt->pNext = db.pAllStmt;
     pStmt->pPrev = 0;
     if( db.pAllStmt ) db.pAllStmt->pPrev = pStmt;
@@ -1043,13 +1058,34 @@ static void db_maybe_obtain_encryption_key(
 
 
 /*
+** Sets the encryption key for the database, if necessary.
+*/
+void db_maybe_set_encryption_key(sqlite3 *db, const char *zDbName){
+  Blob key;
+  blob_init(&key, 0, 0);
+  db_maybe_obtain_encryption_key(zDbName, &key);
+  if( blob_size(&key)>0 ){
+    if( fossil_getenv("FOSSIL_USE_SEE_TEXTKEY")==0 ){
+      char *zCmd = sqlite3_mprintf("PRAGMA key(%Q)", blob_str(&key));
+      sqlite3_exec(db, zCmd, 0, 0, 0);
+      fossil_secure_zero(zCmd, strlen(zCmd));
+      sqlite3_free(zCmd);
+#if USE_SEE
+    }else{
+      sqlite3_key(db, blob_str(&key), -1);
+#endif
+    }
+  }
+  blob_reset(&key);
+}
+
+/*
 ** Open a database file.  Return a pointer to the new database
 ** connection.  An error results in process abort.
 */
 LOCAL sqlite3 *db_open(const char *zDbName){
   int rc;
   sqlite3 *db;
-  Blob key;
 
   if( g.fSqlTrace ) fossil_trace("-- sqlite3_open: [%s]\n", zDbName);
   rc = sqlite3_open_v2(
@@ -1060,15 +1096,7 @@ LOCAL sqlite3 *db_open(const char *zDbName){
   if( rc!=SQLITE_OK ){
     db_err("[%s]: %s", zDbName, sqlite3_errmsg(db));
   }
-  blob_init(&key, 0, 0);
-  db_maybe_obtain_encryption_key(zDbName, &key);
-  if( blob_size(&key)>0 ){
-    char *zCmd = sqlite3_mprintf("PRAGMA key(%Q)", blob_str(&key));
-    sqlite3_exec(db, zCmd, 0, 0, 0);
-    fossil_secure_zero(zCmd, strlen(zCmd));
-    sqlite3_free(zCmd);
-  }
-  blob_reset(&key);
+  db_maybe_set_encryption_key(db, zDbName);
   sqlite3_busy_timeout(db, 5000);
   sqlite3_wal_autocheckpoint(db, 1);  /* Set to checkpoint frequently */
   sqlite3_create_function(db, "user", 0, SQLITE_UTF8, 0, db_sql_user, 0, 0);
@@ -1102,15 +1130,26 @@ void db_detach(const char *zLabel){
 ** the name zLabel.
 */
 void db_attach(const char *zDbName, const char *zLabel){
-  char *zCmd;
   Blob key;
   blob_init(&key, 0, 0);
   db_maybe_obtain_encryption_key(zDbName, &key);
-  zCmd = sqlite3_mprintf("ATTACH DATABASE %Q AS %Q KEY %Q",
-                         zDbName, zLabel, blob_str(&key));
-  db_multi_exec(zCmd /*works-like:""*/);
-  fossil_secure_zero(zCmd, strlen(zCmd));
-  sqlite3_free(zCmd);
+  if( fossil_getenv("FOSSIL_USE_SEE_TEXTKEY")==0 ){
+    char *zCmd = sqlite3_mprintf("ATTACH DATABASE %Q AS %Q KEY %Q",
+                                 zDbName, zLabel, blob_str(&key));
+    db_multi_exec(zCmd /*works-like:""*/);
+    fossil_secure_zero(zCmd, strlen(zCmd));
+    sqlite3_free(zCmd);
+  }else{
+    char *zCmd = sqlite3_mprintf("ATTACH DATABASE %Q AS %Q KEY ''",
+                                 zDbName, zLabel);
+    db_multi_exec(zCmd /*works-like:""*/);
+    sqlite3_free(zCmd);
+#if USE_SEE
+    if( blob_size(&key)>0 ){
+      sqlite3_key_v2(g.db, zLabel, blob_str(&key), -1);
+    }
+#endif
+  }
   blob_reset(&key);
 }
 
@@ -1618,7 +1657,7 @@ void move_repo_cmd(void){
 */
 void db_must_be_within_tree(void){
   if( find_repository_option() ){
-    fossil_fatal("the \"%s\" command only work from within an open check-out",
+    fossil_fatal("the \"%s\" command only works from within an open check-out",
                  g.argv[1]);
   }
   if( db_open_local(0)==0 ){
@@ -1668,7 +1707,9 @@ void db_close(int reportErrors){
   }
   db_end_transaction(1);
   pStmt = 0;
+  g.dbIgnoreErrors++;  /* Stop "database locked" warnings from PRAGMA optimize */
   sqlite3_exec(g.db, "PRAGMA optimize", 0, 0, 0);
+  g.dbIgnoreErrors--;
   db_close_config();
 
   /* If the localdb has a lot of unused free space,

@@ -13,15 +13,15 @@ download.html page then figures out which unversioned files are
 build products and paints appropriate icons on the displayed
 download page.
 
-When a new version is generated, the developers us the
+When a new version is generated, the developers use the
 [/help?cmd=uv|fossil uv edit] command to make minor changes
 to the "[/uv/download.html?mimetype=text/plain|download.html]"
 file so that it knows about the
 new version number.  Then the developers run
-the [/help?cmd=uv|fossil uv add] command for each 
+the [/help?cmd=uv|fossil uv add] command for each
 build product.  Finally, the
 [/help?cmd=uv|fossil uv sync] command is run to push all
-the content up to servers.  All 
+the content up to servers.  All
 [./selfhost.wiki|three self-hosting repositories] for Fossil
 are updated automatically.
 
@@ -84,9 +84,9 @@ to push unversioned content up to the servers.  Having the ability
 to push check-ins (the [/setup_ulist_notes|"i" permission]) is not
 sufficient.
 
-On the Fossil project there are 67 people (as of 2017-03-24) who have 
-check-in privileges.  But only 3 core developers 
-have the ability push unversioned content and thus
+On the Fossil project there are 67 people (as of 2017-03-24) who have
+check-in privileges.  But only 3 core developers
+can push unversioned content and thus
 change the build products on the download page.  Minimizing the number
 of people who can change the build products helps to ensure that
 rogue binaries do not slip onto the download page unnoticed.

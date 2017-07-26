@@ -180,11 +180,11 @@ void stat_page(void){
   /* @ <tr><th>Server&nbsp;ID:</th><td>%h(db_get("server-code",""))</td></tr> */
   @ <tr><th>Fossil&nbsp;Version:</th><td>
   @ %h(MANIFEST_DATE) %h(MANIFEST_VERSION)
-  @ (%h(RELEASE_VERSION)) <a href='version?verbose=1'>(details)</a>
+  @ (%h(RELEASE_VERSION)) <a href='version?verbose'>(details)</a>
   @ </td></tr>
   @ <tr><th>SQLite&nbsp;Version:</th><td>%.19s(sqlite3_sourceid())
   @ [%.10s(&sqlite3_sourceid()[20])] (%s(sqlite3_libversion()))
-  @ <a href='version?verbose=2'>(details)</a></td></tr>
+  @ <a href='version?verbose'>(details)</a></td></tr>
   if( g.eHashPolicy!=HPOLICY_AUTO ){
     @ <tr><th>Schema&nbsp;Version:</th><td>%h(g.zAuxSchema),
     @ %s(hpolicy_name())</td></tr>
@@ -343,6 +343,10 @@ void dbstat_cmd(void){
 void urllist_page(void){
   Stmt q;
   int cnt;
+  int showAll = P("all")!=0;
+  int nOmitted;
+  sqlite3_int64 iNow;
+  char *zRemote;
   login_check_credentials();
   if( !g.perm.Admin ){ login_needed(0); return; }
 
@@ -350,19 +354,27 @@ void urllist_page(void){
   style_adunit_config(ADUNIT_RIGHT_OK);
   style_submenu_element("Stat", "stat");
   style_submenu_element("Schema", "repo_schema");
+  iNow = db_int64(0, "SELECT strftime('%%s','now')");
   @ <div class="section">URLs</div>
   @ <table border="0" width='100%%'>
-  db_prepare(&q, "SELECT substr(name,9), datetime(mtime,'unixepoch')"
-                 "  FROM config WHERE name GLOB 'baseurl:*' ORDER BY 2 DESC");
+  db_prepare(&q, "SELECT substr(name,9), datetime(mtime,'unixepoch'), mtime"
+                 "  FROM config WHERE name GLOB 'baseurl:*' ORDER BY 3 DESC");
   cnt = 0;
+  nOmitted = 0;
   while( db_step(&q)==SQLITE_ROW ){
-    @ <tr><td width='100%%'>%h(db_column_text(&q,0))</td>
-    @ <td><nobr>%h(db_column_text(&q,1))</nobr></td></tr>
+    if( !showAll && db_column_int64(&q,2)<(iNow - 3600*24*30) && cnt>8 ){
+      nOmitted++;
+    }else{
+      @ <tr><td width='100%%'>%h(db_column_text(&q,0))</td>
+      @ <td><nobr>%h(db_column_text(&q,1))</nobr></td></tr>
+    }
     cnt++;
   }
   db_finalize(&q);
   if( cnt==0 ){
     @ <tr><td>(none)</td>
+  }else if( nOmitted ){
+    @ <tr><td><a href="urllist?all"><i>Show %d(nOmitted) more...</i></a>
   }
   @ </table>
   @ <div class="section">Checkouts</div>
@@ -371,8 +383,11 @@ void urllist_page(void){
                  "  FROM config WHERE name GLOB 'ckout:*' ORDER BY 2 DESC");
   cnt = 0;
   while( db_step(&q)==SQLITE_ROW ){
-    @ <tr><td width='100%%'>%h(db_column_text(&q,0))</td>
-    @ <td><nobr>%h(db_column_text(&q,1))</nobr></td></tr>
+    const char *zPath = db_column_text(&q,0);
+    if( vfile_top_of_checkout(zPath) ){
+      @ <tr><td width='100%%'>%h(zPath)</td>
+      @ <td><nobr>%h(db_column_text(&q,1))</nobr></td></tr>
+    }
     cnt++;
   }
   db_finalize(&q);
@@ -380,6 +395,18 @@ void urllist_page(void){
     @ <tr><td>(none)</td>
   }
   @ </table>
+  zRemote = db_text(0, "SELECT value FROM config WHERE name='last-sync-url'");
+  if( zRemote ){
+    @ <div class="section">Last Sync URL</div>
+    if( sqlite3_strlike("http%", zRemote, 0)==0 ){
+      UrlData x;
+      url_parse_local(zRemote, URL_OMIT_USER, &x);
+      @ <p><a href='%h(x.canonical)'>%h(zRemote)</a>
+    }else{
+      @ <p>%h(zRemote)</p>
+    }
+    @ </div>
+  }
   style_footer();
 }
 

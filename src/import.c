@@ -87,7 +87,8 @@ char *fossil_strndup(const char *zOrig, int len){
       for( n=0; zOrig[n] && n<len; ++n );
     }
     z = fossil_malloc( n+1 );
-    memcpy(z, zOrig, n+1);
+    memcpy(z, zOrig, n);
+    z[n] = 0;
   }
   return z;
 }
@@ -1736,6 +1737,7 @@ void import_cmd(void){
   }
   if( g.argc==4 ){
     pIn = fossil_fopen(g.argv[3], "rb");
+    if( pIn==0 ) fossil_fatal("cannot open input file \"%s\"", g.argv[3]);
   }else{
     pIn = stdin;
     fossil_binary_mode(pIn);

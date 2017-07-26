@@ -555,6 +555,8 @@ int main(int argc, char **argv)
   const char *zCmdName = "unknown";
   const CmdOrPage *pCmd = 0;
   int rc;
+
+  fossil_limit_memory(1);
   if( sqlite3_libversion_number()<3014000 ){
     fossil_fatal("Unsuitable SQLite version %s, must be at least 3.14.0",
                  sqlite3_libversion());
@@ -891,7 +893,7 @@ const char *find_repository_option(){
 void verify_all_options(void){
   int i;
   for(i=1; i<g.argc; i++){
-    if( g.argv[i][0]=='-' ){
+    if( g.argv[i][0]=='-' && g.argv[i][1]!=0 ){
       fossil_fatal(
         "unrecognized command-line option, or missing argument: %s",
         g.argv[i]);
@@ -1063,7 +1065,7 @@ void test_version_page(void){
 
   login_check_credentials();
   if( !g.perm.Read ){ login_needed(g.anon.Read); return; }
-  verboseFlag = atoi(PD("verbose","0"));
+  verboseFlag = PD("verbose", 0) != 0;
   style_header("Version Information");
   style_submenu_element("Stat", "stat");
   get_version_blob(&versionInfo, verboseFlag);
