@@ -1,5 +1,5 @@
-C log\schanges
-D 2017-07-26T14:43:53.037
+C no\sarg\snecessary\sfor\s./configure\s--with-tcl
+D 2017-11-26T13:26:19.081
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/binary-glob 34cc11b3b509fd5064afe327e70765799f314c9a
 F .fossil-settings/clean-glob 50327fe7150c88e5daf5150f240dc805398665fb
@@ -326,7 +326,7 @@ F debian/copyright 3d850ea9194da4d2322fcf11b61174f7e9a6818a
 F debian/fossil.bash-completion e1e460f40668463a8e3e8df9a99de8f9301c9730
 F debian/fossil.docs 45a770a8534b1a439a32546145737975a9217b30
 F debian/fossil.manpages 8ca3a843375393ec37484e4dbae3d4dfe5b4ddcf
-F debian/rules 85a94009eb1ba23d62ac0f25a447107dd89f3687 x
+F debian/rules fcd7ade4b4891369e4e27bd9a6d7032b8a5e28027916a51498e4481e514031a3 x
 F debian/source/format 1064dc0ce263680c076a1005f35ec906a5cf5a32
 F debian/source/local-options 58a65fc3dfe4bbb8692c99e80334fba1e913f072
 F debian/source/patch-header 84c8aca673f2fc094c29a10bd519fca36a57e9f6
@@ -803,8 +803,8 @@ F www/webui.wiki 411350e0bfcabd3e3e8a750d5e69ba840ce50e45
 F www/whyusefossil.wiki 730056ead695df82c7aa9dd099cf34b4bfbfd473
 F www/wikitheory.wiki bd20172d783835606043b15bba0c69c9f606a87b
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P cde44d8fea50d36f0e9fd5bd72d6bb540594d153d5dd8f26e8d9bd8711f4c703
-R ea68083e2a0d073db4b3456d27f8f038
+P b76f836a1093af8b3ba16449ebe8358395b1a9b90680eb328a9e614e2e352191
+R aa3c268dbc4c0d56bd9818d60e03b5a6
 U barak
-Z 6851b8bb4f591123f52798312a4122d5
+Z 66c95c7f9932563da9c6a3fbe6676239
 # Remove this line to create a well-formed Fossil manifest.
