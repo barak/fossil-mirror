@@ -1,5 +1,5 @@
-C merge\supstream_2.4
-D 2017-12-05T16:36:13.440
+C update\suscan\sdebian/watch\sfile
+D 2017-12-05T17:20:08.054
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/binary-glob 34cc11b3b509fd5064afe327e70765799f314c9a
 F .fossil-settings/clean-glob 50327fe7150c88e5daf5150f240dc805398665fb
@@ -330,7 +330,7 @@ F debian/rules fcd7ade4b4891369e4e27bd9a6d7032b8a5e28027916a51498e4481e514031a3 
 F debian/source/format 1064dc0ce263680c076a1005f35ec906a5cf5a32
 F debian/source/local-options 58a65fc3dfe4bbb8692c99e80334fba1e913f072
 F debian/source/patch-header 84c8aca673f2fc094c29a10bd519fca36a57e9f6
-F debian/watch ba25c94ab4aa8d9c3939c81f2e32dcef84593ea5
+F debian/watch 4e720404dfa8d3abb8b1111a26322de1d9c626321378080e1e3276a122e8133e
 F fossil.1 740ad69dfd64430b1e31d22ac799a6086c622ef8
 F setup/fossil.iss 57e01e1feb0198de025417c0a98f1d4b1c444f53
 F setup/fossil.nsi 806b01761d5d42543d1c90b95b927c0ea8b251bf
@@ -804,8 +804,8 @@ F www/webui.wiki 411350e0bfcabd3e3e8a750d5e69ba840ce50e45
 F www/whyusefossil.wiki 730056ead695df82c7aa9dd099cf34b4bfbfd473
 F www/wikitheory.wiki bd20172d783835606043b15bba0c69c9f606a87b
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P 2cfb4700baef662b0777d5e6ae2bca3775ff41a8d5a7f3b1d5fd06d099765691 a0001dcf57915cc0709f63035626561eb039eb0fdaf38ebdbeab770c0c03b5ad
-R d6564b039c5c9001228949b30651e6aa
+P 28bb954e64668d0faccd0f9c8d9ea0fdb8cc2efd2ecd30d3f02f3914f3e94112
+R 3237794cdd3a7aef534063f253120d34
 U barak
-Z d6f0693cebcf36ea90483ee6c0c31b8f
+Z a62f259b45d87634ca74aa15eb543e10
 # Remove this line to create a well-formed Fossil manifest.

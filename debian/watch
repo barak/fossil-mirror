@@ -1,22 +1,7 @@
 version=4
 
-# opts="downloadurlmangle=s:/download.html/:/:" \
-# https://www.fossil-scm.org/download.html \
-#  .*/fossil-src-(\d*\.\d*)\.(?:zip|tgz|tbz|txz|(?:tar\.(?:gz|bz2|xz)))
+# Example URL:
+# https://www.fossil-scm.org/fossil/uv/fossil-src-2.4.tar.gz
 
-# opts="downloadurlmangle=s:/download.html/:/:" \
-# http://fossil-scm.org/index.html/uv/download.html \
-#  .*/fossil-src-(\d*\.\d*)\.(?:zip|tgz|tbz|txz|(?:tar\.(?:gz|bz2|xz)))
-
-https://www.fossil-scm.org/fossil/uv/download.html \
- download/fossil-src-([\.\d]+)\.tar\.gz
-
-
-# https://www.fossil-scm.org/fossil/uv/download/fossil-src-([\.\d]+)\.tar\.gz
-
-#.*/fossil-src-(.*)\.tar\.gz
-
-# .*/fossil-src-(\d*\.\d*)\.(?:zip|tgz|tbz|txz|(?:tar\.(?:gz|bz2|xz)))
-
-#.*/fossil-src-2.0.tar.gz
-
+https://www.fossil-scm.org/fossil/uvlist \
+ .*/fossil-src-([\.\d]+)\.tar\.gz
