@@ -46,13 +46,14 @@ static struct Submenu {
 } aSubmenu[30];
 static int nSubmenu = 0;     /* Number of buttons */
 static struct SubmenuCtrl {
-  const char *zName;         /* Form query parameter */
-  const char *zLabel;        /* Label.  Might be NULL for FF_MULTI */
-  unsigned char eType;       /* FF_ENTRY, FF_MULTI, FF_BINARY */
-  unsigned char isDisabled;  /* True if this control is grayed out */
-  short int iSize;           /* Width for FF_ENTRY.  Count for FF_MULTI */
-  const char *const *azChoice;/* value/display pairs for FF_MULTI */
-  const char *zFalse;        /* FF_BINARY label when false */
+  const char *zName;           /* Form query parameter */
+  const char *zLabel;          /* Label.  Might be NULL for FF_MULTI */
+  unsigned char eType;         /* FF_ENTRY, FF_MULTI, FF_BINARY */
+  unsigned char isDisabled;    /* True if this control is grayed out */
+  short int iSize;             /* Width for FF_ENTRY.  Count for FF_MULTI */
+  const char *const *azChoice; /* value/display pairs for FF_MULTI */
+  const char *zFalse;          /* FF_BINARY label when false */
+  const char *zJS;             /* Javascript to run on toggle */
 } aSubmenuCtrl[20];
 static int nSubmenuCtrl = 0;
 #define FF_ENTRY    1
@@ -262,12 +263,14 @@ void style_submenu_entry(
 void style_submenu_checkbox(
   const char *zName,       /* Query parameter name */
   const char *zLabel,      /* Label to display after the checkbox */
-  int isDisabled           /* True if disabled */
+  int isDisabled,          /* True if disabled */
+  const char *zJS          /* Optional javascript to run on toggle */
 ){
   assert( nSubmenuCtrl < count(aSubmenuCtrl) );
   aSubmenuCtrl[nSubmenuCtrl].zName = zName;
   aSubmenuCtrl[nSubmenuCtrl].zLabel = zLabel;
   aSubmenuCtrl[nSubmenuCtrl].isDisabled = isDisabled;
+  aSubmenuCtrl[nSubmenuCtrl].zJS = zJS;
   aSubmenuCtrl[nSubmenuCtrl].eType = FF_CHECKBOX;
   nSubmenuCtrl++;
 }
@@ -485,6 +488,7 @@ static const char *style_adunit_text(unsigned int *pAdFlag){
   const char *zAd = 0;
   *pAdFlag = 0;
   if( adUnitFlags & ADUNIT_OFF ) return 0;  /* Disallow ads on this page */
+  if( db_get_boolean("adunit-disable",0) ) return 0;
   if( g.perm.Admin && db_get_boolean("adunit-omit-if-admin",0) ){
     return 0;
   }
@@ -594,15 +598,20 @@ void style_footer(void){
           @ </select>
           break;
         }
-        case FF_CHECKBOX:
+        case FF_CHECKBOX: {
           @ <label class='submenuctrl submenuckbox'>\
           @ <input type='checkbox' name='%s(zQPN)' \
           if( PB(zQPN) ){
             @ checked \
           }
-          @ onchange='gebi("f01").submit();'%s(zDisabled)>\
+          if( aSubmenuCtrl[i].zJS ){
+            @ onchange='%s(aSubmenuCtrl[i].zJS)'%s(zDisabled)>\
+          }else{
+            @ onchange='gebi("f01").submit();'%s(zDisabled)>\
+          }
           @ %h(aSubmenuCtrl[i].zLabel)</label>
           break;
+        }
       }
     }
     @ </div>
@@ -1418,6 +1427,7 @@ const struct strctCssDefaults {
   { ".brlist table th",  "Branch list table headers",
     @ text-align: left;
     @ padding: 0px 1em 0.5ex 0px;
+    @ vertical-align: bottom;
   },
   { ".brlist table td",  "Branch list table headers",
     @ padding: 0px 2em 0px 0px;
@@ -1594,7 +1604,7 @@ void page_test_env(void){
   for(i=0; i<count(azCgiVars); i++) (void)P(azCgiVars[i]);
   style_header("Environment Test");
   showAll = PB("showall");
-  style_submenu_checkbox("showall", "Cookies", 0);
+  style_submenu_checkbox("showall", "Cookies", 0, 0);
   style_submenu_element("Stats", "%R/stat");
 
 #if !defined(_WIN32)
