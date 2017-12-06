@@ -1,5 +1,5 @@
-C update\suscan\sdebian/watch\sfile
-D 2017-12-05T17:20:08.054
+C repack\supstream\starball\sto\sremove\sautosetup/jimsh0.c,\ssee\sbugs.debian.org/882720
+D 2017-12-06T23:17:29.054
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/binary-glob 34cc11b3b509fd5064afe327e70765799f314c9a
 F .fossil-settings/clean-glob 50327fe7150c88e5daf5150f240dc805398665fb
@@ -322,7 +322,7 @@ F debian/README.Debian f0f10ef30732c830b5a0eab2eb1cb7eaa5857671c243b50aab04fe4da
 F debian/changelog 81f0f496cba8b6df42652cb125167dd46cc9d2935c23768b96f247687934f211
 F debian/compat 4143d3a341877154d6e95211464e1df1015b74bd
 F debian/control bbb1d868c18f8a9b2fd5d4c6dd01ceb7c2d5df40c40b86a68795353bc47ff524
-F debian/copyright 3d850ea9194da4d2322fcf11b61174f7e9a6818a
+F debian/copyright 385794116fd36c4f32fb746a93ae508c6fa3bbdc7791dac2872688f4bc07c23e
 F debian/fossil.bash-completion e1e460f40668463a8e3e8df9a99de8f9301c9730
 F debian/fossil.docs 45a770a8534b1a439a32546145737975a9217b30
 F debian/fossil.manpages 8ca3a843375393ec37484e4dbae3d4dfe5b4ddcf
@@ -804,8 +804,8 @@ F www/webui.wiki 411350e0bfcabd3e3e8a750d5e69ba840ce50e45
 F www/whyusefossil.wiki 730056ead695df82c7aa9dd099cf34b4bfbfd473
 F www/wikitheory.wiki bd20172d783835606043b15bba0c69c9f606a87b
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P 28bb954e64668d0faccd0f9c8d9ea0fdb8cc2efd2ecd30d3f02f3914f3e94112
-R 3237794cdd3a7aef534063f253120d34
+P 32fea4394e13ec922fe53799b1275af2a995b996678e375a6cc84222f45822e2
+R be1ae8c7897488fd9a71324c114cba95
 U barak
-Z a62f259b45d87634ca74aa15eb543e10
+Z 1c96c96768db7db3ecabbb1732a5119d
 # Remove this line to create a well-formed Fossil manifest.
