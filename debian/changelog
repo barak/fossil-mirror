@@ -1,10 +1,12 @@
-fossil (1:2.3-1) unstable; urgency=medium
+fossil (1:2.4-1) unstable; urgency=medium
 
   * New upstream version
   * Bump debian standards version
   * Use https URL for upstream pull in README.Debian
+  * Repack upstream tarball to remove autosetup/jimsh0.c (closes: #882720)
+  * configure --with-tcl-private-stubs or it won't compile dunno why
 
- -- Barak A. Pearlmutter <bap@debian.org>  Wed, 26 Jul 2017 15:43:36 +0100
+ -- Barak A. Pearlmutter <bap@debian.org>  Wed, 06 Dec 2017 23:21:48 +0000
 
 fossil (1:2.2-1) unstable; urgency=medium
 
