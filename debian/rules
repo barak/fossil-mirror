@@ -5,7 +5,7 @@ export DEB_BUILD_MAINT_OPTIONS
 include /usr/share/dpkg/architecture.mk
 
 %:
-	dh $@ --with autotools-dev --with bash-completion
+	dh $@ --with bash-completion
 
 override_dh_auto_configure:
 	dh_auto_configure -- --disable-option-checking \
