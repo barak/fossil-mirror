@@ -12,7 +12,8 @@ override_dh_auto_configure:
 			     --disable-internal-sqlite --json \
 			     --with-th1-docs --with-th1-hooks \
 			     --with-tcl \
-			     --with-tcl-stubs
+			     --with-tcl-stubs \
+			     --with-tcl-private-stubs
 
 # From src/main.mk:
 #
