@@ -7,8 +7,9 @@ fossil (1:2.4-1) unstable; urgency=medium
   * ./configure --with-tcl-private-stubs or it won't compile dunno why
   * Correct some minor spelling errors
   * Repack upstream tarball to remove *.chm file
+  * Remove redundant-in-dh10 autotools-dev materials
 
- -- Barak A. Pearlmutter <bap@debian.org>  Thu, 07 Dec 2017 10:35:36 +0000
+ -- Barak A. Pearlmutter <bap@debian.org>  Thu, 07 Dec 2017 10:41:26 +0000
 
 fossil (1:2.2-1) unstable; urgency=medium
 

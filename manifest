@@ -1,5 +1,5 @@
-C useless-autoreconf-build-depends\sautotools-dev
-D 2017-12-07T10:38:46.793
+C log\schanges
+D 2017-12-07T10:41:34.178
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/binary-glob 34cc11b3b509fd5064afe327e70765799f314c9a
 F .fossil-settings/clean-glob 50327fe7150c88e5daf5150f240dc805398665fb
@@ -317,7 +317,7 @@ F compat/zlib/zutil.c 2f1fcc93488ac84acf984415b6ea0bd63c72aa49
 F compat/zlib/zutil.h f32dab3880d47eca1b71c308cf6542b32941b23c
 F configure 239cde01aca7fc63a2903f85bd2a6414189f1bd4 x
 F debian/README.Debian f0f10ef30732c830b5a0eab2eb1cb7eaa5857671c243b50aab04fe4da6833673
-F debian/changelog e056d2f8fab7f44a527fdaa897017056d180a82e6ddba45e26bc838ecfcf5366
+F debian/changelog d390462f2d11f58856e13ccbd064fbd15b00ebc063d0f92c730f6e0a8cef88ee
 F debian/compat 4143d3a341877154d6e95211464e1df1015b74bd
 F debian/control ad99a3882451c7cf1e23bb360900de524716ca541cf8b2b98b80185f37d0a64b
 F debian/copyright 3e7e1c14dc60cea82bdb050bf7e6f7764585fe65926284fcbb8ac1821729f4ab
@@ -802,8 +802,8 @@ F www/webui.wiki 411350e0bfcabd3e3e8a750d5e69ba840ce50e45
 F www/whyusefossil.wiki 730056ead695df82c7aa9dd099cf34b4bfbfd473
 F www/wikitheory.wiki bd20172d783835606043b15bba0c69c9f606a87b
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P 61f2a4dc8e35e19c658dd55bd037b892af51db8ca79ce9affcd1823a26df5f5e
-R 5b6d3b802ff59c3d2c62ff2fc0efd196
+P c48b3c3259ded51425bc884dc62cd0a926e7dd3ad286af3cbe1001ff07eb6482
+R 66debd779e7eb869125cb1686465855d
 U barak
-Z 06735941d2a6e45a6eb6624cd654f62b
+Z f56aa8b4102c35d9a55b70beba069547
 # Remove this line to create a well-formed Fossil manifest.
