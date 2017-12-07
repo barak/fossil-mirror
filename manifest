@@ -1,5 +1,5 @@
-C lintian\sdebhelper-tools-from-autotools-dev-are-deprecated
-D 2017-12-06T23:32:10.079
+C repack\supstream\starball\sto\sremove\s*.chm\sfile
+D 2017-12-07T10:28:36.432
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/binary-glob 34cc11b3b509fd5064afe327e70765799f314c9a
 F .fossil-settings/clean-glob 50327fe7150c88e5daf5150f240dc805398665fb
@@ -322,7 +322,7 @@ F debian/README.Debian f0f10ef30732c830b5a0eab2eb1cb7eaa5857671c243b50aab04fe4da
 F debian/changelog d061544864a967cf013145eb9700f110a9ab3299531141abe30333ec58631452
 F debian/compat 4143d3a341877154d6e95211464e1df1015b74bd
 F debian/control bbb1d868c18f8a9b2fd5d4c6dd01ceb7c2d5df40c40b86a68795353bc47ff524
-F debian/copyright 385794116fd36c4f32fb746a93ae508c6fa3bbdc7791dac2872688f4bc07c23e
+F debian/copyright 3e7e1c14dc60cea82bdb050bf7e6f7764585fe65926284fcbb8ac1821729f4ab
 F debian/fossil.bash-completion e1e460f40668463a8e3e8df9a99de8f9301c9730
 F debian/fossil.docs 45a770a8534b1a439a32546145737975a9217b30
 F debian/fossil.manpages 8ca3a843375393ec37484e4dbae3d4dfe5b4ddcf
@@ -804,8 +804,8 @@ F www/webui.wiki 411350e0bfcabd3e3e8a750d5e69ba840ce50e45
 F www/whyusefossil.wiki 730056ead695df82c7aa9dd099cf34b4bfbfd473
 F www/wikitheory.wiki bd20172d783835606043b15bba0c69c9f606a87b
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P b9a6468324f1efbe1aca133ef5ce9f5f2236d4b04a07724a61f14feb4aa09276
-R b9abed972d933447fdce33e0ad11f38a
+P fc50c16d85e2983b9dd51f3ba3fc87577ea6bd7934d7b8f36045045efcbd448b
+R 97e13fd40f11b97e49e114ea2edaa5b0
 U barak
-Z 48a4e178c2443d0a3265f0838efebc27
+Z fc30c7b78b243962fa65b292f789e882
 # Remove this line to create a well-formed Fossil manifest.
