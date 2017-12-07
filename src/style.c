@@ -1205,7 +1205,7 @@ const struct strctCssDefaults {
     @ **  to the header and configure the java script file with
     @ **   1. use as bindClass :checkinUserColor
     @ **   2. change the default hash adding behaviour to ON
-    @ ** or change the class defition of element identified by id="clrcust"
+    @ ** or change the class definition of element identified by id="clrcust"
     @ ** to a standard jscolor definition with java script in the footer. */
   },
   { "div.endContent",
