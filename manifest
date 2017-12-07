@@ -1,5 +1,5 @@
-C spelling
-D 2017-12-07T10:29:19.243
+C remove\sfiles\sexcised\sfrom\srepacked\supstream\starball
+D 2017-12-07T10:32:38.792
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/binary-glob 34cc11b3b509fd5064afe327e70765799f314c9a
 F .fossil-settings/clean-glob 50327fe7150c88e5daf5150f240dc805398665fb
@@ -59,7 +59,6 @@ F autosetup/config.guess 947c8873202b420cdd698aa562cd05ee128197f6 x
 F autosetup/config.sub 1ed99f2fce4975f55e82b3833baf74fbcd8bdda0 x
 F autosetup/default.auto f78163e478676728918cbb7360abddb9c830e882
 F autosetup/find-tclsh f973558ad74bd8e4d55b677d9c166cbb35f34186 x
-F autosetup/jimsh0.c c31f25b294314ea582cb2acf8fe4aa04de1065060b72f58fa58c5dd5644863cd
 F autosetup/local.tcl 60b0633b484a89c87aed299e4c22ac5287803f921ba9b653a04b0c518f699cda
 F autosetup/pkg-config.tcl 1d3eb0476a271d7c506aa253a4a189a68344950d726381d2d0417bb31af21b4d
 F autosetup/system.tcl 8faf3eeadc63cb1718ada6eccecdb8f631801a6627e1d14c80230f8686d23d86
@@ -108,7 +107,6 @@ F compat/zlib/contrib/delphi/ZLibConst.pas e0ff4d3c14a4dcdbf170692ce0fec86939b50
 F compat/zlib/contrib/delphi/readme.txt 366e08eaa227cd3d09810c45639aedf4879b7ecf
 F compat/zlib/contrib/delphi/zlibd32.mak ddf83b34d4c7d41ace39f96b5cb13fb390c8d2eb
 F compat/zlib/contrib/dotzlib/DotZLib.build 6f87ba12d786feca35738d0e9ce1f0f03f292881
-F compat/zlib/contrib/dotzlib/DotZLib.chm a1245c21c7e918fa2919fd10bbe5604fc81faf49
 F compat/zlib/contrib/dotzlib/DotZLib.sln 4946bdb71b79bff62f9217802b7524010c669408
 F compat/zlib/contrib/dotzlib/DotZLib/AssemblyInfo.cs 9f1db1177b2e9a014f72bb3cd80be17133e06d16
 F compat/zlib/contrib/dotzlib/DotZLib/ChecksumImpl.cs 3807a0e24a57b92ea301559cab7307b8eab52c51
@@ -804,8 +802,8 @@ F www/webui.wiki 411350e0bfcabd3e3e8a750d5e69ba840ce50e45
 F www/whyusefossil.wiki 730056ead695df82c7aa9dd099cf34b4bfbfd473
 F www/wikitheory.wiki bd20172d783835606043b15bba0c69c9f606a87b
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P 0652a4253adec9ecd4fe7cb55edc0dfe283d973363bc50fc81ec6c248e1e50d2
-R d4ba0821cbbeaf820a7d026cce6f507c
+P a73e364bcf2df6795ecc97ff277871aa25c5cb4b48de2f472aa58ccca551fe5a
+R 242f3c9ee8e5bd793147703ee8758244
 U barak
-Z 24d3bc918802e96e30fd133868d3da8d
+Z 2273c565e70c902174867729fedfed3f
 # Remove this line to create a well-formed Fossil manifest.
