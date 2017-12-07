@@ -1,5 +1,5 @@
-C log\schanges
-D 2017-12-07T10:35:56.405
+C useless-autoreconf-build-depends\sautotools-dev
+D 2017-12-07T10:38:46.793
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/binary-glob 34cc11b3b509fd5064afe327e70765799f314c9a
 F .fossil-settings/clean-glob 50327fe7150c88e5daf5150f240dc805398665fb
@@ -319,7 +319,7 @@ F configure 239cde01aca7fc63a2903f85bd2a6414189f1bd4 x
 F debian/README.Debian f0f10ef30732c830b5a0eab2eb1cb7eaa5857671c243b50aab04fe4da6833673
 F debian/changelog e056d2f8fab7f44a527fdaa897017056d180a82e6ddba45e26bc838ecfcf5366
 F debian/compat 4143d3a341877154d6e95211464e1df1015b74bd
-F debian/control bbb1d868c18f8a9b2fd5d4c6dd01ceb7c2d5df40c40b86a68795353bc47ff524
+F debian/control ad99a3882451c7cf1e23bb360900de524716ca541cf8b2b98b80185f37d0a64b
 F debian/copyright 3e7e1c14dc60cea82bdb050bf7e6f7764585fe65926284fcbb8ac1821729f4ab
 F debian/fossil.bash-completion e1e460f40668463a8e3e8df9a99de8f9301c9730
 F debian/fossil.docs 45a770a8534b1a439a32546145737975a9217b30
@@ -802,8 +802,8 @@ F www/webui.wiki 411350e0bfcabd3e3e8a750d5e69ba840ce50e45
 F www/whyusefossil.wiki 730056ead695df82c7aa9dd099cf34b4bfbfd473
 F www/wikitheory.wiki bd20172d783835606043b15bba0c69c9f606a87b
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P 71a0cdd6163da5bd587aaa2bc3b26ab4f3420bf1a1ed6ae0a50a52fde1864cb6
-R ec1283045c9beafa5157db5ef6b43b76
+P 61f2a4dc8e35e19c658dd55bd037b892af51db8ca79ce9affcd1823a26df5f5e
+R 5b6d3b802ff59c3d2c62ff2fc0efd196
 U barak
-Z dc162f47c7d837c1d68202bfdfde60d6
+Z 06735941d2a6e45a6eb6624cd654f62b
 # Remove this line to create a well-formed Fossil manifest.

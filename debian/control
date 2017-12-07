@@ -3,8 +3,7 @@ Section: vcs
 Priority: optional
 Maintainer: Barak A. Pearlmutter <bap@debian.org>
 Standards-Version: 4.1.1
-Build-depends: autotools-dev,
-               debhelper (>= 10),
+Build-depends: debhelper (>= 10),
                bash-completion,
                libfuse-dev,
                libreadline-dev,
