@@ -1,5 +1,5 @@
-C remove\sfiles\sexcised\sfrom\srepacked\supstream\starball
-D 2017-12-07T10:32:38.792
+C log\schanges
+D 2017-12-07T10:35:56.405
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/binary-glob 34cc11b3b509fd5064afe327e70765799f314c9a
 F .fossil-settings/clean-glob 50327fe7150c88e5daf5150f240dc805398665fb
@@ -317,7 +317,7 @@ F compat/zlib/zutil.c 2f1fcc93488ac84acf984415b6ea0bd63c72aa49
 F compat/zlib/zutil.h f32dab3880d47eca1b71c308cf6542b32941b23c
 F configure 239cde01aca7fc63a2903f85bd2a6414189f1bd4 x
 F debian/README.Debian f0f10ef30732c830b5a0eab2eb1cb7eaa5857671c243b50aab04fe4da6833673
-F debian/changelog d061544864a967cf013145eb9700f110a9ab3299531141abe30333ec58631452
+F debian/changelog e056d2f8fab7f44a527fdaa897017056d180a82e6ddba45e26bc838ecfcf5366
 F debian/compat 4143d3a341877154d6e95211464e1df1015b74bd
 F debian/control bbb1d868c18f8a9b2fd5d4c6dd01ceb7c2d5df40c40b86a68795353bc47ff524
 F debian/copyright 3e7e1c14dc60cea82bdb050bf7e6f7764585fe65926284fcbb8ac1821729f4ab
@@ -802,8 +802,8 @@ F www/webui.wiki 411350e0bfcabd3e3e8a750d5e69ba840ce50e45
 F www/whyusefossil.wiki 730056ead695df82c7aa9dd099cf34b4bfbfd473
 F www/wikitheory.wiki bd20172d783835606043b15bba0c69c9f606a87b
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P a73e364bcf2df6795ecc97ff277871aa25c5cb4b48de2f472aa58ccca551fe5a
-R 242f3c9ee8e5bd793147703ee8758244
+P 71a0cdd6163da5bd587aaa2bc3b26ab4f3420bf1a1ed6ae0a50a52fde1864cb6
+R ec1283045c9beafa5157db5ef6b43b76
 U barak
-Z 2273c565e70c902174867729fedfed3f
+Z dc162f47c7d837c1d68202bfdfde60d6
 # Remove this line to create a well-formed Fossil manifest.

@@ -4,9 +4,11 @@ fossil (1:2.4-1) unstable; urgency=medium
   * Bump debian standards version
   * Use https URL for upstream pull in README.Debian
   * Repack upstream tarball to remove autosetup/jimsh0.c (closes: #882720)
-  * configure --with-tcl-private-stubs or it won't compile dunno why
+  * ./configure --with-tcl-private-stubs or it won't compile dunno why
+  * Correct some minor spelling errors
+  * Repack upstream tarball to remove *.chm file
 
- -- Barak A. Pearlmutter <bap@debian.org>  Wed, 06 Dec 2017 23:21:48 +0000
+ -- Barak A. Pearlmutter <bap@debian.org>  Thu, 07 Dec 2017 10:35:36 +0000
 
 fossil (1:2.2-1) unstable; urgency=medium
 
