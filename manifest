@@ -1,5 +1,5 @@
-C forward\sport\scomment\stypo\sfixes\sonly
-D 2018-02-14T11:13:57.223
+C update\sdebian/changelog
+D 2018-02-14T11:20:11.966
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/binary-glob 34cc11b3b509fd5064afe327e70765799f314c9a
 F .fossil-settings/clean-glob 50327fe7150c88e5daf5150f240dc805398665fb
@@ -317,7 +317,7 @@ F compat/zlib/zutil.c 2f1fcc93488ac84acf984415b6ea0bd63c72aa49
 F compat/zlib/zutil.h f32dab3880d47eca1b71c308cf6542b32941b23c
 F configure 239cde01aca7fc63a2903f85bd2a6414189f1bd4 x
 F debian/README.Debian f0f10ef30732c830b5a0eab2eb1cb7eaa5857671c243b50aab04fe4da6833673
-F debian/changelog d390462f2d11f58856e13ccbd064fbd15b00ebc063d0f92c730f6e0a8cef88ee
+F debian/changelog 939fb2594456330e5b77ef8e3a323504f5c920fc64e25f8b261e65c870c63d54
 F debian/compat 4143d3a341877154d6e95211464e1df1015b74bd
 F debian/control ad99a3882451c7cf1e23bb360900de524716ca541cf8b2b98b80185f37d0a64b
 F debian/copyright 3e7e1c14dc60cea82bdb050bf7e6f7764585fe65926284fcbb8ac1821729f4ab
@@ -856,8 +856,8 @@ F www/webui.wiki 411350e0bfcabd3e3e8a750d5e69ba840ce50e45
 F www/whyusefossil.wiki 730056ead695df82c7aa9dd099cf34b4bfbfd473
 F www/wikitheory.wiki bd20172d783835606043b15bba0c69c9f606a87b
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P 55ccc1748a0fc27c4bd9ed477bf95e793f3370adc9e9069ce4832239ff22ff1d
-R ccfbf9df132e93b710b560bd06e8893a
+P bc145490f8aea6f8ae807212e90292486b2d047bca18802527314d7c669e745d
+R 798ae208ca094a69ba0dfa7321951b27
 U barak
-Z e4978255f2ec9cf75cfbeab3c7eb8187
+Z 9a7d7b5370f9c2466b7b10209b25711d
 # Remove this line to create a well-formed Fossil manifest.
