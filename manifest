@@ -1,5 +1,5 @@
-C configure\s--with-tcl=1
-D 2018-02-14T11:45:01.475
+C secure\ssome\sURLs\sin\sdebian/copyright
+D 2018-02-14T12:00:12.295
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/binary-glob 34cc11b3b509fd5064afe327e70765799f314c9a
 F .fossil-settings/clean-glob 50327fe7150c88e5daf5150f240dc805398665fb
@@ -320,7 +320,7 @@ F debian/README.Debian f0f10ef30732c830b5a0eab2eb1cb7eaa5857671c243b50aab04fe4da
 F debian/changelog 090466fde0086fca20c1f5817d43e407ccc62a2cfbb2ab4fe6252eb8221a165f
 F debian/compat 3147dbedb6618cf418dc2a4e6e46b7f598ce62d3e346f8043e507b6626b9c9c6
 F debian/control 0a035acf189f9af9f2d5de5c4188f3abaa371b30b2640c5dda64dcac87d8d2ea
-F debian/copyright 3e7e1c14dc60cea82bdb050bf7e6f7764585fe65926284fcbb8ac1821729f4ab
+F debian/copyright 6868486c1595673321e52bc60f1fb3dc4375cf43a2fe8653305527eb6a3cb07a
 F debian/fossil.bash-completion e1e460f40668463a8e3e8df9a99de8f9301c9730
 F debian/fossil.docs 45a770a8534b1a439a32546145737975a9217b30
 F debian/fossil.manpages 8ca3a843375393ec37484e4dbae3d4dfe5b4ddcf
@@ -856,8 +856,8 @@ F www/webui.wiki 411350e0bfcabd3e3e8a750d5e69ba840ce50e45
 F www/whyusefossil.wiki 730056ead695df82c7aa9dd099cf34b4bfbfd473
 F www/wikitheory.wiki bd20172d783835606043b15bba0c69c9f606a87b
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P 3fd77dfea9aafbd55de47c1f8c773c640ad980097c13474defd8a9f215b8277a
-R 06e386ff390c287b8d78257ffa62b607
+P a425d84480ccea1a11d1fab64334486ec2786812df59f47d93d89eb483c6f32e
+R e6730a39ccbdd16499fc77b7e538f0ee
 U barak
-Z 7ad34e17149f42abfea8f584ad823cc2
+Z 5d4edff5b541e2fc9b07ab212d9cb22f
 # Remove this line to create a well-formed Fossil manifest.
