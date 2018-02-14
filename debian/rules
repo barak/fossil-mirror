@@ -11,7 +11,7 @@ override_dh_auto_configure:
 	dh_auto_configure -- --disable-option-checking \
 			     --disable-internal-sqlite --json \
 			     --with-th1-docs --with-th1-hooks \
-			     --with-tcl \
+			     --with-tcl=1 \
 			     --with-tcl-stubs \
 			     --with-tcl-private-stubs
 
