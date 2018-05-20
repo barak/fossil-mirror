@@ -9,10 +9,9 @@ Brief "cheat sheet" of relevant fossil commands.
  ## FOR NEW UPSTREAM RELEASE
 
  # fetch & merge new upstream release
- uscan --rename
+ uscan
  VER=1:xxx
  DEBVER=1
- mv ../fossil_*.orig.tar.gz ../fossil_${VER}.orig.tar.gz
  fossil pull https://www.fossil-scm.org
  ID=fossil-commit-id	# find via: fossil timeline -t ci -n 400 | more
 			# then search for "release"
@@ -63,4 +62,4 @@ Brief "cheat sheet" of relevant fossil commands.
  # less recently created checkouts may have _FOSSIL_ instead of
  # .fslckout, edit any commands mentioning this file appropriately.
 
- -- Barak A. Pearlmutter <bap@debian.org>, Wed, 26 Jul 2017 13:26:08 +0100
+ -- Barak A. Pearlmutter <bap@debian.org>, Sun, 20 May 2018 23:02:02 +0100
