@@ -14,7 +14,7 @@ Brief "cheat sheet" of relevant fossil commands.
  DEBVER=1
  fossil pull https://www.fossil-scm.org
  ID=fossil-commit-id	# find via: fossil timeline -t ci -n 400 | more
-			# then search for "release"
+			# then search for the tag "version-xxx"
  fossil tag add upstream_${VER} ${ID}
  fossil merge upstream_${VER}
  fossil commit -m "merge upstream_${VER}"
@@ -62,4 +62,4 @@ Brief "cheat sheet" of relevant fossil commands.
  # less recently created checkouts may have _FOSSIL_ instead of
  # .fslckout, edit any commands mentioning this file appropriately.
 
- -- Barak A. Pearlmutter <bap@debian.org>, Sun, 20 May 2018 23:02:02 +0100
+ -- Barak A. Pearlmutter <bap@debian.org>, Mon,  1 Oct 2018 15:45:33 +0100
