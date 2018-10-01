@@ -1,5 +1,5 @@
-C update\sbuild\snotes\sdebian/README.Debian\n\n
-D 2018-10-01T15:32:18.555
+C spelling\serror\slist\n\n
+D 2018-10-01T15:54:59.510
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/binary-glob 34cc11b3b509fd5064afe327e70765799f314c9a
 F .fossil-settings/clean-glob 50327fe7150c88e5daf5150f240dc805398665fb
@@ -317,7 +317,7 @@ F compat/zlib/zlib2ansi e9859eecf47ae66280573d73969c061989615134 x
 F compat/zlib/zutil.c 2f1fcc93488ac84acf984415b6ea0bd63c72aa49
 F compat/zlib/zutil.h f32dab3880d47eca1b71c308cf6542b32941b23c
 F configure 239cde01aca7fc63a2903f85bd2a6414189f1bd4 x
-F debian/README.Debian 29f1c11d80b79f4da4308c54437712516be73501bb8bbb9f951997fbc1bc92b2
+F debian/README.Debian 14ece4dd24d3ca1ab37f7b9ee13e2e323b4d138cf20e26840994acb36a375342
 F debian/changelog 0393bf20f5a0d52cf1f4387dbe0b74ce9a3a3ae36ca197acac9bec6eeca74fd8
 F debian/compat 3147dbedb6618cf418dc2a4e6e46b7f598ce62d3e346f8043e507b6626b9c9c6
 F debian/control 41d8ecaf9d6393eca2e51cd209e1d68dc98f12fdcefae562a9289e3529d7ed8c
@@ -872,8 +872,8 @@ F www/webui.wiki 411350e0bfcabd3e3e8a750d5e69ba840ce50e45
 F www/whyusefossil.wiki 730056ead695df82c7aa9dd099cf34b4bfbfd473
 F www/wikitheory.wiki bd20172d783835606043b15bba0c69c9f606a87b
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P a7cdfe53d69df87087be7302cc6c259623dfb04e981c983168ce26e030d96506
-R a50b6e9bfaeb4b35529d06754a7cacc3
+P dbab6b1a8e8cc629e67076127d0c201dee7adad744e8057527d9d6463eb1ce78
+R 36b2cc571babfa62891375fb4cec6ac5
 U barak
-Z c84f0373ae7d73c30738d400720441b5
+Z 9a3a61ae43569bdbf9a142023eb53626
 # Remove this line to create a well-formed Fossil manifest.
