@@ -1,5 +1,5 @@
-C revert\sfrom\sversion-2.7:\ssrc/main.c\ssrc/sqlite3.c
-D 2018-10-01T15:11:59.821
+C update\sdebian/changelog
+D 2018-10-01T15:24:37.982
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/binary-glob 34cc11b3b509fd5064afe327e70765799f314c9a
 F .fossil-settings/clean-glob 50327fe7150c88e5daf5150f240dc805398665fb
@@ -317,8 +317,8 @@ F compat/zlib/zlib2ansi e9859eecf47ae66280573d73969c061989615134 x
 F compat/zlib/zutil.c 2f1fcc93488ac84acf984415b6ea0bd63c72aa49
 F compat/zlib/zutil.h f32dab3880d47eca1b71c308cf6542b32941b23c
 F configure 239cde01aca7fc63a2903f85bd2a6414189f1bd4 x
-F debian/README.Debian c50cb84a0673b5968e37beccbaab705e9e4770d1f2a00a1535c54e0cd071d5e8
-F debian/changelog c75c61e42a607319c88f04d4aa9efacf008f465b76c5b378be8954b7e6dfc8e3
+F debian/README.Debian 670c3f4c091e77c7dba4ffdf6a3f807d77884a416f6fff788645f9d612d06853
+F debian/changelog 0393bf20f5a0d52cf1f4387dbe0b74ce9a3a3ae36ca197acac9bec6eeca74fd8
 F debian/compat 3147dbedb6618cf418dc2a4e6e46b7f598ce62d3e346f8043e507b6626b9c9c6
 F debian/control 90b8b6c0e25d725687e495107ef48814381419bcdc2327cebc7f76138af77cd3
 F debian/copyright 6868486c1595673321e52bc60f1fb3dc4375cf43a2fe8653305527eb6a3cb07a
@@ -872,8 +872,8 @@ F www/webui.wiki 411350e0bfcabd3e3e8a750d5e69ba840ce50e45
 F www/whyusefossil.wiki 730056ead695df82c7aa9dd099cf34b4bfbfd473
 F www/wikitheory.wiki bd20172d783835606043b15bba0c69c9f606a87b
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P beeabf8769673c5c014708d4b391471da7a94b2f4d66e438e0b46b9dd61596da
-R b48183627c71c10e728f202518e1f53e
+P 89a4a960d3147caa2b804a2abb3bcc03b8466daac79a5f14b79989a8bc47a2e5
+R b47090bbda963191beadc6906665ea7a
 U barak
-Z 4daa5791d672220c5e8193de1abc31c9
+Z 427bb23bbc166f965441fd9dd5e4c381
 # Remove this line to create a well-formed Fossil manifest.

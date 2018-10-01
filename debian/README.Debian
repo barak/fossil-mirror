@@ -10,15 +10,15 @@ Brief "cheat sheet" of relevant fossil commands.
 
  # fetch & merge new upstream release
  uscan
- VER=1:xxx
+ EPOCH=1
+ VER=xxx
  DEBVER=1
  fossil pull https://www.fossil-scm.org
  ID=fossil-commit-id	# find via: fossil timeline -t ci -n 400 | more
 			# then search for the tag "version-xxx"
- fossil tag add upstream_${VER} ${ID}
- fossil merge upstream_${VER}
- fossil commit -m "merge upstream_${VER}"
- debchange --distribution unstable --release --newversion=${VER}-${DEBVER} New upstream version
+ fossil merge version-${VER}
+ fossil commit -m "merge version-${VER}"
+ debchange --distribution unstable --newversion=${EPOCH}:${VER}-${DEBVER} New upstream version
  fossil commit -m 'update debian/changelog'
 
  # build debian release
@@ -62,4 +62,4 @@ Brief "cheat sheet" of relevant fossil commands.
  # less recently created checkouts may have _FOSSIL_ instead of
  # .fslckout, edit any commands mentioning this file appropriately.
 
- -- Barak A. Pearlmutter <bap@debian.org>, Mon,  1 Oct 2018 15:45:33 +0100
+ -- Barak A. Pearlmutter <bap@debian.org>, Mon,  1 Oct 2018 16:24:15 +0100
