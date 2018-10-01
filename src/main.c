@@ -1635,7 +1635,7 @@ static void process_one_web_page(
         **
         ** For safety, do not allow any file whose name contains ".fossil"
         ** to be returned this way, to prevent complete repositories from
-        ** being delivered accidentally.  This is not intended to be a
+        ** being delivered accidently.  This is not intended to be a
         ** general-purpose web server.  The "--file GLOB" mechanism is
         ** designed to allow the delivery of a few static images or HTML
         ** pages.
