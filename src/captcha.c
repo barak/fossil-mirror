@@ -499,13 +499,13 @@ int captcha_needed(void){
 ** The query parameters examined are "captchaseed" for the seed value and
 ** "captcha" for text that the user types in response to the captcha prompt.
 */
-int captcha_is_correct(void){
+int captcha_is_correct(int bAlwaysNeeded){
   const char *zSeed;
   const char *zEntered;
   const char *zDecode;
   char z[30];
   int i;
-  if( !captcha_needed() ){
+  if( !bAlwaysNeeded && !captcha_needed() ){
     return 1;  /* No captcha needed */
   }
   zSeed = P("captchaseed");
@@ -541,7 +541,7 @@ void captcha_generate(int showButton){
   uSeed = captcha_seed();
   zDecoded = captcha_decode(uSeed);
   zCaptcha = captcha_render(zDecoded);
-  @ <div class="captcha"><table class="captcha"><tr><td><pre>
+  @ <div class="captcha"><table class="captcha"><tr><td><pre class="captcha">
   @ %h(zCaptcha)
   @ </pre>
   @ Enter security code shown above:
@@ -595,7 +595,7 @@ int exclude_spiders(void){
   zCookieName = mprintf("fossil-cc-%.10s", db_get("project-code","x"));
   zCookieValue = P(zCookieName);
   if( zCookieValue && atoi(zCookieValue)==1 ) return 0;
-  if( captcha_is_correct() ){
+  if( captcha_is_correct(0) ){
     cgi_set_cookie(zCookieName, "1", login_cookie_path(), 8*3600);
     return 0;
   }

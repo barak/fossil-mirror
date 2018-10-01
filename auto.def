@@ -10,7 +10,7 @@ options {
                          => {Look for zlib in the given path, automatically, or in the source tree}
     with-exec-rel-paths=0
                          => {Enable relative paths for external diff/gdiff}
-    with-legacy-mv-rm=0  => {Enable legacy behavior for mv/rm (skip checkout files)}
+    with-legacy-mv-rm=1  => {Enable legacy behavior for mv/rm (skip checkout files)}
     with-th1-docs=0      => {Enable TH1 for embedded documentation pages}
     with-th1-hooks=0     => {Enable TH1 hooks for commands and web pages}
     with-tcl:path        => {Enable Tcl integration, with Tcl in the specified path}
@@ -35,8 +35,43 @@ cc-with {-includes {stdint.h inttypes.h}} {
 # Use pread/pwrite system calls in place of seek + read/write if possible
 define USE_PREAD [cc-check-functions pread]
 
-# Find tclsh for the test suite. Can't yet use jimsh for this.
+# Find tclsh for the test suite.
+#
+# We can't use jimsh for this: the test suite uses features of Tcl that
+# Jim doesn't support, either statically or due to the way it's built by
+# autosetup.  For example, Jim supports `file normalize`, but only if
+# you build it with HAVE_REALPATH, which won't ever be defined in this
+# context because autosetup doesn't try to discover platform-specific
+# details like that before it decides to build jimsh0.  Besides which,
+# autosetup won't build jimsh0 at all if it can find tclsh itself.
+# Ironically, this means we may right now be running under either jimsh0
+# or a version of tclsh that we find unsuitable below!
 cc-check-progs tclsh
+set hbtd /usr/local/Cellar/tcl-tk
+if {[string equal false [get-define TCLSH]]} {
+    msg-result "WARNING: 'make test' will not run here."
+} else {
+    set v [exec /bin/sh -c "echo 'puts \$tcl_version' | tclsh"]
+    if {[expr $v >= 8.6]} {
+        msg-result "Found Tclsh version $v in the PATH."
+        define TCLSH tclsh
+    } elseif {[file isdirectory $hbtd]} {
+        # This is a macOS system with the Homebrew version of Tcl/Tk
+        # installed.  Select the newest version.  It won't normally be
+        # in the PATH to avoid shadowing /usr/bin/tclsh, and even if it
+        # were in the PATH, it's bad practice to put /usr/local/bin (the
+        # Homebrew default) ahead of /usr/bin, especially given that
+        # it's user-writeable by default with Homebrew.  Thus, we can be
+        # pretty sure the only way to call it is with an absolute path.
+        set v [exec ls -tr $hbtd | tail -1]
+        set path "$hbtd/$v/bin/tclsh"
+        define TCLSH $path
+        msg-result "Using Homebrew Tcl/Tk version $path."
+    } else {
+        msg-result "WARNING: tclsh $v found; need >= 8.6 for 'make test'."
+        define TCLSH false     ;# force "make test" failure via /usr/bin/false
+    }
+}
 
 define EXTRA_CFLAGS "-Wall"
 define EXTRA_LDFLAGS ""
@@ -93,13 +128,13 @@ if {![opt-bool internal-sqlite]} {
     foreach extralibs {{} {-ldl}} {
 
       # Locate the system SQLite by searching for sqlite3_open(). Then check
-      # if sqlite3_keyword_check() can be found as well. If we can find open() but
-      # not keyword_check(), then the system SQLite is too old to link against
+      # if sqlite3_create_window_function can be found as well. If we can find open() but
+      # not create_window_function(), then the system SQLite is too old to link against
       # fossil.
       #
       if {[check-function-in-lib sqlite3_open sqlite3 $extralibs]} {
-        if {![check-function-in-lib sqlite3_keyword_check sqlite3 $extralibs]} {
-          user-error "system sqlite3 too old (require >= 3.24.0)"
+        if {![check-function-in-lib sqlite3_create_window_function sqlite3 $extralibs]} {
+          user-error "system sqlite3 too old (require >= 3.25.0)"
         }
 
         # Success. Update symbols and return.
@@ -136,8 +171,8 @@ if {[string match *-solaris* [get-define host]]} {
 }
 
 if {[opt-bool fossil-debug]} {
-    define-append EXTRA_CFLAGS -DFOSSIL_DEBUG
     define CFLAGS {-g -O0 -Wall}
+    define-append CFLAGS -DFOSSIL_DEBUG
     msg-result "Debugging support enabled"
 }
 
@@ -169,7 +204,7 @@ if {[opt-bool json]} {
 }
 
 if {[opt-bool with-legacy-mv-rm]} {
-    define-append EXTRA_CFLAGS -DFOSSIL_ENABLE_LEGACY_MV_RM
+    define-append EXTRA_CFLAGS -DFOSSIL_ENABLE_LEGACY_MV_RM=1
     define FOSSIL_ENABLE_LEGACY_MV_RM
     msg-result "Legacy mv/rm support enabled"
 }
@@ -480,10 +515,12 @@ if {![cc-check-function-in-lib socket {socket network}]} {
         define-append LIBS -lwsock32
     }
 }
+cc-check-function-in-lib ns_name_uncompress resolv
 cc-check-functions utime
 cc-check-functions usleep
 cc-check-functions strchrnul
 cc-check-functions pledge
+cc-check-functions backtrace
 
 # Check for getloadavg(), and if it doesn't exist, define FOSSIL_OMIT_LOAD_AVERAGE
 if {![cc-check-functions getloadavg]} {
@@ -496,7 +533,6 @@ if {![cc-check-functions getpassphrase]} {
     # Haiku needs this
     cc-check-function-in-lib getpass bsd
 }
-cc-check-function-in-lib dlopen dl
 cc-check-function-in-lib sin m
 
 # Check for the FuseFS library
@@ -507,6 +543,14 @@ if {[opt-bool fusefs]} {
      define-append LIBS -lfuse
      msg-result "FuseFS support enabled"
   }
+}
+
+# Finally, append -ldl to make sure it's the last in the list.
+# The library order matters in case of static linking.
+if {[check-function-in-lib dlopen dl]} {
+    # Some platforms (*BSD) have the dl functions already in libc and no libdl.
+    # In such case we can link directly without -ldl.
+    define-append LIBS [get-define lib_dlopen]
 }
 
 make-template Makefile.in

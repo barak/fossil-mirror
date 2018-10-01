@@ -36,12 +36,12 @@ TCC = @CC@
 #### Tcl shell for use in running the fossil testsuite.  If you do not
 #    care about testing the end result, this can be blank.
 #
-TCLSH = tclsh
+TCLSH = @TCLSH@
 
 CFLAGS = @CFLAGS@
 LIB =	@LDFLAGS@ @EXTRA_LDFLAGS@ @LIBS@
-BCCFLAGS =	@CPPFLAGS@ @CFLAGS@
-TCCFLAGS =	@EXTRA_CFLAGS@ @CPPFLAGS@ @CFLAGS@ -DHAVE_AUTOCONFIG_H -D_HAVE_SQLITE_CONFIG_H
+BCCFLAGS =	@CPPFLAGS@ $(CFLAGS)
+TCCFLAGS =	@EXTRA_CFLAGS@ @CPPFLAGS@ $(CFLAGS) -DHAVE_AUTOCONFIG_H -D_HAVE_SQLITE_CONFIG_H
 INSTALLDIR = $(DESTDIR)@prefix@/bin
 USE_SYSTEM_SQLITE = @USE_SYSTEM_SQLITE@
 USE_LINENOISE = @USE_LINENOISE@
@@ -52,7 +52,7 @@ FOSSIL_ENABLE_MINIZ = @FOSSIL_ENABLE_MINIZ@
 include $(SRCDIR)/main.mk
 
 distclean: clean
-	rm -f autoconfig.h config.log Makefile
+	-rm -f autoconfig.h config.log Makefile
 
 reconfig:
 	@AUTOREMAKE@

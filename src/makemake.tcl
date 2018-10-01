@@ -28,8 +28,10 @@
 #
 set src {
   add
+  alerts
   allrepo
   attach
+  backoffice
   bag
   bisect
   blob
@@ -38,6 +40,7 @@ set src {
   builtin
   bundle
   cache
+  capabilities
   captcha
   cgi
   checkin
@@ -63,6 +66,7 @@ set src {
   file
   finfo
   foci
+  forum
   fshell
   fusefs
   glob
@@ -118,12 +122,14 @@ set src {
   search
   security_audit
   setup
+  setupuser
   sha1
   sha1hard
   sha3
   shun
   sitemap
   skins
+  smtp
   sqlcmd
   stash
   stat
@@ -146,6 +152,7 @@ set src {
   util
   verify
   vfile
+  webmail
   wiki
   wikiformat
   winfile
@@ -278,9 +285,10 @@ writeln {#
 # This file is included by primary Makefile.
 #
 
-XBCC = $(BCC) $(BCCFLAGS) $(CFLAGS)
-XTCC = $(TCC) -I. -I$(SRCDIR) -I$(OBJDIR) $(TCCFLAGS) $(CFLAGS)
+XBCC = $(BCC) $(BCCFLAGS)
+XTCC = $(TCC) -I. -I$(SRCDIR) -I$(OBJDIR) $(TCCFLAGS)
 
+TESTFLAGS := -quiet
 }
 writeln -nonewline "SRC ="
 foreach s [lsort $src] {
@@ -313,7 +321,7 @@ all:	$(OBJDIR) $(APPNAME)
 
 install:	$(APPNAME)
 	mkdir -p $(INSTALLDIR)
-	mv $(APPNAME) $(INSTALLDIR)
+	cp $(APPNAME) $(INSTALLDIR)
 
 codecheck:	$(TRANS_SRC) $(OBJDIR)/codecheck1
 	$(OBJDIR)/codecheck1 $(TRANS_SRC)
@@ -356,7 +364,7 @@ $(OBJDIR)/codecheck1:	$(SRCDIR)/codecheck1.c
 # the run to just those test cases.
 #
 test:	$(OBJDIR) $(APPNAME)
-	$(TCLSH) $(SRCDIR)/../test/tester.tcl $(APPNAME) -quiet $(TESTFLAGS)
+	$(TCLSH) $(SRCDIR)/../test/tester.tcl $(APPNAME) $(TESTFLAGS)
 
 $(OBJDIR)/VERSION.h:	$(SRCDIR)/../manifest.uuid $(SRCDIR)/../manifest $(SRCDIR)/../VERSION $(OBJDIR)/mkversion
 	$(OBJDIR)/mkversion $(SRCDIR)/../manifest.uuid \
@@ -442,7 +450,7 @@ $(SRCDIR)/../manifest:
 	# noop
 
 clean:
-	rm -rf $(OBJDIR)/* $(APPNAME)
+	-rm -rf $(OBJDIR)/* $(APPNAME)
 
 }
 
@@ -601,7 +609,7 @@ BCC = $(BCCEXE)
 
 #### Enable legacy treatment of mv/rm (skip checkout files)
 #
-# FOSSIL_ENABLE_LEGACY_MV_RM = 1
+FOSSIL_ENABLE_LEGACY_MV_RM = 1
 
 #### Enable TH1 scripts in embedded documentation files
 #
@@ -690,7 +698,7 @@ endif
 #### Disable creation of the OpenSSL shared libraries.  Also, disable support
 #    for both SSLv2 and SSLv3 (i.e. thereby forcing the use of TLS).
 #
-SSLCONFIG += no-ssl2 no-ssl3 no-shared
+SSLCONFIG += no-ssl2 no-ssl3 no-weak-ssl-ciphers no-shared
 
 #### When using zlib, make sure that OpenSSL is configured to use the zlib
 #    that Fossil knows about (i.e. the one within the source tree).
@@ -704,7 +712,7 @@ endif
 #    to create a hard link between an "openssl-1.x" sub-directory of the
 #    Fossil source code directory and the target OpenSSL source directory.
 #
-OPENSSLDIR = $(SRCDIR)/../compat/openssl-1.0.2o
+OPENSSLDIR = $(SRCDIR)/../compat/openssl-1.0.2p
 OPENSSLINCDIR = $(OPENSSLDIR)/include
 OPENSSLLIBDIR = $(OPENSSLDIR)
 
@@ -938,6 +946,10 @@ else
 LIB += -lkernel32 -lws2_32
 endif
 
+#### Library required for DNS lookups.
+#
+LIB += -ldnsapi
+
 #### Tcl shell for use in running the fossil test suite.  This is only
 #    used for testing.
 #
@@ -1043,10 +1055,10 @@ endif
 install:	$(OBJDIR) $(APPNAME)
 ifdef USE_WINDOWS
 	$(MKDIR) $(subst /,\,$(INSTALLDIR))
-	$(MV) $(subst /,\,$(APPNAME)) $(subst /,\,$(INSTALLDIR))
+	$(CP) $(subst /,\,$(APPNAME)) $(subst /,\,$(INSTALLDIR))
 else
 	$(MKDIR) $(INSTALLDIR)
-	$(MV) $(APPNAME) $(INSTALLDIR)
+	$(CP) $(APPNAME) $(INSTALLDIR)
 endif
 
 $(OBJDIR):
@@ -1311,7 +1323,7 @@ SSL    =
 CFLAGS = -o
 BCC    = $(DMDIR)\bin\dmc $(CFLAGS)
 TCC    = $(DMDIR)\bin\dmc $(CFLAGS) $(DMCDEF) $(SSL) $(INCL)
-LIBS   = $(DMDIR)\extra\lib\ zlib wsock32 advapi32
+LIBS   = $(DMDIR)\extra\lib\ zlib wsock32 advapi32 dnsapi
 }
 writeln "SQLITE_OPTIONS = [join $SQLITE_OPTIONS { }]\n"
 writeln "SHELL_OPTIONS = [join $SHELL_WIN32_OPTIONS { }]\n"
@@ -1517,7 +1529,7 @@ FOSSIL_ENABLE_JSON = 0
 
 # Enable legacy treatment of the mv/rm commands?
 !ifndef FOSSIL_ENABLE_LEGACY_MV_RM
-FOSSIL_ENABLE_LEGACY_MV_RM = 0
+FOSSIL_ENABLE_LEGACY_MV_RM = 1
 !endif
 
 # Enable use of miniz instead of zlib?
@@ -1556,7 +1568,7 @@ USE_SEE = 0
 !endif
 
 !if $(FOSSIL_ENABLE_SSL)!=0
-SSLDIR    = $(B)\compat\openssl-1.0.2o
+SSLDIR    = $(B)\compat\openssl-1.0.2p
 SSLINCDIR = $(SSLDIR)\inc32
 !if $(FOSSIL_DYNAMIC_BUILD)!=0
 SSLLIBDIR = $(SSLDIR)\out32dll
@@ -1568,7 +1580,7 @@ SSLLIB    = ssleay32.lib libeay32.lib user32.lib gdi32.lib crypt32.lib
 !if "$(PLATFORM)"=="amd64" || "$(PLATFORM)"=="x64"
 !message Using 'x64' platform for OpenSSL...
 # BUGBUG (OpenSSL): Using "no-ssl*" here breaks the build.
-# SSLCONFIG = VC-WIN64A no-asm no-ssl2 no-ssl3
+# SSLCONFIG = VC-WIN64A no-asm no-ssl2 no-ssl3 no-weak-ssl-ciphers
 SSLCONFIG = VC-WIN64A no-asm
 !if $(FOSSIL_DYNAMIC_BUILD)!=0
 SSLCONFIG = $(SSLCONFIG) shared
@@ -1583,12 +1595,12 @@ SSLNMAKE  = ms\nt.mak all
 !endif
 # BUGBUG (OpenSSL): Using "OPENSSL_NO_SSL*" here breaks dynamic builds.
 !if $(FOSSIL_DYNAMIC_BUILD)==0
-SSLCFLAGS = -DOPENSSL_NO_SSL2 -DOPENSSL_NO_SSL3
+SSLCFLAGS = -DOPENSSL_NO_SSL2 -DOPENSSL_NO_SSL3 -DOPENSSL_NO_WEAK_SSL_CIPHERS
 !endif
 !elseif "$(PLATFORM)"=="ia64"
 !message Using 'ia64' platform for OpenSSL...
 # BUGBUG (OpenSSL): Using "no-ssl*" here breaks the build.
-# SSLCONFIG = VC-WIN64I no-asm no-ssl2 no-ssl3
+# SSLCONFIG = VC-WIN64I no-asm no-ssl2 no-ssl3 no-weak-ssl-ciphers
 SSLCONFIG = VC-WIN64I no-asm
 !if $(FOSSIL_DYNAMIC_BUILD)!=0
 SSLCONFIG = $(SSLCONFIG) shared
@@ -1603,12 +1615,12 @@ SSLNMAKE  = ms\nt.mak all
 !endif
 # BUGBUG (OpenSSL): Using "OPENSSL_NO_SSL*" here breaks dynamic builds.
 !if $(FOSSIL_DYNAMIC_BUILD)==0
-SSLCFLAGS = -DOPENSSL_NO_SSL2 -DOPENSSL_NO_SSL3
+SSLCFLAGS = -DOPENSSL_NO_SSL2 -DOPENSSL_NO_SSL3 -DOPENSSL_NO_WEAK_SSL_CIPHERS
 !endif
 !else
 !message Assuming 'x86' platform for OpenSSL...
 # BUGBUG (OpenSSL): Using "no-ssl*" here breaks the build.
-# SSLCONFIG = VC-WIN32 no-asm no-ssl2 no-ssl3
+# SSLCONFIG = VC-WIN32 no-asm no-ssl2 no-ssl3 no-weak-ssl-ciphers
 SSLCONFIG = VC-WIN32 no-asm
 !if $(FOSSIL_DYNAMIC_BUILD)!=0
 SSLCONFIG = $(SSLCONFIG) shared
@@ -1623,7 +1635,7 @@ SSLNMAKE  = ms\nt.mak all
 !endif
 # BUGBUG (OpenSSL): Using "OPENSSL_NO_SSL*" here breaks dynamic builds.
 !if $(FOSSIL_DYNAMIC_BUILD)==0
-SSLCFLAGS = -DOPENSSL_NO_SSL2 -DOPENSSL_NO_SSL3
+SSLCFLAGS = -DOPENSSL_NO_SSL2 -DOPENSSL_NO_SSL3 -DOPENSSL_NO_WEAK_SSL_CIPHERS
 !endif
 !endif
 !endif
@@ -1703,7 +1715,7 @@ BCC       = $(CC) $(CFLAGS)
 TCC       = $(CC) /c $(CFLAGS) $(MSCDEF) $(INCL)
 RCC       = $(RC) /D_WIN32 /D_MSC_VER $(MSCDEF) $(INCL)
 MTC       = mt
-LIBS      = ws2_32.lib advapi32.lib
+LIBS      = ws2_32.lib advapi32.lib dnsapi.lib
 LIBDIR    =
 
 !if $(FOSSIL_DYNAMIC_BUILD)!=0
@@ -1798,6 +1810,7 @@ foreach s [lsort $extra_files] {
     writeln " \\"
     writeln -nonewline "        "
   }
+  set s [regsub -all / $s \\]
   writeln -nonewline "\$(SRCDIR)\\${s}"; incr i
 }
 writeln "\n"
@@ -1948,34 +1961,34 @@ builtin_data.h:	mkbuiltin$E $(EXTRA_FILES)
 	mkbuiltin$E --prefix $(SRCDIR)/ $(EXTRA_FILES) > $@
 
 clean:
-	del $(OX)\*.obj 2>NUL
-	del *.obj 2>NUL
-	del *_.c 2>NUL
-	del *.h 2>NUL
-	del *.ilk 2>NUL
-	del *.map 2>NUL
-	del *.res 2>NUL
-	del headers 2>NUL
-	del linkopts 2>NUL
-	del vc*.pdb 2>NUL
+	-del $(OX)\*.obj 2>NUL
+	-del *.obj 2>NUL
+	-del *_.c 2>NUL
+	-del *.h 2>NUL
+	-del *.ilk 2>NUL
+	-del *.map 2>NUL
+	-del *.res 2>NUL
+	-del headers 2>NUL
+	-del linkopts 2>NUL
+	-del vc*.pdb 2>NUL
 
 realclean: clean
-	del $(APPNAME) 2>NUL
-	del $(PDBNAME) 2>NUL
-	del translate$E 2>NUL
-	del translate$P 2>NUL
-	del mkindex$E 2>NUL
-	del mkindex$P 2>NUL
-	del makeheaders$E 2>NUL
-	del makeheaders$P 2>NUL
-	del mkversion$E 2>NUL
-	del mkversion$P 2>NUL
-	del mkcss$E 2>NUL
-	del mkcss$P 2>NUL
-	del codecheck1$E 2>NUL
-	del codecheck1$P 2>NUL
-	del mkbuiltin$E 2>NUL
-	del mkbuiltin$P 2>NUL
+	-del $(APPNAME) 2>NUL
+	-del $(PDBNAME) 2>NUL
+	-del translate$E 2>NUL
+	-del translate$P 2>NUL
+	-del mkindex$E 2>NUL
+	-del mkindex$P 2>NUL
+	-del makeheaders$E 2>NUL
+	-del makeheaders$P 2>NUL
+	-del mkversion$E 2>NUL
+	-del mkversion$P 2>NUL
+	-del mkcss$E 2>NUL
+	-del mkcss$P 2>NUL
+	-del codecheck1$E 2>NUL
+	-del codecheck1$P 2>NUL
+	-del mkbuiltin$E 2>NUL
+	-del mkbuiltin$P 2>NUL
 
 $(OBJDIR)\json$O : $(SRCDIR)\json_detail.h
 $(OBJDIR)\json_artifact$O : $(SRCDIR)\json_detail.h
@@ -2096,7 +2109,7 @@ ZLIBSRCDIR=../../zlib/
 
 # define linker command and options
 LINK=$(PellesCDir)/bin/polink.exe
-LINKFLAGS=-subsystem:console -machine:$(TARGETMACHINE_LN) /LIBPATH:$(PellesCDir)\lib\win$(TARGETEXTEND) /LIBPATH:$(PellesCDir)\lib kernel32.lib advapi32.lib delayimp$(TARGETEXTEND).lib Wsock32.lib Crtmt$(TARGETEXTEND).lib
+LINKFLAGS=-subsystem:console -machine:$(TARGETMACHINE_LN) /LIBPATH:$(PellesCDir)\lib\win$(TARGETEXTEND) /LIBPATH:$(PellesCDir)\lib kernel32.lib advapi32.lib delayimp$(TARGETEXTEND).lib Wsock32.lib dnsapi.lib Crtmt$(TARGETEXTEND).lib
 
 # define standard C-compiler and flags, used to compile
 # the fossil binary. Some special definitions follow for
@@ -2222,12 +2235,12 @@ $(APPLICATION):	$(TRANSLATEDOBJ) $(SQLITEOBJ) $(SQLITESHELLOBJ) $(THOBJ) $(ZLIBO
 
 .PHONY: clean
 clean:
-	del /F $(TRANSLATEDOBJ) $(SQLITEOBJ) $(THOBJ) $(ZLIBOBJ) $(UTILS_OBJ) version.obj
-	del /F $(TRANSLATEDSRC)
-	del /F *.h headers
-	del /F $(RESOURCE)
+	-del /F $(TRANSLATEDOBJ) $(SQLITEOBJ) $(THOBJ) $(ZLIBOBJ) $(UTILS_OBJ) version.obj
+	-del /F $(TRANSLATEDSRC)
+	-del /F *.h headers
+	-del /F $(RESOURCE)
 
 .PHONY: clobber
 clobber: clean
-	del /F *.exe
+	-del /F *.exe
 }]

@@ -11,7 +11,9 @@ set doclist {
   aboutdownload.wiki {How The Download Page Works}
   adding_code.wiki {Adding New Features To Fossil}
   adding_code.wiki {Hacking Fossil}
+  alerts.md {Email Alerts And Notifications}
   antibot.wiki {Defense against Spiders and Bots}
+  backoffice.md {The "Backoffice" mechanism of Fossil}
   blame.wiki {The Annotate/Blame Algorithm Of Fossil}
   branching.wiki {Branching, Forking, Merging, and Tagging}
   bugtheory.wiki {Bug Tracking In Fossil}
@@ -35,6 +37,7 @@ set doclist {
   faq.wiki {Frequently Asked Questions}
   fileformat.wiki {Fossil File Format}
   fiveminutes.wiki {Up and Running in 5 Minutes as a Single User}
+  forum.wiki {Fossil Forums}
   foss-cklist.wiki {Checklist For Successful Open-Source Projects}
   fossil-from-msvc.wiki {Integrating Fossil in the Microsoft Express 2010 IDE}
   fossil-v-git.wiki {Fossil Versus Git}
@@ -121,6 +124,7 @@ puts $out {
 <li> <a href='http://www.fossil-scm.org/schimpf-book/home'>Jim Schimpf's
 book</a>
 <li> <a href='$ROOT/help'>List of commands, web-pages, and settings</a>
+<li> <a href='hacker-howto.wiki'>Hacker How-To</a>
 </ul>
 <a name="pindex"></a>
 <h2>Permuted Index:</h2>

@@ -70,7 +70,7 @@ static cson_value * json_branch_list(){
   char const * range = NULL;
   int branchListFlags = BRL_OPEN_ONLY;
   char * sawConversionError = NULL;
-  Stmt q;
+  Stmt q = empty_Stmt;
   if( !g.perm.Read ){
     json_set_err(FSL_JSON_E_DENIED,
                  "Requires 'o' permissions.");
@@ -145,6 +145,7 @@ static cson_value * json_branch_list(){
     json_warn(FSL_JSON_W_COL_TO_JSON_FAILED,"%s",sawConversionError);
     free(sawConversionError);
   }
+  db_finalize(&q);
   return payV;
 }
 
@@ -290,11 +291,11 @@ static int json_branch_new(BranchCreateOptions * zOpt,
 
   brid = content_put(&branch);
   if( brid==0 ){
-    fossil_fatal("Problem committing manifest: %s", g.zErrMsg);
+    fossil_panic("Problem committing manifest: %s", g.zErrMsg);
   }
   db_multi_exec("INSERT OR IGNORE INTO unsent VALUES(%d)", brid);
   if( manifest_crosslink(brid, &branch, MC_PERMIT_HOOKS)==0 ){
-    fossil_fatal("%s", g.zErrMsg);
+    fossil_panic("%s", g.zErrMsg);
   }
   assert( blob_is_reset(&branch) );
   content_deltify(rootid, &brid, 1, 0);
