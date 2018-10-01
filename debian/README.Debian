@@ -28,7 +28,7 @@ Brief "cheat sheet" of relevant fossil commands.
  sudo mv --no-clobber /var/cache/pbuilder/result/fossil* ../
 
  # tag debian release
- fossil tag add debian_${VER}-${DEBVER} debian
+ fossil tag add debian_${EPOCH}:${VER}-${DEBVER} debian
 
  # push/pull to/from debian repository (modify URL if necessary)
  fossil sync ssh://people.debian.org/~bap/public_html/fossil.fsl
@@ -57,9 +57,6 @@ Brief "cheat sheet" of relevant fossil commands.
 
  # create upstream tarball (not needed if using upstream release tarball)
  fossil co trunk
- tar --exclude .fslckout -C .. -zcf fossil_${VER}.orig.tar.gz fossil
+ tar --exclude .fslckout --exclude _FOSSIL_ -C .. -zcf fossil_${VER}.orig.tar.gz fossil
 
- # less recently created checkouts may have _FOSSIL_ instead of
- # .fslckout, edit any commands mentioning this file appropriately.
-
- -- Barak A. Pearlmutter <bap@debian.org>, Mon,  1 Oct 2018 16:24:15 +0100
+ -- Barak A. Pearlmutter <bap@debian.org>, Mon,  1 Oct 2018 16:27:58 +0100
