@@ -2,7 +2,7 @@ Source: fossil
 Section: vcs
 Priority: optional
 Maintainer: Barak A. Pearlmutter <bap@debian.org>
-Standards-Version: 4.1.3
+Standards-Version: 4.2.1
 Build-depends: debhelper (>= 11),
                bash-completion,
                libfuse-dev,
