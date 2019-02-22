@@ -2,12 +2,12 @@ Source: fossil
 Section: vcs
 Priority: optional
 Maintainer: Barak A. Pearlmutter <bap@debian.org>
-Standards-Version: 4.2.1
-Build-depends: debhelper (>= 11),
+Standards-Version: 4.3.0
+Build-depends: debhelper-compat (= 12),
                bash-completion,
                libfuse-dev,
                libreadline-dev,
-               libsqlite3-dev (>= 3.24),
+               libsqlite3-dev (>= 3.25),
                libssl-dev,
                sqlite3,
                tcl | tclsh,
