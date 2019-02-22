@@ -356,7 +356,7 @@ void cgi_reply(void){
 **
 ** The URL must be relative to the base of the fossil server.
 */
-NORETURN static void cgi_redirect_with_status(
+NORETURN void cgi_redirect_with_status(
   const char *zURL,
   int iStat,
   const char *zStat
@@ -2068,4 +2068,17 @@ int cgi_is_loopback(const char *zIpAddr){
   return fossil_strcmp(zIpAddr, "127.0.0.1")==0 ||
          fossil_strcmp(zIpAddr, "::ffff:127.0.0.1")==0 ||
          fossil_strcmp(zIpAddr, "::1")==0;
+}
+
+/*
+** Return true if the HTTP request is likely to be from a small-screen
+** mobile device.
+**
+** The returned value is a guess.  Use it only for setting up defaults.
+*/
+int cgi_from_mobile(void){
+  const char *zAgent = P("HTTP_USER_AGENT");
+  if( zAgent==0 ) return 0;
+  if( sqlite3_strglob("*iPad*", zAgent)==0 ) return 0;
+  return sqlite3_strlike("%mobile%", zAgent, 0)==0;
 }

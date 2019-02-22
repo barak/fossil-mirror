@@ -267,7 +267,8 @@ void test_all_help_cmd(void){
     mask = CMDFLAG_WEBPAGE;
   }
   if( find_option("everything","e",0) ){
-    mask = CMDFLAG_1ST_TIER | CMDFLAG_2ND_TIER | CMDFLAG_WEBPAGE;
+    mask = CMDFLAG_1ST_TIER | CMDFLAG_2ND_TIER | CMDFLAG_WEBPAGE |
+              CMDFLAG_SETTING | CMDFLAG_TEST;
   }
   if( find_option("settings","s",0) ){
     mask = CMDFLAG_SETTING;
@@ -367,7 +368,7 @@ void help_page(void){
       if( (aCommand[i].eCmdFlags & CMDFLAG_SETTING)!=0 ) continue;
       @ <li><a href="%R/help?cmd=%s(z)">%s(zBoldOn)%s(z)%s(zBoldOff)</a></li>
     }
-    @ </ui></div>
+    @ </ul></div>
 
     @ <a name='webpages'></a>
     @ <h1>Available web UI pages:</h1>
@@ -493,6 +494,33 @@ static void command_list(const char *zPrefix, int cmdMask){
 }
 
 /*
+** Documentation on universal command-line options.
+*/
+/* @-comment: # */
+static const char zOptions[] =
+@ Command-line options common to all commands:
+@ 
+@   --args FILENAME         Read additional arguments and options from FILENAME
+@   --cgitrace              Active CGI tracing
+@   --comfmtflags VALUE     Set comment formatting flags to VALUE
+@   --comment-format VALUE  Alias for --comfmtflags
+@   --errorlog FILENAME     Log errors to FILENAME 
+@   --help                  Show help on the command rather than running it
+@   --httptrace             Trace outbound HTTP requests
+@   --localtime             Display times using the local timezone
+@   --no-th-hook            Do not run TH1 hooks
+@   --quiet                 Reduce the amount of output
+@   --sqlstats              Show SQL usage statistics when done
+@   --sqltrace              Trace all SQL commands
+@   --sshtrace              Trace SSH activity
+@   --ssl-identity NAME     Set the SSL identity to NAME
+@   --systemtrace           Trace calls to system()
+@   --user|-U USER          Make the default user be USER
+@   --utc                   Display times using UTC
+@   --vfs NAME              Cause SQLite to use the NAME VFS
+;
+
+/*
 ** COMMAND: help
 **
 ** Usage: %fossil help TOPIC
@@ -504,6 +532,7 @@ static void command_list(const char *zPrefix, int cmdMask){
 **
 **    %fossil help                Show common commands
 **    %fossil help -a|--all       Show both common and auxiliary commands
+**    %fossil help -o|--options   Show command-line options common to all cmds
 **    %fossil help -s|--setting   Show setting names
 **    %fossil help -t|--test      Show test commands only
 **    %fossil help -x|--aux       Show auxiliary commands only
@@ -520,10 +549,14 @@ void help_cmd(void){
     z = g.argv[0];
     fossil_print(
       "Usage: %s help TOPIC\n"
-      "Common commands:  (use \"%s help -a|--all\" for a complete list)\n",
+      "Common commands:  (use \"%s help help\" for more options)\n",
       z, z);
     command_list(0, CMDFLAG_1ST_TIER);
     version_cmd();
+    return;
+  }
+  if( find_option("options","o",0) ){
+    fossil_print("%s", zOptions);
     return;
   }
   if( find_option("all","a",0) ){

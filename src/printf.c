@@ -231,6 +231,9 @@ static int wiki_convert_flags(int altForm2){
     if( db_get_boolean("timeline-plaintext", 0) ){
       wikiFlags |= WIKI_LINKSONLY;
     }
+    if( db_get_boolean("timeline-hard-newlines", 0) ){
+      wikiFlags |= WIKI_NEWLINE;
+    }
   }
   return wikiFlags;
 }
@@ -1004,7 +1007,7 @@ void fossil_errorlog(const char *zFormat, ...){
   now = time(0);
   pNow = gmtime(&now);
   fprintf(out, "------------- %04d-%02d-%02d %02d:%02d:%02d UTC ------------\n",
-          pNow->tm_year+1900, pNow->tm_mon+1, pNow->tm_mday+1,
+          pNow->tm_year+1900, pNow->tm_mon+1, pNow->tm_mday,
           pNow->tm_hour, pNow->tm_min, pNow->tm_sec);
   va_start(ap, zFormat);
   vfprintf(out, zFormat, ap);

@@ -205,7 +205,8 @@ struct Global {
   int noPswd;             /* Logged in without password (on 127.0.0.1) */
   int userUid;            /* Integer user id */
   int isHuman;            /* True if access by a human, not a spider or bot */
-  int comFmtFlags;        /* Zero or more "COMMENT_PRINT_*" bit flags */
+  int comFmtFlags;        /* Zero or more "COMMENT_PRINT_*" bit flags, should be
+                          ** accessed through get_comment_format(). */
 
   /* Information used to populate the RCVFROM table */
   int rcvid;              /* The rcvid.  0 if not yet defined. */
@@ -380,6 +381,7 @@ static void expand_args_option(int argc, void *argv){
   unsigned int nLine;       /* Number of lines in the file*/
   unsigned int i, j, k;     /* Loop counters */
   int n;                    /* Number of bytes in one line */
+  unsigned int nArg;        /* Number of new arguments */
   char *z;                  /* General use string pointer */
   char **newArgv;           /* New expanded g.argv under construction */
   const char *zFileName;    /* input file name */
@@ -413,30 +415,35 @@ static void expand_args_option(int argc, void *argv){
   if( i>=g.argc-1 ) return;
 
   zFileName = g.argv[i+1];
-  inFile = (0==strcmp("-",zFileName))
-    ? stdin
-    : fossil_fopen(zFileName,"rb");
-  if(!inFile){
-    fossil_fatal("Cannot open -args file [%s]", zFileName);
+  if( strcmp(zFileName,"-")==0 ){
+    inFile = stdin;
+  }else if( !file_isfile(zFileName, ExtFILE) ){
+    fossil_fatal("Not an ordinary file: \"%s\"", zFileName);
   }else{
-    blob_read_from_channel(&file, inFile, -1);
-    if(stdin != inFile){
-      fclose(inFile);
+    inFile = fossil_fopen(zFileName,"rb");
+    if( inFile==0 ){
+      fossil_fatal("Cannot open -args file [%s]", zFileName);
     }
-    inFile = NULL;
   }
+  blob_read_from_channel(&file, inFile, -1);
+  if(stdin != inFile){
+    fclose(inFile);
+  }
+  inFile = NULL;
   blob_to_utf8_no_bom(&file, 1);
   z = blob_str(&file);
   for(k=0, nLine=1; z[k]; k++) if( z[k]=='\n' ) nLine++;
-  newArgv = fossil_malloc( sizeof(char*)*(g.argc + nLine*2) );
+  if( nLine>100000000 ) fossil_fatal("too many command-line arguments");
+  nArg = g.argc + nLine*2;
+  newArgv = fossil_malloc( sizeof(char*)*nArg );
   for(j=0; j<i; j++) newArgv[j] = g.argv[j];
 
   blob_rewind(&file);
   while( (n = blob_line(&file, &line))>0 ){
-    if( n<1 ) continue
-      /**
-       ** Reminder: corner-case: a line with 1 byte and no newline.
-       */;
+    if( n<1 ){
+      /* Reminder: corner-case: a line with 1 byte and no newline. */
+      continue;
+    }
     z = blob_buffer(&line);
     if('\n'==z[n-1]){
       z[n-1] = 0;
@@ -447,6 +454,9 @@ static void expand_args_option(int argc, void *argv){
       z[n-2] = 0;
     }
     if(!z[0]) continue;
+    if( j>=nArg ){
+      fossil_fatal("malformed command-line arguments");
+    }
     newArgv[j++] = z;
     if( z[0]=='-' ){
       for(k=1; z[k] && !fossil_isspace(z[k]); k++){}
@@ -568,10 +578,13 @@ static void fossil_sqlite_log(void *notUsed, int iCode, const char *zErrmsg){
 */
 static void fossil_init_flags_from_options(void){
   const char *zValue = find_option("comfmtflags", 0, 1);
+  if( zValue==0 ){
+    zValue = find_option("comment-format", 0, 1);
+  }
   if( zValue ){
     g.comFmtFlags = atoi(zValue);
   }else{
-    g.comFmtFlags = COMMENT_PRINT_DEFAULT;
+    g.comFmtFlags = COMMENT_PRINT_UNSET;   /* Command-line option not found. */
   }
 }
 
@@ -974,10 +987,6 @@ void verify_all_options(void){
   }
 }
 
-/*
-** Print a list of words in multiple columns.
-*/
-
 
 /*
 ** This function returns a human readable version string.
@@ -1304,150 +1313,6 @@ char *enter_chroot_jail(char *zRepo, int noJail){
 }
 
 /*
-** Generate a web-page that lists all repositories located under the
-** g.zRepositoryName directory and return non-zero.
-**
-** For the special case when g.zRepositoryName a non-chroot-jail "/",
-** compose the list using the "repo:" entries in the global_config
-** table of the configuration database.  These entries comprise all
-** of the repositories known to the "all" command.  The special case
-** processing is disallowed for chroot jails because g.zRepositoryName
-** is always "/" inside a chroot jail and so it cannot be used as a flag
-** to signal the special processing in that case.  The special case
-** processing is intended for the "fossil all ui" command which never
-** runs in a chroot jail anyhow.
-**
-** Or, if no repositories can be located beneath g.zRepositoryName,
-** return 0.
-*/
-static int repo_list_page(void){
-  Blob base;
-  int n = 0;
-  int allRepo;
-
-  assert( g.db==0 );
-  if( fossil_strcmp(g.zRepositoryName,"/")==0 && !g.fJail ){
-    /* For the special case of the "repository directory" being "/",
-    ** show all of the repositories named in the ~/.fossil database.
-    **
-    ** On unix systems, then entries are of the form "repo:/home/..."
-    ** and on Windows systems they are like on unix, starting with a "/"
-    ** or they can begin with a drive letter: "repo:C:/Users/...".  In either
-    ** case, we want returned path to omit any initial "/".
-    */
-    db_open_config(1, 0);
-    db_multi_exec(
-       "CREATE TEMP VIEW sfile AS"
-       "  SELECT ltrim(substr(name,6),'/') AS 'pathname' FROM global_config"
-       "   WHERE name GLOB 'repo:*'"
-    );
-    allRepo = 1;
-  }else{
-    /* The default case:  All repositories under the g.zRepositoryName
-    ** directory.
-    */
-    blob_init(&base, g.zRepositoryName, -1);
-    sqlite3_open(":memory:", &g.db);
-    db_multi_exec("CREATE TABLE sfile(pathname TEXT);");
-    db_multi_exec("CREATE TABLE vfile(pathname);");
-    vfile_scan(&base, blob_size(&base), 0, 0, 0);
-    db_multi_exec("DELETE FROM sfile WHERE pathname NOT GLOB '*[^/].fossil'");
-    allRepo = 0;
-  }
-  @ <html>
-  @ <head>
-  @ <base href="%s(g.zBaseURL)/" />
-  @ <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  @ <title>Repository List</title>
-  @ </head>
-  @ <body>
-  n = db_int(0, "SELECT count(*) FROM sfile");
-  if( n>0 ){
-    Stmt q;
-    sqlite3_int64 iNow, iMTime;
-    @ <h1 align="center">Fossil Repositories</h1>
-    @ <table border="0" class="sortable" data-init-sort="1" \
-    @ data-column-types="tnk"><thead>
-    @ <tr><th>Filename<th width="20"><th>Last Modified</tr>
-    @ </thead><tbody>
-    db_prepare(&q, "SELECT pathname"
-                   " FROM sfile ORDER BY pathname COLLATE nocase;");
-    iNow = db_int64(0, "SELECT strftime('%%s','now')");
-    while( db_step(&q)==SQLITE_ROW ){
-      const char *zName = db_column_text(&q, 0);
-      int nName = (int)strlen(zName);
-      char *zUrl;
-      char *zAge;
-      char *zFull;
-      if( nName<7 ) continue;
-      zUrl = sqlite3_mprintf("%.*s", nName-7, zName);
-      if( zName[0]=='/'
-#ifdef _WIN32
-          || sqlite3_strglob("[a-zA-Z]:/*", zName)==0
-#endif
-      ){
-        zFull = mprintf("%s", zName);
-      }else if ( allRepo ){
-        zFull = mprintf("/%s", zName);
-      }else{
-        zFull = mprintf("%s/%s", g.zRepositoryName, zName);
-      }
-      iMTime = file_mtime(zFull, ExtFILE);
-      fossil_free(zFull);
-      if( iMTime<=0 ){
-        zAge = mprintf("...");
-      }else{
-        zAge = human_readable_age((iNow - iMTime)/86400.0);
-      }
-      if( sqlite3_strglob("*.fossil", zName)!=0 ){
-        /* The "fossil server DIRECTORY" and "fossil ui DIRECTORY" commands
-        ** do not work for repositories whose names do not end in ".fossil".
-        ** So do not hyperlink those cases. */
-        @ <tr><td>%h(zName)
-      } else if( sqlite3_strglob("*/.*", zName)==0 ){
-        /* Do not show hidden repos */
-        @ <tr><td>%h(zName) (hidden)
-      } else if( allRepo && sqlite3_strglob("[a-zA-Z]:/?*", zName)!=0 ){
-        @ <tr><td><a href="%R/%T(zUrl)/home" target="_blank">/%h(zName)</a>
-      }else{
-        @ <tr><td><a href="%R/%T(zUrl)/home" target="_blank">%h(zName)</a>
-      }
-      @ <td></td><td data-sortkey='%010llx(iNow - iMTime)'>%h(zAge)</tr>
-      fossil_free(zAge);
-      sqlite3_free(zUrl);
-    }
-    @ </tbody></table>
-  }else{
-    @ <h1>No Repositories Found</h1>
-  }
-  @ <script>%s(builtin_text("sorttable.js"))</script>
-  @ </body>
-  @ </html>
-  cgi_reply();
-  sqlite3_close(g.db);
-  g.db = 0;
-  return n;
-}
-
-/*
-** COMMAND: test-list-page
-**
-** Usage: %fossil test-list-page DIRECTORY
-**
-** Show all repositories underneath DIRECTORY.  Or if DIRECTORY is "/"
-** show all repositories in the ~/.fossil file.
-*/
-void test_list_page(void){
-  if( g.argc<3 ){
-    g.zRepositoryName = "/";
-  }else{
-    g.zRepositoryName = g.argv[2];
-  }
-  g.httpOut = stdout;
-  repo_list_page();
-}
-
-/*
 ** Called whenever a crash is encountered while processing a webpage.
 */
 void sigsegv_handler(int x){
@@ -1483,6 +1348,41 @@ void sigpipe_handler(int x){
 #endif
   db_panic_close();
   exit(1);
+}
+
+/*
+** Return true if it is appropriate to redirect requests to HTTPS.
+**
+** Redirect to https is appropriate if all of the above are true:
+**    (1) The redirect-to-https flag has a valud of iLevel or greater.
+**    (2) The current connection is http, not https or ssh
+**    (3) The sslNotAvailable flag is clear
+*/
+int fossil_wants_https(int iLevel){
+  if( g.sslNotAvailable ) return 0;
+  if( db_get_int("redirect-to-https",0)<iLevel ) return 0;
+  if( P("HTTPS")!=0 ) return 0;
+  return 1;
+}
+
+/*
+** Redirect to the equivalent HTTPS request if the current connection is
+** insecure and if the redirect-to-https flag greater than or equal to 
+** iLevel.  iLevel is 1 for /login pages and 2 for every other page.
+*/
+int fossil_redirect_to_https_if_needed(int iLevel){
+  if( fossil_wants_https(iLevel) ){
+    const char *zQS = P("QUERY_STRING");
+    char *zURL;
+    if( zQS==0 || zQS[0]==0 ){
+      zURL = mprintf("%s%T", g.zHttpsURL, P("PATH_INFO"));
+    }else if( zQS[0]!=0 ){
+      zURL = mprintf("%s%T?%s", g.zHttpsURL, P("PATH_INFO"), zQS);
+    }
+    cgi_redirect_with_status(zURL, 301, "Moved Permanently");
+    return 1;
+  }
+  return 0;
 }
 
 /*
@@ -1759,6 +1659,7 @@ static void process_one_web_page(
   ** and deliver the appropriate page back to the user.
   */
   set_base_url(0);
+  if( fossil_redirect_to_https_if_needed(2) ) return;
   if( zPathInfo==0 || zPathInfo[0]==0
       || (zPathInfo[0]=='/' && zPathInfo[1]==0) ){
     /* Second special case: If the PATH_INFO is blank, issue a redirect to
@@ -2383,6 +2284,7 @@ void cmd_http(void){
   g.fNoHttpCompress = find_option("nocompress",0,0)!=0;
   zInFile = find_option("in",0,1);
   if( zInFile ){
+    backoffice_disable();
     g.httpIn = fossil_fopen(zInFile, "rb");
     if( g.httpIn==0 ) fossil_fatal("cannot open \"%s\" for reading", zInFile);
   }else{
@@ -2576,7 +2478,8 @@ void sigalrm_handler(int x){
 **                       seconds (only works on unix)
 **   --nocompress        Do not compress HTTP replies
 **   --nojail            Drop root privileges but do not enter the chroot jail
-**   --nossl             signal that no SSL connections are available
+**   --nossl             signal that no SSL connections are available (Always
+**                       set by default for the "ui" command)
 **   --notfound URL      Redirect
 **   -P|--port TCPPORT   listen to request on port TCPPORT
 **   --th-trace          trace TH1 execution (for debugging purposes)
@@ -2647,7 +2550,7 @@ void cmd_webserver(void){
   if( zAltBase ){
     set_base_url(zAltBase);
   }
-  g.sslNotAvailable = find_option("nossl", 0, 0)!=0;
+  g.sslNotAvailable = find_option("nossl", 0, 0)!=0 || isUiCmd;
   if( find_option("https",0,0)!=0 ){
     cgi_replace_parameter("HTTPS","on");
   }
@@ -2847,7 +2750,7 @@ void test_warning_page(void){
   int iCase = atoi(PD("case","0"));
   int i;
   login_check_credentials();
-  if( !g.perm.Setup && !g.perm.Admin ){
+  if( !g.perm.Admin ){
     login_needed(0);
     return;
   }
