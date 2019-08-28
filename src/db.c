@@ -364,6 +364,12 @@ int db_static_prepare(Stmt *pStmt, const char *zFormat, ...){
   return rc;
 }
 
+/* Return TRUE if static Stmt object pStmt has been initialized.
+*/
+int db_static_stmt_is_init(Stmt *pStmt){
+  return blob_size(&pStmt->sql)>0;
+}
+
 /* Prepare a statement using text placed inside a Blob
 ** using blob_append_sql().
 */
@@ -1253,6 +1259,7 @@ void db_detach(const char *zLabel){
 */
 void db_attach(const char *zDbName, const char *zLabel){
   Blob key;
+  if( db_table_exists(zLabel,"sqlite_master") ) return;
   blob_init(&key, 0, 0);
   db_maybe_obtain_encryption_key(zDbName, &key);
   if( fossil_getenv("FOSSIL_USE_SEE_TEXTKEY")==0 ){
@@ -2875,6 +2882,9 @@ void db_record_repository_filename(const char *zName){
 **   --keep            Only modify the manifest and manifest.uuid files
 **   --nested          Allow opening a repository inside an opened checkout
 **   --force-missing   Force opening a repository with missing content
+**   --setmtime        Set timestamps of all files to match their SCM-side
+**                     times (the timestamp of the last checkin which modified
+**                     them).
 **
 ** See also: close
 */
@@ -2884,6 +2894,7 @@ void cmd_open(void){
   int forceMissingFlag;
   int allowNested;
   int allowSymlinks;
+  int setmtimeFlag;              /* --setmtime.  Set mtimes on files */
   static char *azNewArgv[] = { 0, "checkout", "--prompt", 0, 0, 0, 0 };
 
   url_proxy_options();
@@ -2891,6 +2902,7 @@ void cmd_open(void){
   keepFlag = find_option("keep",0,0)!=0;
   forceMissingFlag = find_option("force-missing",0,0)!=0;
   allowNested = find_option("nested",0,0)!=0;
+  setmtimeFlag = find_option("setmtime",0,0)!=0;
 
   /* We should be done with options.. */
   verify_all_options();
@@ -2973,6 +2985,12 @@ void cmd_open(void){
       azNewArgv[g.argc++] = "--force-missing";
     }
     checkout_cmd();
+  }
+  if( setmtimeFlag ){
+    int const vid = db_lget_int("checkout", 0);
+    if(vid!=0){
+      vfile_check_signature(vid, CKSIG_SETMTIME);
+    }
   }
   g.argc = 2;
   info_cmd();
@@ -3457,6 +3475,12 @@ struct Setting {
 ** is empty and no extra setup is performed.
 */
 #endif /* FOSSIL_ENABLE_TCL */
+/*
+** SETTING: tclsh            width=80 default=tclsh
+** Name of the external TCL interpreter used for such things
+** as running the GUI diff viewer launched by the --tk option
+** of the various "diff" commands.
+*/
 #ifdef FOSSIL_ENABLE_TH1_DOCS
 /*
 ** SETTING: th1-docs         boolean default=off

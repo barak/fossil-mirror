@@ -61,7 +61,7 @@ remotely, three of which are straightforward to use with nginx:
 
 *   **CGI** — This method is simple but inefficient, because it launches
     a separate Fossil instance on every HTTP hit.
-    
+
     Since Fossil is a relatively small self-contained program, and it’s
     designed to start up quickly, this method can work well in a
     surprisingly large number of cases.
@@ -235,25 +235,25 @@ Here’s an example configuration:
 
       server {
           server_name .foo.net;
-      
+
           include local/tls-common;
-      
+
           charset utf-8;
-      
+
           access_log /var/log/nginx/foo.net-https-access.log;
            error_log /var/log/nginx/foo.net-https-error.log;
-      
+
           # Bypass Fossil for the static Doxygen docs
           location /doc/html {
               root /var/www/foo.net;
-      
+
               location ~* \.(html|ico|css|js|gif|jpg|png)$ {
                   expires 7d;
                   add_header Vary Accept-Encoding;
                   access_log off;
               }
           }
-      
+
           # Redirect everything else to the Fossil instance
           location / {
               include scgi_params;
@@ -303,7 +303,7 @@ older versions of nginx.
 
 Since all of those domains share a single TLS certificate, we reference
 the same `example.com/*.pem` files written out by Certbot with the
-`ssl_certificate*` lines. 
+`ssl_certificate*` lines.
 
 The `ssl_dhparam` directive isn’t strictly required, but without it, the
 server becomes vulnerable to the [Logjam attack][lja] because some of
@@ -377,11 +377,11 @@ the minimal HTTP service we reqiure, `local/http-certbot-only`:
 
       listen 80;
       listen [::]:80;
-  
+
       # This is expressed as a rewrite rule instead of an "if" because
       # http://wiki.nginx.org/IfIsEvil
       #rewrite ^(/.well-known/acme-challenge/.*) $1 break;
-  
+
       # Force everything else to HTTPS with a permanent redirect.
       #return 301 https://$host$request_uri;
 
@@ -565,13 +565,19 @@ HSTS by explicitly using HTTPS URIs.
 
 ## Step 7: Renewing Automatically
 
-Now that the configuration is solid, you can renew the LE cert and
-restart nginx with two short commands, which are easily automated:
+Now that the configuration is solid, you can renew the LE cert with the
+`certbot` command from above without the `--dry-run` flag plus a restart
+of nginx:
 
-      sudo certbot certonly --webroot
+      sudo certbot certonly --webroot \
+         --webroot-path /var/www/example.com \
+             -d example.com -d www.example.com \
+             -d example.net -d www.example.net \
+         --webroot-path /var/www/foo.net \
+             -d foo.net -d www.foo.net
       sudo systemctl restart nginx
 
-I put those in a script in the `PATH`, then arrange to call that
+I put those commands in a script in the `PATH`, then arrange to call that
 periodically.  Let’s Encrypt doesn’t let you renew the certificate very
 often unless forced, and when forced there’s a maximum renewal counter.
 Nevertheless, some people recommend running this daily and just letting

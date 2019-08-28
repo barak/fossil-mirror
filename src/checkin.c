@@ -1211,7 +1211,7 @@ void prompt_for_user_comment(Blob *pComment, Blob *pPrompt){
       zFile = db_text(0, "SELECT '%qci-comment-'||hex(randomblob(6))||'.txt'",
                       blob_str(&fname));
     }else{
-      file_tempname(&fname, "ci-comment");
+      file_tempname(&fname, "ci-comment",0);
       zFile = mprintf("%s", blob_str(&fname));
     }
     blob_reset(&fname);
@@ -2014,6 +2014,7 @@ static int tagCmp(const void *a, const void *b){
 **                               question.
 **    --no-warnings              omit all warnings about file contents
 **    --nosign                   do not attempt to sign this commit with gpg
+**    --override-lock            allow a check-in even though parent is locked
 **    --private                  do not sync changes and their descendants
 **    --hash                     verify file status using hashing rather
 **                               than relying on file mtimes
@@ -2090,6 +2091,7 @@ void commit_cmd(void){
   allowConflict = find_option("allow-conflict",0,0)!=0;
   allowEmpty = find_option("allow-empty",0,0)!=0;
   allowFork = find_option("allow-fork",0,0)!=0;
+  if( find_option("override-lock",0,0)!=0 ) allowFork = 1;
   allowOlder = find_option("allow-older",0,0)!=0;
   noPrompt = find_option("no-prompt", 0, 0)!=0;
   noWarningFlag = find_option("no-warnings", 0, 0)!=0;
@@ -2163,7 +2165,11 @@ void commit_cmd(void){
   ** Autosync if autosync is enabled and this is not a private check-in.
   */
   if( !g.markPrivate ){
-    if( autosync_loop(SYNC_PULL, db_get_int("autosync-tries", 1), 1) ){
+    int syncFlags = SYNC_PULL;
+    if( vid!=0 && !allowFork && !forceFlag ){
+      syncFlags |= SYNC_CKIN_LOCK;
+    }
+    if( autosync_loop(syncFlags, db_get_int("autosync-tries", 1), 1) ){
       fossil_exit(1);
     }
   }
@@ -2270,18 +2276,20 @@ void commit_cmd(void){
   ** or --force flags is used, or unless this is a private check-in.
   ** The initial commit MUST have tags "trunk" and "sym-trunk".
   */
-  if( !vid ){
-    if( sCiInfo.zBranch==0 ){
-      if( allowFork==0 && forceFlag==0 && g.markPrivate==0
-        && db_exists("SELECT 1 from event where type='ci'") ){
-        fossil_fatal("would fork.  \"update\" first or use --allow-fork.");
-      }
-      sCiInfo.zBranch = db_get("main-branch", "trunk");
-    }
-  }else if( sCiInfo.zBranch==0 && allowFork==0 && forceFlag==0
-    && g.markPrivate==0 && !is_a_leaf(vid)
+  if( sCiInfo.zBranch==0
+   && allowFork==0
+   && forceFlag==0
+   && g.markPrivate==0
+   && (vid==0 || !is_a_leaf(vid) || g.ckinLockFail)
   ){
-    fossil_fatal("would fork.  \"update\" first or use --allow-fork.");
+    if( g.ckinLockFail ){
+      fossil_fatal("Might fork due to a check-in race with user \"%s\"\n"
+                   "Try \"update\" first, or --branch, or use --override-lock",
+                   g.ckinLockFail);
+    }else{
+      fossil_fatal("Would fork.  \"update\" first or use --branch or "
+                   "--allow-fork.");
+    }
   }
 
   /*
@@ -2615,7 +2623,9 @@ void commit_cmd(void){
   }
 
   if( !g.markPrivate ){
-    autosync_loop(SYNC_PUSH|SYNC_PULL, db_get_int("autosync-tries", 1), 0);
+    int syncFlags = SYNC_PUSH | SYNC_PULL | SYNC_IFABLE;
+    int nTries = db_get_int("autosync-tries",1);
+    autosync_loop(syncFlags, nTries, 0);
   }
   if( count_nonbranch_children(vid)>1 ){
     fossil_print("**** warning: a fork has occurred *****\n");

@@ -192,6 +192,7 @@ struct Global {
   int fTimeFormat;        /* 1 for UTC.  2 for localtime.  0 not yet selected */
   int *aCommitFile;       /* Array of files to be committed */
   int markPrivate;        /* All new artifacts are private if true */
+  char *ckinLockFail;     /* Check-in lock failure received from server */
   int clockSkewSeen;      /* True if clocks on client and server out of sync */
   int wikiFlags;          /* Wiki conversion flags applied to %W */
   char isHTTP;            /* True if server/CGI modes, else assume CLI. */
@@ -921,6 +922,22 @@ const char *find_option(const char *zLong, const char *zShort, int hasArg){
     }
   }
   return zReturn;
+}
+
+/* Return true if zOption exists in the command-line arguments,
+** but do not remove it from the list or otherwise process it.
+*/
+int has_option(const char *zOption){
+  int i;
+  int n = (int)strlen(zOption);
+  for(i=1; i<g.argc; i++){
+    char *z = g.argv[i];
+    if( z[0]!='-' ) continue;
+    z++;
+    if( z[0]=='-' ) z++;
+    if( strncmp(z,zOption,n)==0 && (z[n]==0 || z[n]=='=') ) return 1;
+  }
+  return 0;
 }
 
 /*
@@ -2641,6 +2658,15 @@ void cmd_webserver(void){
   if( cgi_http_server(iPort, mxPort, zBrowserCmd, zIpAddr, flags) ){
     fossil_fatal("unable to listen on TCP socket %d", iPort);
   }
+  /* For the parent process, the cgi_http_server() command above never
+  ** returns (except in the case of an error).  Instead, for each incoming
+  ** client connection, a child process is created, file descriptors 0
+  ** and 1 are bound to that connection, and the child returns.
+  **
+  ** So, when control reaches this point, we are running as a
+  ** child process, the HTTP or SCGI request is pending on file
+  ** descriptor 0 and the reply should be written to file descriptor 1.
+  */
   if( zMaxLatency ){
     signal(SIGALRM, sigalrm_handler);
     alarm(atoi(zMaxLatency));

@@ -13,6 +13,7 @@ Brief "cheat sheet" of relevant fossil commands.
  EPOCH=1
  VER=xxx
  DEBVER=1
+ fossil clean -x -v
  fossil pull https://www.fossil-scm.org
  ID=fossil-commit-id	# find via: fossil timeline -t ci -n 400 | more
 			# then search for the tag "version-xxx"
@@ -62,4 +63,4 @@ Brief "cheat sheet" of relevant fossil commands.
  # upstream spelling error to consider addressing:
  rgrep -i '\(respository\|recepient\|accidently\)'
 
- -- Barak A. Pearlmutter <bap@debian.org>, Mon,  1 Oct 2018 16:54:44 +0100
+ -- Barak A. Pearlmutter <bap@debian.org>, Wed, 28 Aug 2019 11:20:48 +0100

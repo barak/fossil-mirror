@@ -440,6 +440,25 @@ char *file_dirname(const char *z){
   }
 }
 
+/* SQL Function:  file_dirname(NAME)
+**
+** Return the directory for NAME
+*/
+void file_dirname_sql_function(
+  sqlite3_context *context,
+  int argc,
+  sqlite3_value **argv
+){
+  const char *zName = (const char*)sqlite3_value_text(argv[0]);
+  char *zDir;
+  if( zName==0 ) return;
+  zDir = file_dirname(zName);
+  if( zDir ){
+    sqlite3_result_text(context,zDir,-1,fossil_free);
+  }
+}
+
+
 /*
 ** Rename a file or directory.
 ** Returns zero upon success.
@@ -597,6 +616,26 @@ int file_delete(const char *zFilename){
   return rc;
 }
 
+/* SQL Function:  file_delete(NAME)
+**
+** Remove file NAME.  Return zero on success and non-zero if anything goes
+** wrong.
+*/
+void file_delete_sql_function(
+  sqlite3_context *context,
+  int argc,
+  sqlite3_value **argv
+){
+  const char *zName = (const char*)sqlite3_value_text(argv[0]);
+  int rc;
+  if( zName==0 ){
+    rc = 1;
+  }else{
+    rc = file_delete(zName);
+  }
+  sqlite3_result_int(context, rc);
+}
+
 /*
 ** Create a directory called zName, if it does not already exist.
 ** If forceFlag is 1, delete any prior non-directory object
@@ -685,6 +724,26 @@ int file_rmdir(const char *zName){
     return rc;
   }
   return 0;
+}
+
+/* SQL Function: rmdir(NAME)
+**
+** Try to remove the directory NAME.  Return zero on success and non-zero
+** for failure.
+*/
+void file_rmdir_sql_function(
+  sqlite3_context *context,
+  int argc,
+  sqlite3_value **argv
+){
+  const char *zName = (const char*)sqlite3_value_text(argv[0]);
+  int rc;
+  if( zName==0 ){
+    rc = 1;
+  }else{
+    rc = file_rmdir(zName);
+  }
+  sqlite3_result_int(context, rc);
 }
 
 /*
@@ -892,8 +951,16 @@ void cmd_test_simplify_name(void){
 ** On windows, the name is converted from unicode to UTF8 and all '\\'
 ** characters are converted to '/'.  No conversions are needed on
 ** unix.
+**
+** Store the value of the CWD in zBuf which is nBuf bytes in size.
+** or if zBuf==0, allocate space to hold the result using fossil_malloc().
 */
-void file_getcwd(char *zBuf, int nBuf){
+char *file_getcwd(char *zBuf, int nBuf){
+  char zTemp[2000];
+  if( zBuf==0 ){
+    zBuf = zTemp;
+    nBuf = sizeof(zTemp);
+  }
 #ifdef _WIN32
   win32_getcwd(zBuf, nBuf);
 #else
@@ -906,6 +973,7 @@ void file_getcwd(char *zBuf, int nBuf){
     }
   }
 #endif
+  return zBuf==zTemp ? fossil_strdup(zBuf) : zBuf;
 }
 
 /*
@@ -1393,9 +1461,16 @@ void file_parse_uri(
 }
 
 /*
-** Construct a random temporary filename into pBuf starting with zPrefix.
+** Construct a random temporary filename into pBuf where the name of
+** the temporary file is derived from zBasis.  The suffix on the temp
+** file is the same as the suffix on zBasis, and the temp file has
+** the root of zBasis in its name.
+**
+** If zTag is not NULL, then try to create the temp-file using zTag
+** as a differentiator.  If that fails, or if zTag is NULL, then use
+** a bunch of random characters as the tag.
 */
-void file_tempname(Blob *pBuf, const char *zPrefix){
+void file_tempname(Blob *pBuf, const char *zBasis, const char *zTag){
 #if defined(_WIN32)
   const char *azDirs[] = {
      0, /* GetTempPath */
@@ -1422,6 +1497,8 @@ void file_tempname(Blob *pBuf, const char *zPrefix){
   const char *zDir = ".";
   int cnt = 0;
   char zRand[16];
+  int nBasis;
+  const char *zSuffix;
 
 #if defined(_WIN32)
   wchar_t zTmpPath[MAX_PATH];
@@ -1447,15 +1524,39 @@ void file_tempname(Blob *pBuf, const char *zPrefix){
     break;
   }
 
+  assert( zBasis!=0 );
+  zSuffix = 0;
+  for(i=0; zBasis[i]; i++){
+    if( zBasis[i]=='/' || zBasis[i]=='\\' ){
+      zBasis += i+1;
+      i = -1;
+    }else if( zBasis[i]=='.' ){
+      zSuffix = zBasis + i;
+    }
+  }
+  if( zSuffix==0 || zSuffix<=zBasis ){
+    zSuffix = "";
+    nBasis = i;
+  }else{
+    nBasis = (int)(zSuffix - zBasis);
+  }
+  if( nBasis==0 ){
+    nBasis = 6;
+    zBasis = "fossil";
+  }
   do{
     blob_zero(pBuf);
     if( cnt++>20 ) fossil_panic("cannot generate a temporary filename");
-    sqlite3_randomness(15, zRand);
-    for(i=0; i<15; i++){
-      zRand[i] = (char)zChars[ ((unsigned char)zRand[i])%(sizeof(zChars)-1) ];
+    if( zTag==0 ){
+      sqlite3_randomness(15, zRand);
+      for(i=0; i<15; i++){
+        zRand[i] = (char)zChars[ ((unsigned char)zRand[i])%(sizeof(zChars)-1) ];
+      }
+      zRand[15] = 0;
+      zTag = zRand;
     }
-    zRand[15] = 0;
-    blob_appendf(pBuf, "%s/%s-%s.txt", zDir, zPrefix ? zPrefix : "", zRand);
+    blob_appendf(pBuf, "%s/%.*s~%s%s", zDir, nBasis, zBasis, zTag, zSuffix);
+    zTag = 0;
   }while( file_size(blob_str(pBuf), ExtFILE)>=0 );
 
 #if defined(_WIN32)
@@ -1491,16 +1592,18 @@ char *file_time_tempname(const char *zDir, const char *zSuffix){
 
 /*
 ** COMMAND: test-tempname
-** Usage:  fossil test-name [--time SUFFIX] BASENAME ...
+** Usage:  fossil test-name [--time SUFFIX] [--tag NAME] BASENAME ...
 **
 ** Generate temporary filenames derived from BASENAME.  Use the --time
-** option to generate temp names based on the time of day.
+** option to generate temp names based on the time of day.  If --tag NAME
+** is specified, try to use NAME as the differentiator in the temp file.
 */
 void file_test_tempname(void){
   int i;
   const char *zSuffix = find_option("time",0,1);
   Blob x = BLOB_INITIALIZER;
   char *z;
+  const char *zTag = find_option("tag",0,1);
   verify_all_options();
   for(i=2; i<g.argc; i++){
     if( zSuffix ){
@@ -1508,7 +1611,7 @@ void file_test_tempname(void){
       fossil_print("%s\n", z);
       fossil_free(z);
     }else{
-      file_tempname(&x, g.argv[i]);
+      file_tempname(&x, g.argv[i], zTag);
       fossil_print("%s\n", blob_str(&x));
       blob_reset(&x);
     }
@@ -1696,4 +1799,315 @@ void test_dir_size_cmd(void){
   zDir = g.argv[2];
   zGlob = g.argc==4 ? g.argv[3] : 0;
   fossil_print("%d\n", file_directory_size(zDir, zGlob, omitDotFiles));
+}
+
+/*
+** Internal helper for touch_cmd(). zAbsName must be resolvable as-is
+** to an existing file - this function does not expand/normalize
+** it. i.e. it "really should" be an absolute path. zTreeName is
+** strictly cosmetic: it is used when dryRunFlag, verboseFlag, or
+** quietFlag generate output, and is assumed to be a repo-relative or
+** or subdir-relative filename.
+**
+** newMTime is the file's new timestamp (Unix epoch).
+**
+** Returns 1 if it sets zAbsName's mtime, 0 if it does not (indicating
+** that the file already has that timestamp or a warning was emitted
+** or was not found). If dryRunFlag is true then it outputs the name
+** of the file it would have timestamped but does not stamp the
+** file. If verboseFlag is true, it outputs a message if the file's
+** timestamp is actually modified. If quietFlag is true then the
+** output of non-fatal warning messages is suppressed.
+**
+** As a special case, if newMTime is 0 then this function emits a
+** warning (unless quietFlag is true), does NOT set the timestamp, and
+** returns 0. The timestamp is known to be zero when
+** mtime_of_manifest_file() is asked to provide the timestamp for a
+** file which is currently undergoing an uncommitted merge (though
+** this may depend on exactly where that merge is happening the
+** history of the project).
+*/
+static int touch_cmd_stamp_one_file(char const *zAbsName,
+                                    char const *zTreeName,
+                                    i64 newMtime, int dryRunFlag,
+                                    int verboseFlag, int quietFlag){
+  i64 currentMtime;
+  if(newMtime==0){
+    if( quietFlag==0 ){
+      fossil_print("SKIPPING timestamp of 0: %s\n", zTreeName);
+    }
+    return 0;
+  }
+  currentMtime = file_mtime(zAbsName, 0);
+  if(currentMtime<0){
+    fossil_print("SKIPPING: cannot stat file: %s\n", zAbsName);
+    return 0;
+  }else if(currentMtime==newMtime){
+    return 0;
+  }else if( dryRunFlag!=0 ){
+    fossil_print( "dry-run: %s\n", zTreeName );
+  }else{
+    file_set_mtime(zAbsName, newMtime);
+    if( verboseFlag!=0 ){
+      fossil_print( "touched %s\n", zTreeName );
+    }
+  }
+  return 1;
+}
+
+/*
+** Internal helper for touch_cmd(). If the given file name is found in
+** the given checkout version, which MUST be the checkout version
+** currently populating the vfile table, the vfile.mrid value for the
+** file is returned, else 0 is returned. zName must be resolvable
+** as-is from the vfile table - this function neither expands nor
+** normalizes it, though it does compare using the repo's
+** filename_collation() preference.
+*/
+static int touch_cmd_vfile_mrid( int vid, char const *zName ){
+  int mrid = 0;
+  static Stmt q = empty_Stmt_m;
+  db_static_prepare(&q,
+             "SELECT vfile.mrid "
+             "FROM vfile LEFT JOIN blob ON vfile.mrid=blob.rid "
+             "WHERE vid=:vid AND pathname=:pathname %s",
+             filename_collation());
+  db_bind_int(&q, ":vid", vid);
+  db_bind_text(&q, ":pathname", zName);
+  if(SQLITE_ROW==db_step(&q)){
+    mrid = db_column_int(&q, 0);
+  }
+  db_reset(&q);
+  return mrid;
+}
+
+/*
+** COMMAND: touch*
+**
+** Usage: %fossil touch ?OPTIONS? ?FILENAME...?
+**
+** For each file in the current checkout matching one of the provided
+** list of glob patterns and/or file names, the file's mtime is
+** updated to a value specified by one of the flags --checkout,
+** --checkin, or --now.
+**
+** If neither glob patterns nor filenames are provided, it operates on
+** all files managed by the currently checked-out version.
+**
+** This command gets its name from the conventional Unix "touch"
+** command.
+**
+** Options:
+**   --now          Stamp each affected file with the current time.
+**                  This is the default behavior.
+**   -c|--checkin   Stamp each affected file with the time of the
+**                  most recent check-in which modified that file.
+**   -C|--checkout  Stamp each affected file with the time of the
+**                  currently-checked-out version.
+**   -g GLOBLIST    Comma-separated list of glob patterns.
+**   -G GLOBFILE    Similar to -g but reads its globs from a
+**                  fossil-conventional glob list file.
+**   -v|-verbose    Outputs extra information about its globs
+**                  and each file it touches.
+**   -n|--dry-run   Outputs which files would require touching,
+**                  but does not touch them.
+**   -q|--quiet     Suppress warnings, e.g. when skipping unmanaged
+**                  or out-of-tree files.
+**
+** Only one of --now, --checkin, and --checkout may be used. The
+** default is --now.
+**
+** Only one of -g or -G may be used. If neither is provided and no
+** additional filenames are provided, the effect is as if a glob of
+** '*' were provided, i.e. all files belonging to the
+** currently-checked-out version. Note that all glob patterns provided
+** via these flags are always evaluated as if they are relative to the
+** top of the source tree, not the current working (sub)directory.
+** Filenames provided without these flags, on the other hand, are
+** treated as relative to the current directory.
+**
+** As a special case, files currently undergoing an uncommitted merge
+** might not get timestamped with --checkin because it may be
+** impossible for fossil to choose between multiple potential
+** timestamps. A non-fatal warning is emitted for such cases.
+**
+*/
+void touch_cmd(){
+  const char * zGlobList; /* -g List of glob patterns */ 
+  const char * zGlobFile; /* -G File of glob patterns */
+  Glob * pGlob = 0;       /* List of glob patterns */
+  int verboseFlag;
+  int dryRunFlag;
+  int vid;                /* Checkout version */
+  int changeCount = 0;    /* Number of files touched */
+  int quietFlag = 0;      /* -q|--quiet */
+  int timeFlag;           /* -1==--checkin, 1==--checkout, 0==--now */
+  i64 nowTime = 0;        /* Timestamp of --now or --checkout */
+  Stmt q;
+  Blob absBuffer = empty_blob; /* Absolute filename buffer */
+
+  verboseFlag = find_option("verbose","v",0)!=0;
+  quietFlag = find_option("quiet","q",0)!=0 || g.fQuiet;
+  dryRunFlag = find_option("dry-run","n",0)!=0
+    || find_option("dryrun",0,0)!=0;
+  zGlobList = find_option("glob", "g",1);
+  zGlobFile = find_option("globfile", "G",1);
+
+  if(zGlobList && zGlobFile){
+    fossil_fatal("Options -g and -G may not be used together.");
+  }
+
+  {
+    int const ci =
+      (find_option("checkin","c",0) || find_option("check-in",0,0))
+      ? 1 : 0;
+    int const co = find_option("checkout","C",0) ? 1 : 0;
+    int const now = find_option("now",0,0) ? 1 : 0;
+    if(ci + co + now > 1){
+      fossil_fatal("Options --checkin, --checkout, and --now may "
+                   "not be used together.");
+    }else if(co){
+      timeFlag = 1;
+      if(verboseFlag){
+        fossil_print("Timestamp = current checkout version.\n");
+      }
+    }else if(ci){
+      timeFlag = -1;
+      if(verboseFlag){
+        fossil_print("Timestamp = checkin in which each file was "
+                     "most recently modified.\n");
+      }
+    }else{
+      timeFlag = 0;
+      if(verboseFlag){
+        fossil_print("Timestamp = current system time.\n");
+      }
+    }
+  }
+
+  verify_all_options();
+
+  db_must_be_within_tree();
+  vid = db_lget_int("checkout", 0);
+  if(vid==0){
+    fossil_fatal("Cannot determine checkout version.");
+  }
+
+  if(zGlobList){
+    pGlob = *zGlobList ? glob_create(zGlobList) : 0;
+  }else if(zGlobFile){
+    Blob globs = empty_blob;
+    blob_read_from_file(&globs, zGlobFile, ExtFILE);
+    pGlob = glob_create( globs.aData );
+    blob_reset(&globs);
+  }
+  if( pGlob && verboseFlag!=0 ){
+    int i;
+    for(i=0; i<pGlob->nPattern; ++i){
+      fossil_print("glob: %s\n", pGlob->azPattern[i]);
+    }
+  }
+
+  db_begin_transaction();
+  if(timeFlag==0){/*--now*/
+    nowTime = time(0);
+  }else if(timeFlag>0){/*--checkout: get the checkout
+                         manifest's timestamp*/
+    assert(vid>0);
+    nowTime = db_int64(-1,
+                       "SELECT CAST(strftime('%%s',"
+                         "(SELECT mtime FROM event WHERE objid=%d)"
+                       ") AS INTEGER)", vid);
+    if(nowTime<0){
+      fossil_fatal("Could not determine checkout version's time!");
+    }
+  }else{ /* --checkin */
+    assert(0 == nowTime);
+  }
+  if((pGlob && pGlob->nPattern>0) || g.argc<3){
+    /*
+    ** We have either (1) globs or (2) no trailing filenames. If there
+    ** are neither globs nor filenames then we operate on all managed
+    ** files.
+    */
+    db_prepare(&q,
+               "SELECT vfile.mrid, pathname "
+               "FROM vfile LEFT JOIN blob ON vfile.mrid=blob.rid "
+               "WHERE vid=%d", vid);
+    while(SQLITE_ROW==db_step(&q)){
+      int const fid = db_column_int(&q, 0);
+      const char * zName = db_column_text(&q, 1);
+      i64 newMtime = nowTime;
+      char const * zAbs = 0;         /* absolute path */
+      absBuffer.nUsed = 0;
+      assert(timeFlag<0 ? newMtime==0 : newMtime>0);
+      if(pGlob){
+        if(glob_match(pGlob, zName)==0) continue;
+      }
+      blob_appendf( &absBuffer, "%s%s", g.zLocalRoot, zName );
+      zAbs = blob_str(&absBuffer);
+      if( newMtime || mtime_of_manifest_file(vid, fid, &newMtime)==0 ){
+        changeCount +=
+          touch_cmd_stamp_one_file( zAbs, zName, newMtime, dryRunFlag,
+                                    verboseFlag, quietFlag );
+      }
+    }
+    db_finalize(&q);
+  }
+  glob_free(pGlob);
+  pGlob = 0;
+  if(g.argc>2){
+    /*
+    ** Trailing filenames on the command line. These require extra
+    ** care to avoid modifying unmanaged or out-of-tree files and
+    ** finding an associated --checkin timestamp.
+    */
+    int i;
+    Blob treeNameBuf = empty_blob;   /* Buffer for file_tree_name(). */
+    for( i = 2; i < g.argc; ++i,
+           blob_reset(&treeNameBuf) ){
+      char const * zArg = g.argv[i];
+      char const * zTreeFile;        /* repo-relative filename */
+      char const * zAbs;             /* absolute filename */
+      i64 newMtime = nowTime;
+      int nameCheck;
+      int fid;                       /* vfile.mrid of file */
+      nameCheck = file_tree_name( zArg, &treeNameBuf, 0, 0 );
+      if(nameCheck==0){
+        if(quietFlag==0){
+          fossil_print("SKIPPING out-of-tree file: %s\n", zArg);
+        }
+        continue;
+      }
+      zTreeFile = blob_str(&treeNameBuf);
+      fid = touch_cmd_vfile_mrid( vid, zTreeFile );
+      if(fid==0){
+        if(quietFlag==0){
+          fossil_print("SKIPPING unmanaged file: %s\n", zArg);
+        }
+        continue;
+      }
+      absBuffer.nUsed = 0;
+      blob_appendf(&absBuffer, "%s%s", g.zLocalRoot, zTreeFile);
+      zAbs = blob_str(&absBuffer);
+      if(timeFlag<0){/*--checkin*/
+        if(mtime_of_manifest_file( vid, fid, &newMtime )!=0){
+          fossil_fatal("Could not resolve --checkin mtime of %s", zTreeFile);
+        }
+      }else{
+        assert(newMtime>0);
+      }
+      changeCount +=
+        touch_cmd_stamp_one_file( zAbs, zArg, newMtime, dryRunFlag,
+                                  verboseFlag, quietFlag );
+    }        
+  }
+  db_end_transaction(0);
+  blob_reset(&absBuffer);
+  if( dryRunFlag!=0 ){
+    fossil_print("dry-run: would have touched %d file(s)\n",
+                 changeCount);
+  }else{
+    fossil_print("Touched %d file(s)\n", changeCount);
+  }
 }

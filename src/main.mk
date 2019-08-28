@@ -43,6 +43,7 @@ SRC = \
   $(SRCDIR)/db.c \
   $(SRCDIR)/delta.c \
   $(SRCDIR)/deltacmd.c \
+  $(SRCDIR)/deltafunc.c \
   $(SRCDIR)/descendants.c \
   $(SRCDIR)/diff.c \
   $(SRCDIR)/diffcmd.c \
@@ -211,6 +212,7 @@ EXTRA_FILES = \
   $(SRCDIR)/../skins/xekri/footer.txt \
   $(SRCDIR)/../skins/xekri/header.txt \
   $(SRCDIR)/ci_edit.js \
+  $(SRCDIR)/copybtn.js \
   $(SRCDIR)/diff.tcl \
   $(SRCDIR)/forum.js \
   $(SRCDIR)/graph.js \
@@ -254,6 +256,7 @@ TRANS_SRC = \
   $(OBJDIR)/db_.c \
   $(OBJDIR)/delta_.c \
   $(OBJDIR)/deltacmd_.c \
+  $(OBJDIR)/deltafunc_.c \
   $(OBJDIR)/descendants_.c \
   $(OBJDIR)/diff_.c \
   $(OBJDIR)/diffcmd_.c \
@@ -392,6 +395,7 @@ OBJ = \
  $(OBJDIR)/db.o \
  $(OBJDIR)/delta.o \
  $(OBJDIR)/deltacmd.o \
+ $(OBJDIR)/deltafunc.o \
  $(OBJDIR)/descendants.o \
  $(OBJDIR)/diff.o \
  $(OBJDIR)/diffcmd.o \
@@ -508,7 +512,7 @@ APPNAME = fossil$(E)
 
 all:	$(OBJDIR) $(APPNAME)
 
-install:	$(APPNAME)
+install:	all
 	mkdir -p $(INSTALLDIR)
 	cp $(APPNAME) $(INSTALLDIR)
 
@@ -564,6 +568,7 @@ $(OBJDIR)/default_css.h:	$(SRCDIR)/default_css.txt $(OBJDIR)/mkcss
 # Setup the options used to compile the included SQLite library.
 SQLITE_OPTIONS = -DNDEBUG=1 \
                  -DSQLITE_THREADSAFE=0 \
+                 -DSQLITE_DQS=0 \
                  -DSQLITE_DEFAULT_MEMSTATUS=0 \
                  -DSQLITE_DEFAULT_WAL_SYNCHRONOUS=1 \
                  -DSQLITE_LIKE_DOESNT_MATCH_BLOBS \
@@ -590,6 +595,7 @@ SQLITE_OPTIONS = -DNDEBUG=1 \
 # Setup the options used to compile the included SQLite shell.
 SHELL_OPTIONS = -DNDEBUG=1 \
                 -DSQLITE_THREADSAFE=0 \
+                -DSQLITE_DQS=0 \
                 -DSQLITE_DEFAULT_MEMSTATUS=0 \
                 -DSQLITE_DEFAULT_WAL_SYNCHRONOUS=1 \
                 -DSQLITE_LIKE_DOESNT_MATCH_BLOBS \
@@ -726,6 +732,7 @@ $(OBJDIR)/headers:	$(OBJDIR)/page_index.h $(OBJDIR)/builtin_data.h $(OBJDIR)/def
 	$(OBJDIR)/db_.c:$(OBJDIR)/db.h \
 	$(OBJDIR)/delta_.c:$(OBJDIR)/delta.h \
 	$(OBJDIR)/deltacmd_.c:$(OBJDIR)/deltacmd.h \
+	$(OBJDIR)/deltafunc_.c:$(OBJDIR)/deltafunc.h \
 	$(OBJDIR)/descendants_.c:$(OBJDIR)/descendants.h \
 	$(OBJDIR)/diff_.c:$(OBJDIR)/diff.h \
 	$(OBJDIR)/diffcmd_.c:$(OBJDIR)/diffcmd.h \
@@ -1057,6 +1064,14 @@ $(OBJDIR)/deltacmd.o:	$(OBJDIR)/deltacmd_.c $(OBJDIR)/deltacmd.h $(SRCDIR)/confi
 	$(XTCC) -o $(OBJDIR)/deltacmd.o -c $(OBJDIR)/deltacmd_.c
 
 $(OBJDIR)/deltacmd.h:	$(OBJDIR)/headers
+
+$(OBJDIR)/deltafunc_.c:	$(SRCDIR)/deltafunc.c $(OBJDIR)/translate
+	$(OBJDIR)/translate $(SRCDIR)/deltafunc.c >$@
+
+$(OBJDIR)/deltafunc.o:	$(OBJDIR)/deltafunc_.c $(OBJDIR)/deltafunc.h $(SRCDIR)/config.h
+	$(XTCC) -o $(OBJDIR)/deltafunc.o -c $(OBJDIR)/deltafunc_.c
+
+$(OBJDIR)/deltafunc.h:	$(OBJDIR)/headers
 
 $(OBJDIR)/descendants_.c:	$(SRCDIR)/descendants.c $(OBJDIR)/translate
 	$(OBJDIR)/translate $(SRCDIR)/descendants.c >$@

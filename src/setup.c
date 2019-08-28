@@ -560,7 +560,7 @@ void setup_login_group(void){
   zSelfRepo = fossil_strdup(blob_str(&fullName));
   blob_reset(&fullName);
   if( P("join")!=0 ){
-    login_group_join(zRepo, zLogin, zPw, zNewName, &zErrMsg);
+    login_group_join(zRepo, 1, zLogin, zPw, zNewName, &zErrMsg);
   }else if( P("leave") ){
     login_group_leave(&zErrMsg);
   }
@@ -750,6 +750,38 @@ void setup_timeline(void){
   @ <p>The maximum length of a comment to be displayed in a timeline.
   @ "0" there is no length limit.
   @ (Property: "timeline-max-comment")</p>
+
+  @ <hr />
+  entry_attribute("Tooltip dwell time (milliseconds)", 6,
+                  "timeline-dwelltime", "tdt", "100", 0);
+  @ <br>
+  entry_attribute("Tooltip close time (milliseconds)", 6,
+                  "timeline-closetime", "tct", "250", 0);
+  @ <p>The <strong>dwell time</strong> defines how long the mouse pointer
+  @ should be stationary above an object of the graph before a tooltip
+  @ appears.<br>
+  @ The <strong>close time</strong> defines how long the mouse pointer
+  @ can be away from an object before a tooltip is closed.</p>
+  @ <p>Set <strong>dwell time</strong> to "0" to disable tooltips.<br>
+  @ Set <strong>close time</strong> to "0" to keep tooltips visible until
+  @ the mouse is clicked elsewhere.<p>
+  @ <p>(Properties: "timeline-dwelltime", "timeline-closetime")</p>
+
+  @ <hr />
+  onoff_attribute("Timestamp hyperlinks to /info",
+                  "timeline-tslink-info", "ttlti", 0, 0);
+  @ <p>The hyperlink on the timestamp associated with each timeline entry,
+  @ on the far left-hand side of the screen, normally targets another
+  @ /timeline page that shows the entry in context.  However, if this
+  @ option is turned on, that hyperlink targets the /info page showing
+  @ the details of the entry.
+  @ <p>The /timeline link is the default since it is often useful to
+  @ see an entry in context, and because that link is not otherwise
+  @ accessible on the timeline.  The /info link is also accessible by
+  @ double-clicking the timeline node or by clicking on the hash that
+  @ follows "check-in:" in the supplimental information section on the
+  @ right of the entry.
+  @ <p>(Properties: "timeline-tslink-info")
 
   @ <hr />
   @ <p><input type="submit"  name="submit" value="Apply Changes" /></p>

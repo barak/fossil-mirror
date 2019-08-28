@@ -283,11 +283,12 @@ void render_checkin_context(int rid, int parentsOnly){
   blob_append_sql(&sql, " AND event.objid IN ok ORDER BY mtime DESC");
   db_prepare(&q, "%s", blob_sql_text(&sql));
   www_print_timeline(&q,
-       TIMELINE_DISJOINT
-         |TIMELINE_GRAPH
+          TIMELINE_GRAPH
+         |TIMELINE_FILLGAPS
          |TIMELINE_NOSCROLL
+         |TIMELINE_XMERGE
          |TIMELINE_CHPICK,
-       0, 0, rid, 0);
+       0, 0, 0, rid, 0);
   db_finalize(&q);
 }
 
@@ -318,7 +319,7 @@ void render_backlink_graph(const char *zUuid, const char *zLabel){
   blob_append_sql(&sql, " AND event.objid IN ok ORDER BY mtime DESC");
   db_prepare(&q, "%s", blob_sql_text(&sql));
   www_print_timeline(&q, TIMELINE_DISJOINT|TIMELINE_GRAPH|TIMELINE_NOSCROLL,
-                     0, 0, 0, 0);
+                     0, 0, 0, 0, 0);
   db_finalize(&q);
 }
 
@@ -351,7 +352,7 @@ void backlink_timeline_page(void){
   blob_append_sql(&sql, " AND event.objid IN ok ORDER BY mtime DESC");
   db_prepare(&q, "%s", blob_sql_text(&sql));
   www_print_timeline(&q, TIMELINE_DISJOINT|TIMELINE_GRAPH|TIMELINE_NOSCROLL,
-                     0, 0, 0, 0);
+                     0, 0, 0, 0, 0);
   db_finalize(&q);
   style_footer();
 }
@@ -620,7 +621,7 @@ void ci_tags_page(void){
   blob_append_sql(&sql, " AND event.objid IN ok ORDER BY mtime DESC");
   db_prepare(&q, "%s", blob_sql_text(&sql));
   www_print_timeline(&q, TIMELINE_DISJOINT|TIMELINE_GRAPH|TIMELINE_NOSCROLL,
-                     0, 0, rid, 0);
+                     0, 0, 0, rid, 0);
   db_finalize(&q);
   style_footer();
 }
@@ -764,7 +765,10 @@ void ci_page(void){
     while( db_step(&q2)==SQLITE_ROW ){
       const char *zTagName = db_column_text(&q2, 0);
       if( fossil_strcmp(zTagName,zBrName)==0 ){
-        @  | %z(href("%R/timeline?r=%T&unhide",zTagName))%h(zTagName)</a>
+        cgi_printf(" | ");
+        style_copy_button(1, "name-br", 0, 0, "%z%h</a>",
+          href("%R/timeline?r=%T&unhide",zTagName), zTagName);
+        cgi_printf("\n");
         if( wiki_tagid2("branch",zTagName)!=0 ){
           blob_appendf(&wiki_read_links, " | %z%h</a>",
               href("%R/wiki?name=branch/%h",zTagName), zTagName);
@@ -794,9 +798,10 @@ void ci_page(void){
     @   </td>
     @ </tr>
 
-    @ <tr><th>%s(hname_alg(nUuid)):</th><td>%.32s(zUuid)<wbr>%s(zUuid+32)
+    @ <tr><th>%s(hname_alg(nUuid)):</th><td>
+    style_copy_button(1, "hash-ci", 0, 2, "%.32s<wbr>%s", zUuid, zUuid+32);
     if( g.perm.Setup ){
-      @ (Record ID: %d(rid))
+      @  (Record ID: %d(rid))
     }
     @ </td></tr>
     @ <tr><th>User&nbsp;&amp;&nbsp;Date:</th><td>
@@ -1191,6 +1196,7 @@ void vdiff_page(void){
   login_check_credentials();
   if( !g.perm.Read ){ login_needed(g.anon.Read); return; }
   login_anonymous_available();
+  load_control();
   cookie_link_parameter("diff","diff","2");
   diffType = atoi(PD("diff","2"));
   cookie_render();
@@ -1327,6 +1333,7 @@ void vdiff_page(void){
 ** object_description()
 */
 #define OBJDESC_DETAIL      0x0001   /* more detail */
+#define OBJDESC_BASE        0x0002   /* Set <base> using this object */
 #endif
 
 /*
@@ -1356,6 +1363,7 @@ int object_description(
   char *zUuid = db_text(0, "SELECT uuid FROM blob WHERE rid=%d", rid);
   int showDetail = (objdescFlags & OBJDESC_DETAIL)!=0;
   char *prevName = 0;
+  int bNeedBase = (objdescFlags & OBJDESC_BASE)!=0;
 
   db_prepare(&q,
     "SELECT filename.name, datetime(event.mtime,toLocal()),"
@@ -1404,6 +1412,10 @@ int object_description(
         objType |= OBJTYPE_EXE;
       }else{
         @ <li>File
+        if( bNeedBase ){
+          bNeedBase = 0;
+          style_set_current_page("doc/%S/%s",zVers,zName);
+        }
       }
       objType |= OBJTYPE_CONTENT;
       @ %z(href("%R/finfo?name=%T&m=%!S",zName,zUuid))%h(zName)</a>
@@ -1752,8 +1764,6 @@ void diff_page(void){
 void rawartifact_page(void){
   int rid = 0;
   char *zUuid;
-  const char *zMime;
-  Blob content;
 
   if( P("ci") && P("filename") ){
     rid = artifact_from_ci_and_filename(0, 0);
@@ -1769,7 +1779,44 @@ void rawartifact_page(void){
     g.isConst = 1;
   }
   free(zUuid);
-  zMime = P("m");
+  deliver_artifact(rid, P("m"));
+}
+
+
+/*
+** WEBPAGE: secureraw
+** URL: /secureraw/HASH?m=TYPE
+**
+** Return the uninterpreted content of an artifact.  This is similar
+** to /raw except in this case the only way to specify the artifact
+** is by the full-length SHA1 or SHA3 hash.  Abbreviations are not
+** accepted.
+*/
+void secure_rawartifact_page(void){
+  int rid = 0;
+  const char *zUuid = PD("name", "");
+
+  login_check_credentials();
+  if( !g.perm.Read ){ login_needed(g.anon.Read); return; }
+  rid = db_int(0, "SELECT rid FROM blob WHERE uuid=%Q", zUuid);
+  if( rid==0 ){
+    cgi_set_status(404, "Not Found");
+    @ Unknown artifact: "%h(zUuid)"
+    return;
+  }
+  g.isConst = 1;
+  deliver_artifact(rid, P("m"));
+}
+
+
+/*
+** Generate a verbatim artifact as the result of an HTTP request.
+** If zMime is not NULL, use it as the MIME-type.  If zMime is
+** NULL, guess at the MIME-type based on the filename
+** associated with the artifact.
+*/
+void deliver_artifact(int rid, const char *zMime){
+  Blob content;
   if( zMime==0 ){
     char *zFName = db_text(0, "SELECT filename.name FROM mlink, filename"
                               " WHERE mlink.fid=%d"
@@ -1872,10 +1919,12 @@ void hexdump_page(void){
   }
   style_header("Hex Artifact Content");
   zUuid = db_text("?","SELECT uuid FROM blob WHERE rid=%d", rid);
+  @ <h2>Artifact
+  style_copy_button(1, "hash-ar", 0, 2, "%s", zUuid);
   if( g.perm.Setup ){
-    @ <h2>Artifact %s(zUuid) (%d(rid)):</h2>
+    @  (%d(rid)):</h2>
   }else{
-    @ <h2>Artifact %s(zUuid):</h2>
+    @ :</h2>
   }
   blob_zero(&downloadName);
   if( P("verbose")!=0 ) objdescFlags |= OBJDESC_DETAIL;
@@ -2070,7 +2119,7 @@ void artifact_page(void){
   int objType;
   int asText;
   const char *zUuid;
-  u32 objdescFlags = 0;
+  u32 objdescFlags = OBJDESC_BASE;
   int descOnly = fossil_strcmp(g.zPath,"whatis")==0;
   int isFile = fossil_strcmp(g.zPath,"file")==0;
   const char *zLn = P("ln");
@@ -2141,12 +2190,18 @@ void artifact_page(void){
   if( isFile ){
     @ <h2>Latest version of file '%h(zName)':</h2>
     style_submenu_element("Artifact", "%R/artifact/%S", zUuid);
-  }else if( g.perm.Setup ){
-    @ <h2>Artifact %s(zUuid) (%d(rid)):</h2>
   }else{
-    @ <h2>Artifact %s(zUuid):</h2>
+    @ <h2>Artifact
+    style_copy_button(1, "hash-ar", 0, 2, "%s", zUuid);
+    if( g.perm.Setup ){
+      @  (%d(rid)):</h2>
+    }else{
+      @ :</h2>
+    }
   }
   blob_zero(&downloadName);
+  asText = P("txt")!=0;
+  if( asText ) objdescFlags &= ~OBJDESC_BASE;
   objType = object_description(rid, objdescFlags, &downloadName);
   if( !descOnly && P("download")!=0 ){
     cgi_redirectf("%R/raw/%T?name=%s", blob_str(&downloadName),
@@ -2185,7 +2240,6 @@ void artifact_page(void){
   if( db_exists("SELECT 1 FROM mlink WHERE fid=%d", rid) ){
     style_submenu_element("Check-ins Using", "%R/timeline?n=200&uf=%s", zUuid);
   }
-  asText = P("txt")!=0;
   zMime = mimetype_from_name(blob_str(&downloadName));
   if( zMime ){
     if( fossil_strcmp(zMime, "text/html")==0 ){
@@ -2211,9 +2265,6 @@ void artifact_page(void){
   if( descOnly ){
     style_submenu_element("Content", "%R/artifact/%s", zUuid);
   }else{
-    if( zLn==0 || atoi(zLn)==0 ){
-      style_submenu_checkbox("ln", "Line Numbers", 0, 0);
-    }
     @ <hr />
     content_get(rid, &content);
     if( renderAsWiki ){
@@ -2232,6 +2283,9 @@ void artifact_page(void){
       @ </script>
     }else{
       style_submenu_element("Hex", "%s/hexdump?name=%s", g.zTop, zUuid);
+      if( zLn==0 || atoi(zLn)==0 ){
+        style_submenu_checkbox("ln", "Line Numbers", 0, 0);
+      }
       blob_to_utf8_no_bom(&content, 0);
       zMime = mimetype_from_content(&content);
       @ <blockquote>
@@ -2246,8 +2300,8 @@ void artifact_page(void){
           @ </pre>
         }
       }else if( strncmp(zMime, "image/", 6)==0 ){
-        @ <i>(file is %d(blob_size(&content)) bytes of image data)</i><br />
-        @ <img src="%R/raw/%s(zUuid)?m=%s(zMime)" />
+        @ <p>(file is %d(blob_size(&content)) bytes of image data)</i></p>
+        @ <p><img src="%R/raw/%s(zUuid)?m=%s(zMime)"></p>
         style_submenu_element("Image", "%R/raw/%s?m=%s", zUuid, zMime);
       }else{
         @ <i>(file is %d(blob_size(&content)) bytes of binary data)</i>

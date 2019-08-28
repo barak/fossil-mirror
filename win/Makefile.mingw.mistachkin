@@ -160,9 +160,9 @@ ZLIBTARGETS =
 endif
 
 #### Disable creation of the OpenSSL shared libraries.  Also, disable support
-#    for both SSLv2 and SSLv3 (i.e. thereby forcing the use of TLS).
+#    for SSLv3 (i.e. thereby forcing the use of TLS).
 #
-SSLCONFIG += no-ssl2 no-ssl3 no-weak-ssl-ciphers no-shared
+SSLCONFIG += no-ssl3 no-weak-ssl-ciphers no-shared
 
 #### When using zlib, make sure that OpenSSL is configured to use the zlib
 #    that Fossil knows about (i.e. the one within the source tree).
@@ -176,7 +176,7 @@ endif
 #    to create a hard link between an "openssl-1.x" sub-directory of the
 #    Fossil source code directory and the target OpenSSL source directory.
 #
-OPENSSLDIR = $(SRCDIR)/../compat/openssl-1.0.2q
+OPENSSLDIR = $(SRCDIR)/../compat/openssl-1.1.1c
 OPENSSLINCDIR = $(OPENSSLDIR)/include
 OPENSSLLIBDIR = $(OPENSSLDIR)
 
@@ -465,6 +465,7 @@ SRC = \
   $(SRCDIR)/db.c \
   $(SRCDIR)/delta.c \
   $(SRCDIR)/deltacmd.c \
+  $(SRCDIR)/deltafunc.c \
   $(SRCDIR)/descendants.c \
   $(SRCDIR)/diff.c \
   $(SRCDIR)/diffcmd.c \
@@ -633,6 +634,7 @@ EXTRA_FILES = \
   $(SRCDIR)/../skins/xekri/footer.txt \
   $(SRCDIR)/../skins/xekri/header.txt \
   $(SRCDIR)/ci_edit.js \
+  $(SRCDIR)/copybtn.js \
   $(SRCDIR)/diff.tcl \
   $(SRCDIR)/forum.js \
   $(SRCDIR)/graph.js \
@@ -676,6 +678,7 @@ TRANS_SRC = \
   $(OBJDIR)/db_.c \
   $(OBJDIR)/delta_.c \
   $(OBJDIR)/deltacmd_.c \
+  $(OBJDIR)/deltafunc_.c \
   $(OBJDIR)/descendants_.c \
   $(OBJDIR)/diff_.c \
   $(OBJDIR)/diffcmd_.c \
@@ -814,6 +817,7 @@ OBJ = \
  $(OBJDIR)/db.o \
  $(OBJDIR)/delta.o \
  $(OBJDIR)/deltacmd.o \
+ $(OBJDIR)/deltafunc.o \
  $(OBJDIR)/descendants.o \
  $(OBJDIR)/diff.o \
  $(OBJDIR)/diffcmd.o \
@@ -1094,6 +1098,7 @@ endif
 
 openssl:	$(BLDTARGETS)
 	cd $(OPENSSLLIBDIR);./Configure --cross-compile-prefix=$(PREFIX) $(SSLCONFIG)
+	sed -i -e 's/^PERL=C:\\.*$$/PERL=perl.exe/i' $(OPENSSLLIBDIR)/Makefile
 	$(MAKE) -C $(OPENSSLLIBDIR) PREFIX=$(PREFIX) CC=$(PREFIX)$(TCCEXE) build_libs
 
 clean-openssl:
@@ -1171,6 +1176,7 @@ $(OBJDIR)/headers:	$(OBJDIR)/page_index.h $(OBJDIR)/builtin_data.h $(OBJDIR)/def
 		$(OBJDIR)/db_.c:$(OBJDIR)/db.h \
 		$(OBJDIR)/delta_.c:$(OBJDIR)/delta.h \
 		$(OBJDIR)/deltacmd_.c:$(OBJDIR)/deltacmd.h \
+		$(OBJDIR)/deltafunc_.c:$(OBJDIR)/deltafunc.h \
 		$(OBJDIR)/descendants_.c:$(OBJDIR)/descendants.h \
 		$(OBJDIR)/diff_.c:$(OBJDIR)/diff.h \
 		$(OBJDIR)/diffcmd_.c:$(OBJDIR)/diffcmd.h \
@@ -1504,6 +1510,14 @@ $(OBJDIR)/deltacmd.o:	$(OBJDIR)/deltacmd_.c $(OBJDIR)/deltacmd.h $(SRCDIR)/confi
 	$(XTCC) -o $(OBJDIR)/deltacmd.o -c $(OBJDIR)/deltacmd_.c
 
 $(OBJDIR)/deltacmd.h:	$(OBJDIR)/headers
+
+$(OBJDIR)/deltafunc_.c:	$(SRCDIR)/deltafunc.c $(TRANSLATE)
+	$(TRANSLATE) $(SRCDIR)/deltafunc.c >$@
+
+$(OBJDIR)/deltafunc.o:	$(OBJDIR)/deltafunc_.c $(OBJDIR)/deltafunc.h $(SRCDIR)/config.h
+	$(XTCC) -o $(OBJDIR)/deltafunc.o -c $(OBJDIR)/deltafunc_.c
+
+$(OBJDIR)/deltafunc.h:	$(OBJDIR)/headers
 
 $(OBJDIR)/descendants_.c:	$(SRCDIR)/descendants.c $(TRANSLATE)
 	$(TRANSLATE) $(SRCDIR)/descendants.c >$@
@@ -2381,6 +2395,7 @@ MINGW_OPTIONS = -D_HAVE__MINGW_H
 
 SQLITE_OPTIONS = -DNDEBUG=1 \
                  -DSQLITE_THREADSAFE=0 \
+                 -DSQLITE_DQS=0 \
                  -DSQLITE_DEFAULT_MEMSTATUS=0 \
                  -DSQLITE_DEFAULT_WAL_SYNCHRONOUS=1 \
                  -DSQLITE_LIKE_DOESNT_MATCH_BLOBS \
@@ -2410,6 +2425,7 @@ SQLITE_OPTIONS = -DNDEBUG=1 \
 
 SHELL_OPTIONS = -DNDEBUG=1 \
                 -DSQLITE_THREADSAFE=0 \
+                -DSQLITE_DQS=0 \
                 -DSQLITE_DEFAULT_MEMSTATUS=0 \
                 -DSQLITE_DEFAULT_WAL_SYNCHRONOUS=1 \
                 -DSQLITE_LIKE_DOESNT_MATCH_BLOBS \
