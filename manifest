@@ -1,5 +1,5 @@
-C bump\sstandards\sversion\n\n
-D 2019-08-28T10:35:02.913
+C describe\ssource-only\supload\sprocedure\n\n
+D 2019-08-28T10:41:00.579
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/binary-glob 34cc11b3b509fd5064afe327e70765799f314c9a
 F .fossil-settings/clean-glob 50327fe7150c88e5daf5150f240dc805398665fb
@@ -318,7 +318,7 @@ F compat/zlib/zlib2ansi e9859eecf47ae66280573d73969c061989615134 x
 F compat/zlib/zutil.c 2f1fcc93488ac84acf984415b6ea0bd63c72aa49
 F compat/zlib/zutil.h f32dab3880d47eca1b71c308cf6542b32941b23c
 F configure 239cde01aca7fc63a2903f85bd2a6414189f1bd4 x
-F debian/README.Debian bcbd2d466c9fed5166336dbe279f92e61ac0cb3716f438c11c687ff0e7bf8432
+F debian/README.Debian 81dbebe77d57559e2e00c13d51b3f64f45e2dbc89ea3c0cf076153d4af78408c
 F debian/changelog 4da8ab6719547b7d8138b2f06f10e7c9a440ded1799fcafec2b68c123fca8c1f
 F debian/control 5600b52b7977d69c31e9635f5775d16e8ef7e3bf1efae04b72e130616f11cbec
 F debian/copyright 6868486c1595673321e52bc60f1fb3dc4375cf43a2fe8653305527eb6a3cb07a
@@ -892,8 +892,8 @@ F www/webui.wiki ff6949bd42e08a4870dc0556975514654c90fbfd29159bfd2947b1f5cc6af06
 F www/whyusefossil.wiki 730056ead695df82c7aa9dd099cf34b4bfbfd473
 F www/wikitheory.wiki f07c807aaddb97cdb7de1742b523d9de3cfb07a23235c9932b3bd2600495127b
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P e5e417df669f74329ac691304cdc473bca9f4b4e865aa9455a4d5bd31f00a9e8
-R a391bc802f0ec95faa0163bb42479b9a
+P b2493bdc5ff73cc0aea8fddecc735cc93cd1883c1219596709b697ea9e9e0411
+R 42900635428700034794bf9249b9f9e0
 U barak
-Z 2735cc333d07dee6befd19721c4157dd
+Z f81000c1b026c833207fba508df28445
 # Remove this line to create a well-formed Fossil manifest.

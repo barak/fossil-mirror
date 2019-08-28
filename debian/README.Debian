@@ -23,10 +23,17 @@ Brief "cheat sheet" of relevant fossil commands.
  fossil commit -m 'update debian/changelog'
 
  # build debian release
+ dpkg-checkbuildeps
+ fakeroot debian/rules binary
+ lintian ../fossil*.d??
+ # traditional, source + binaries to upload
  dpkg-buildpackage -i.fslckout -i_FOSSIL_
+ lintian
  # but its better to use a chroot
  pdebuild --pbuilder cowbuilder --debbuildopts "-i.fslckout -i_FOSSIL_"
  sudo mv --no-clobber /var/cache/pbuilder/result/fossil* ../
+ # and to generate a source-only upload
+ dpkg-buildpackage -i.fslckout -i_FOSSIL_ --build=source --no-check-builddeps
 
  # tag debian release
  fossil tag add debian_${EPOCH}:${VER}-${DEBVER} debian
@@ -63,4 +70,4 @@ Brief "cheat sheet" of relevant fossil commands.
  # upstream spelling error to consider addressing:
  rgrep -i '\(respository\|recepient\|accidently\)'
 
- -- Barak A. Pearlmutter <bap@debian.org>, Wed, 28 Aug 2019 11:20:48 +0100
+ -- Barak A. Pearlmutter <bap@debian.org>, Wed, 28 Aug 2019 11:40:34 +0100
