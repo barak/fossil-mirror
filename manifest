@@ -1,5 +1,5 @@
-C merge\sversion-2.9
-D 2019-08-28T10:23:18.533
+C update\sdebian/changelog\n\n
+D 2019-08-28T10:25:23.234
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .fossil-settings/binary-glob 34cc11b3b509fd5064afe327e70765799f314c9a
 F .fossil-settings/clean-glob 50327fe7150c88e5daf5150f240dc805398665fb
@@ -319,7 +319,7 @@ F compat/zlib/zutil.c 2f1fcc93488ac84acf984415b6ea0bd63c72aa49
 F compat/zlib/zutil.h f32dab3880d47eca1b71c308cf6542b32941b23c
 F configure 239cde01aca7fc63a2903f85bd2a6414189f1bd4 x
 F debian/README.Debian bcbd2d466c9fed5166336dbe279f92e61ac0cb3716f438c11c687ff0e7bf8432
-F debian/changelog 4a31dcd3ab59a9f1aa860b1db3e3d09397d76cef9fad6186319ec9a14fe6311a
+F debian/changelog 4da8ab6719547b7d8138b2f06f10e7c9a440ded1799fcafec2b68c123fca8c1f
 F debian/control 07f861fc46d69f6f828c155d02751d1957a627398c546e3f34c9fd9dd08bd4ea
 F debian/copyright 6868486c1595673321e52bc60f1fb3dc4375cf43a2fe8653305527eb6a3cb07a
 F debian/fossil.bash-completion e1e460f40668463a8e3e8df9a99de8f9301c9730
@@ -892,8 +892,8 @@ F www/webui.wiki ff6949bd42e08a4870dc0556975514654c90fbfd29159bfd2947b1f5cc6af06
 F www/whyusefossil.wiki 730056ead695df82c7aa9dd099cf34b4bfbfd473
 F www/wikitheory.wiki f07c807aaddb97cdb7de1742b523d9de3cfb07a23235c9932b3bd2600495127b
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P d3bc4ee903cacecc2a1263791c293c02ebe2749127755e3f04c1cafb4b9c7946 0fd79a3e0918611c70a7ec6b610cb4dfc401a2bc9b2c79fa22bb56dde5b1cb96
-R 8507a5cffee7524699d6a1f1dc60da12
+P 4ba33702ae5683f1e3b4c1c13c46d7ed35588fc7261d91946d7287ac3d5e92ff
+R 8b696aa2a14b51f73cbc3cd90664cc56
 U barak
-Z 6e207dabd4043b5eccfdc128a467f9e5
+Z 4fe845a04f525ab9a910fd54e4982cee
 # Remove this line to create a well-formed Fossil manifest.
