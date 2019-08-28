@@ -1,8 +1,10 @@
 fossil (1:2.9-1) unstable; urgency=medium
 
   * New upstream version
+  * Add cleaning and source-only goo to debian/README.Debian
+  * Bump policy version
 
- -- Barak A. Pearlmutter <bap@debian.org>  Wed, 28 Aug 2019 11:24:28 +0100
+ -- Barak A. Pearlmutter <bap@debian.org>  Wed, 28 Aug 2019 11:36:06 +0100
 
 fossil (1:2.8-1) unstable; urgency=medium
 
