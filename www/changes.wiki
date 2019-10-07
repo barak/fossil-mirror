@@ -1,5 +1,40 @@
 ﻿<title>Change Log</title>
 
+<a name='v2_10'></a>
+<h2>Changes for Version 2.10 (pending)</h2>
+
+  *  Added support for [./serverext.wiki|CGI-based Server Extensions].
+  *  Added the [/help?cmd=repolist-skin|repolist-skin] setting used to
+     add style to repository list pages.
+  *  Enhance the hierarchical display of Forum threads to do less
+     indentation and to provide links back to the previous message
+     in the thread.  Provide sequential numbers for all messages in
+     a forum thread.
+  *  Add support for fenced code blocks and improved hyperlink
+     processing to the [/md_rules|markdown formatter].
+  *  Add support for hyperlinks to wiki pages in the
+     [/md_rules|markdown formatter].
+  *  Enhance the [/help?cmd=/stat|/stat] page so that it gives the
+     option to show a breakdown of forum posts.
+  *  The special check-in name "merge-in:BRANCH" means the source of
+     the most recent merge-in from the parent branch of BRANCH.
+  *  Add hyperlinks to branch-diffs on the /info page and from
+     timelines of a branch.
+  *  Add graphical context on the [/help?cmd=/vdiff|/vdiff] page.
+  *  Uppercase query parameters, POST parameters, and cookie names are
+     converted to all lowercase and entered into the parameter set,
+     instead of being discarded.
+  *  Change the default [./hashpolicy.wiki|hash policy] to SHA3.
+  *  Timeout [./server/any/cgi.md|CGI requests] after 300 seconds, or 
+     some other value set by the 
+     [./cgi.wiki#timeout|"timeout:" property] in the CGI script.
+  *  The check-in lock interval is reduced from 24 hours to 60 seconds,
+     though the interval is now configurable using a setting.
+     An additional check for conflicts is added after interactive
+     check-in comment entry, to compensate for the reduced lock interval.
+  *  Performance optimizations.
+  *  Many documentation improvements.
+
 <a name='v2_9'></a>
 <h2>Changes for Version 2.9 (2019-07-13)</h2>
 

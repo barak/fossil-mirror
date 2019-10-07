@@ -245,7 +245,8 @@ void www_print_timeline(
   const char *zThisUser,   /* Suppress links to this user */
   const char *zThisTag,    /* Suppress links to this tag */
   const char *zLeftBranch, /* Strive to put this branch on the left margin */
-  int selectedRid,         /* Highlight the line with this RID value */
+  int selectedRid,         /* Highlight the line with this RID value or zero */
+  int secondRid,           /* Secondary highlight (or zero) */
   void (*xExtra)(int)      /* Routine to call on each line of display */
 ){
   int mxWikiLen;
@@ -396,6 +397,9 @@ void www_print_timeline(
     pendingEndTr = 1;
     if( rid==selectedRid ){
       @ <tr class="timelineSelected">
+      isSelectedOrCurrent = 1;
+    }else if( rid==secondRid ){
+      @ <tr class="timelineSelected timelineSecondary">
       isSelectedOrCurrent = 1;
     }else if( rid==vid ){
       @ <tr class="timelineCurrent">
@@ -1189,7 +1193,7 @@ int timeline_ss_cookie(void){
     case 'j':  tmFlags = TIMELINE_COLUMNAR; break;
     case 'x':  tmFlags = TIMELINE_CLASSIC;  break;
     default:   tmFlags = TIMELINE_MODERN;   break;
-  }    
+  }
   return tmFlags;
 }
 
@@ -1200,7 +1204,7 @@ int timeline_ss_cookie(void){
 ** Return the TIMELINE_* value appropriate for the view-style.
 */
 int timeline_ss_submenu(void){
-  static const char *azViewStyles[] = {
+  static const char *const azViewStyles[] = {
      "m", "Modern View",
      "j", "Columnar View",
      "c", "Compact View",
@@ -1603,7 +1607,8 @@ void page_timeline(void){
   const char *z;
   char *zOlderButton = 0;             /* URL for Older button at the bottom */
   char *zNewerButton = 0;             /* URL for Newer button at the top */
-  int selectedRid = -9999999;         /* Show a highlight on this RID */
+  int selectedRid = 0;                /* Show a highlight on this RID */
+  int secondaryRid = 0;               /* Show secondary highlight */
   int disableY = 0;                   /* Disable type selector on submenu */
   int advancedMenu = 0;               /* Use the advanced menu design */
   char *zPlural;                      /* Ending for plural forms */
@@ -1627,9 +1632,11 @@ void page_timeline(void){
     z = "50";
     nEntry = 50;
   }
+  secondaryRid = name_to_typed_rid(P("sel2"),"ci");
+  selectedRid = name_to_typed_rid(P("sel1"),"ci");
   cgi_replace_query_parameter("n",z);
   cookie_write_parameter("n","n",0);
-  tmFlags |= timeline_ss_submenu();  
+  tmFlags |= timeline_ss_submenu();
   cookie_link_parameter("advm","advm","0");
   advancedMenu = atoi(PD("advm","0"));
 
@@ -2038,7 +2045,7 @@ void page_timeline(void){
                                  zYearWeek);
         zYearWeek = z;
       }else{
-        if( strlen(zYearWeek)==7 ){       
+        if( strlen(zYearWeek)==7 ){
           zYearWeekStart = db_text(0,
              "SELECT date('%.4q-01-01','+%d days','weekday 1')",
              zYearWeek, atoi(zYearWeek+5)*7);
@@ -2246,7 +2253,7 @@ void page_timeline(void){
     if( zYearMonth ){
       blob_appendf(&desc, "%d %s%s for %h", n, zEType, zPlural, zYearMonth);
     }else if( zYearWeek ){
-      blob_appendf(&desc, "%d %s%s for week %h beginning on %h", 
+      blob_appendf(&desc, "%d %s%s for week %h beginning on %h",
                    n, zEType, zPlural, zYearWeek, zYearWeekStart);
     }else if( zDay ){
       blob_appendf(&desc, "%d %s%s occurring on %h", n, zEType, zPlural, zDay);
@@ -2373,7 +2380,7 @@ void page_timeline(void){
     style_submenu_element("Search", "%R/search?y=c");
   }
   if( advancedMenu ){
-    style_submenu_element("Basic", "%s", 
+    style_submenu_element("Basic", "%s",
         url_render(&url, "advm", "0", "udc", "1"));
   }else{
     style_submenu_element("Advanced", "%s",
@@ -2389,11 +2396,13 @@ void page_timeline(void){
   if( fossil_islower(desc.aData[0]) ){
     desc.aData[0] = fossil_toupper(desc.aData[0]);
   }
-  if( zBrName
-   && !PB("nowiki")
-   && wiki_render_associated("branch", zBrName, WIKIASSOC_ALL)
-  ){
-    @ <div class="section">%b(&desc)</div>
+  if( zBrName ){
+    if( !PB("nowiki")
+     && wiki_render_associated("branch", zBrName, WIKIASSOC_ALL)
+    ){
+      @ <div class="section">%b(&desc)</div>
+    }
+    style_submenu_element("Diff", "%R/vdiff?branch=%T", zBrName);
   }else
   if( zTagName
    && matchStyle==MS_EXACT
@@ -2416,7 +2425,7 @@ void page_timeline(void){
     @ %z(chref("button","%z",zNewerButton))More&nbsp;&uarr;</a>
   }
   www_print_timeline(&q, tmFlags, zThisUser, zThisTag, zBrName,
-                     selectedRid, 0);
+                     selectedRid, secondaryRid, 0);
   db_finalize(&q);
   if( zOlderButton ){
     @ %z(chref("button","%z",zOlderButton))More&nbsp;&darr;</a>
@@ -2909,7 +2918,7 @@ void thisdayinhistory_page(void){
     @ <h2>%d(iAgo) Year%s(iAgo>1?"s":"") Ago
     @ <small>%z(href("%R/timeline?c=%t",zId))(more context)</a>\
     @ </small></h2>
-    www_print_timeline(&q, TIMELINE_GRAPH, 0, 0, 0, 0, 0);
+    www_print_timeline(&q, TIMELINE_GRAPH, 0, 0, 0, 0, 0, 0);
   }
   db_finalize(&q);
   style_footer();

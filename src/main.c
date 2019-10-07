@@ -61,6 +61,15 @@
 #endif
 
 /*
+** Default length of a timeout for serving an HTTP request.  Changable
+** using the "--timeout N" command-line option or via "timeout: N" in the
+** CGI script.
+*/
+#ifndef FOSSIL_DEFAULT_TIMEOUT
+# define FOSSIL_DEFAULT_TIMEOUT 600  /* 10 minutes */
+#endif
+
+/*
 ** Maximum number of auxiliary parameters on reports
 */
 #define MX_AUX  5
@@ -98,7 +107,7 @@ struct FossilUserPerms {
   char WrForum;          /* 3: Create new forum posts */
   char WrTForum;         /* 4: Post to forums not subject to moderation */
   char ModForum;         /* 5: Moderate (approve or reject) forum posts */
-  char AdminForum;       /* 6: Set or remove capability 4 on other users */
+  char AdminForum;       /* 6: Grant capability 4 to other users */
   char EmailAlert;       /* 7: Sign up for email notifications */
   char Announce;         /* A: Send announcements */
   char Debug;            /* D: show extra Fossil debugging features */
@@ -142,7 +151,7 @@ struct Global {
   sqlite3 *dbConfig;      /* Separate connection for global_config table */
   char *zAuxSchema;       /* Main repository aux-schema */
   int dbIgnoreErrors;     /* Ignore database errors if true */
-  const char *zConfigDbName;/* Path of the config database. NULL if not open */
+  char *zConfigDbName;    /* Path of the config database. NULL if not open */
   sqlite3_int64 now;      /* Seconds since 1970 */
   int repositoryOpen;     /* True if the main repository database is open */
   unsigned iRepoDataVers;  /* Initial data version for repository database */
@@ -150,6 +159,7 @@ struct Global {
   char *zRepositoryName;  /* Name of the repository database file */
   char *zLocalDbName;     /* Name of the local database file */
   char *zOpenRevision;    /* Check-in version to use during database open */
+  const char *zCmdName;   /* Name of the Fossil command currently running */
   int localOpen;          /* True if the local database is open */
   char *zLocalRoot;       /* The directory holding the  local database */
   int minPrefix;          /* Number of digits needed for a distinct UUID */
@@ -175,6 +185,7 @@ struct Global {
   char *zBaseURL;         /* Full text of the URL being served */
   char *zHttpsURL;        /* zBaseURL translated to https: */
   char *zTop;             /* Parent directory of zPath */
+  const char *zExtRoot;   /* Document root for the /ext sub-website */
   const char *zContentType;  /* The content type of the input HTTP request */
   int iErrPriority;       /* Priority of current error message */
   char *zErrMsg;          /* Text of an error message */
@@ -319,6 +330,8 @@ Global g;
 ** used by fossil.
 */
 static void fossil_atexit(void) {
+  static int once = 0;
+  if( once++ ) return; /* Ensure that this routine only runs once */
 #if USE_SEE
   /*
   ** Zero, unlock, and free the saved database encryption key now.
@@ -376,7 +389,7 @@ static void fossil_atexit(void) {
 **     (c) If the line begins with "-" and contains a space, it is broken
 **         into two arguments at the space.
 */
-static void expand_args_option(int argc, void *argv){
+void expand_args_option(int argc, void *argv){
   Blob file = empty_blob;   /* Content of the file */
   Blob line = empty_blob;   /* One line of the file */
   unsigned int nLine;       /* Number of lines in the file*/
@@ -611,16 +624,25 @@ static int fossilExeHasAppendedRepo(void){
 /*
 ** This procedure runs first.
 */
-#if defined(_WIN32) && !defined(BROKEN_MINGW_CMDLINE)
-int _dowildcard = -1; /* This turns on command-line globbing in MinGW-w64 */
-int wmain(int argc, wchar_t **argv)
+#if defined(FOSSIL_FUZZ)
+  /* Do not include a main() procedure when building for fuzz testing.
+  ** libFuzzer will supply main(). */
+#elif defined(_WIN32) && !defined(BROKEN_MINGW_CMDLINE)
+  int _dowildcard = -1; /* This turns on command-line globbing in MinGW-w64 */
+  int wmain(int argc, wchar_t **argv){ return fossil_main(argc, argv); }
+#elif defined(_WIN32)
+  int _CRT_glob = 0x0001; /* See MinGW bug #2062 */
+  int main(int argc, char **argv){ return fossil_main(argc, argv); }
 #else
-#if defined(_WIN32)
-int _CRT_glob = 0x0001; /* See MinGW bug #2062 */
+  int main(int argc, char **argv){ return fossil_main(argc, argv); }
 #endif
-int main(int argc, char **argv)
-#endif
-{
+
+/* All the work of main() is done by a separate procedure "fossil_main()".
+** We have to break this out, because fossil_main() is sometimes called
+** separately (by the "shell" command) but we do not want atwait() handlers
+** being called by separate invocations of fossil_main().
+*/
+int fossil_main(int argc, char **argv){
   const char *zCmdName = "unknown";
   const CmdOrPage *pCmd = 0;
   int rc;
@@ -787,6 +809,7 @@ int main(int argc, char **argv)
     }
   }
 #endif
+  g.zCmdName = zCmdName;
   rc = dispatch_name_search(zCmdName, CMDFLAG_COMMAND|CMDFLAG_PREFIX, &pCmd);
   if( rc==1 ){
 #ifdef FOSSIL_ENABLE_TH1_HOOKS
@@ -1195,7 +1218,7 @@ void test_version_page(void){
 ** is the argument to the --baseurl option command-line option and
 ** g.zBaseURL and g.zTop is set from that instead.
 */
-static void set_base_url(const char *zAltBase){
+void set_base_url(const char *zAltBase){
   int i;
   const char *zHost;
   const char *zMode;
@@ -1581,7 +1604,7 @@ static void process_one_web_page(
       */
       if( szFile<1024 ){
         set_base_url(0);
-        if( strcmp(zPathInfo,"/")==0
+        if( (zPathInfo[0]==0 || strcmp(zPathInfo,"/")==0)
                   && allowRepoList
                   && repo_list_page() ){
           /* Will return a list of repositories */
@@ -1785,6 +1808,9 @@ static void process_one_web_page(
       @ the administrator to run <b>fossil rebuild</b>.</p>
     }
   }else{
+    if( (pCmd->eCmdFlags & CMDFLAG_RAWCONTENT)==0 ){
+      cgi_decode_post_parameters();
+    }
     if( g.fCgiTrace ){
       fossil_trace("######## Calling %s #########\n", pCmd->zName);
       cgi_print_all(1, 1);
@@ -1944,6 +1970,12 @@ static void redirect_web_page(int nRedirect, char **azRedirect){
 **
 **    errorlog: FILE           Warnings, errors, and panics written to FILE.
 **
+**    timeout: SECONDS         Do not run for longer than SECONDS.  The default
+**                             timeout is FOSSIL_DEFAULT_TIMEOUT (600) seconds.
+**
+**    extroot: DIR             Directory that is the root of the sub-CGI tree
+**                             on the /ext page.
+**
 **    redirect: REPO URL       Extract the "name" query parameter and search
 **                             REPO for a check-in or ticket that matches the
 **                             value of "name", then redirect to URL.  There
@@ -1974,6 +2006,7 @@ void cmd_cgi(void){
   fossil_binary_mode(g.httpOut);
   fossil_binary_mode(g.httpIn);
   g.cgiOutput = 1;
+  fossil_set_timeout(FOSSIL_DEFAULT_TIMEOUT);
   blob_read_from_file(&config, zFile, ExtFILE);
   while( blob_line(&config, &line) ){
     if( !blob_token(&line, &key) ) continue;
@@ -2090,6 +2123,24 @@ void cmd_cgi(void){
       blob_reset(&value);
       continue;
     }
+    if( blob_eq(&key, "extroot:") && blob_token(&line, &value) ){
+      /* extroot: DIRECTORY
+      **
+      ** Enables the /ext webpage to use sub-cgi rooted at DIRECTORY
+      */
+      g.zExtRoot = mprintf("%s", blob_str(&value));
+      blob_reset(&value);
+      continue;
+    }
+    if( blob_eq(&key, "timeout:") && blob_token(&line, &value) ){
+      /* timeout: SECONDS
+      **
+      ** Set an alarm() that kills the process after SECONDS.  The
+      ** default value is FOSSIL_DEFAULT_TIMEOUT (600) seconds.
+      */
+      fossil_set_timeout(atoi(blob_str(&value)));
+      continue;
+    }
     if( blob_eq(&key, "HOME:") && blob_token(&line, &value) ){
       /* HOME: VALUE
       **
@@ -2158,8 +2209,8 @@ static void find_server_repository(int arg, int fCreate){
         db_create_repository(zRepo);
         db_open_repository(zRepo);
         db_begin_transaction();
-        g.eHashPolicy = HPOLICY_AUTO;
-        db_set_int("hash-policy", HPOLICY_AUTO, 0);
+        g.eHashPolicy = HPOLICY_SHA3;
+        db_set_int("hash-policy", HPOLICY_SHA3, 0);
         db_initial_setup(0, "now", g.zLogin);
         db_end_transaction(0);
         fossil_print("project-id: %s\n", db_get("project-code", 0));
@@ -2242,12 +2293,13 @@ void parse_pid_key_value(
 **
 ** Options:
 **   --baseurl URL    base URL (useful with reverse proxies)
+**   --extroot DIR    document root for the /ext extension mechanism
 **   --files GLOB     comma-separate glob patterns for static file to serve
-**   --localauth      enable automatic login for local connections
 **   --host NAME      specify hostname of the server
 **   --https          signal a request coming in via https
 **   --in FILE        Take input from FILE instead of standard input
 **   --ipaddr ADDR    Assume the request comes from the given IP address
+**   --localauth      enable automatic login for local connections
 **   --nocompress     do not compress HTTP replies
 **   --nodelay        omit backoffice processing if it would delay process exit
 **   --nojail         drop root privilege but do not enter the chroot jail
@@ -2299,6 +2351,7 @@ void cmd_http(void){
   g.useLocalauth = find_option("localauth", 0, 0)!=0;
   g.sslNotAvailable = find_option("nossl", 0, 0)!=0;
   g.fNoHttpCompress = find_option("nocompress",0,0)!=0;
+  g.zExtRoot = find_option("extroot",0,1);
   zInFile = find_option("in",0,1);
   if( zInFile ){
     backoffice_disable();
@@ -2393,6 +2446,9 @@ void cmd_test_http(void){
   g.useLocalauth = 1;
   g.httpIn = stdin;
   g.httpOut = stdout;
+  fossil_binary_mode(g.httpOut);
+  fossil_binary_mode(g.httpIn);
+  g.zExtRoot = find_option("extroot",0,1);
   find_server_repository(2, 0);
   g.cgiOutput = 1;
   g.fNoHttpCompress = 1;
@@ -2404,7 +2460,7 @@ void cmd_test_http(void){
   }else{
     cgi_set_parameter("REMOTE_ADDR", "127.0.0.1");
     cgi_handle_http_request(0);
-    process_one_web_page(0, 0, 0);
+    process_one_web_page(0, 0, 1);
   }
 }
 
@@ -2434,10 +2490,28 @@ static int binaryOnPath(const char *zBinary){
 #endif
 
 /*
-** Send a time-out reply
+** Respond to a SIGALRM by writing a message to the error log (if there
+** is one) and exiting.
 */
-void sigalrm_handler(int x){
+#ifndef _WIN32
+static void sigalrm_handler(int x){
   fossil_panic("TIMEOUT");
+}
+#endif
+
+/*
+** Arrange to timeout using SIGALRM after N seconds.  Or if N==0, cancel
+** any pending timeout.
+**
+** Bugs:
+** (1) This only works on unix systems.
+** (2) Any call to sleep() or sqlite3_sleep() will cancel the alarm.
+*/
+void fossil_set_timeout(int N){
+#ifndef _WIN32
+  signal(SIGALRM, sigalrm_handler);
+  alarm(N);
+#endif
 }
 
 /*
@@ -2486,11 +2560,12 @@ void sigalrm_handler(int x){
 ** Options:
 **   --baseurl URL       Use URL as the base (useful for reverse proxies)
 **   --create            Create a new REPOSITORY if it does not already exist
-**   --page PAGE         Start "ui" on PAGE.  ex: --page "timeline?y=ci"
+**   --extroot DIR       Document root for the /ext extension mechanism
 **   --files GLOBLIST    Comma-separated list of glob patterns for static files
 **   --localauth         enable automatic login for requests from localhost
 **   --localhost         listen on 127.0.0.1 only (always true for "ui")
-**   --https             signal a request coming in via https
+**   --https             Indicates that the input is coming through a reverse
+**                       proxy that has already translated HTTPS into HTTP.
 **   --max-latency N     Do not let any single HTTP request run for more than N
 **                       seconds (only works on unix)
 **   --nocompress        Do not compress HTTP replies
@@ -2498,6 +2573,7 @@ void sigalrm_handler(int x){
 **   --nossl             signal that no SSL connections are available (Always
 **                       set by default for the "ui" command)
 **   --notfound URL      Redirect
+**   --page PAGE         Start "ui" on PAGE.  ex: --page "timeline?y=ci"
 **   -P|--port TCPPORT   listen to request on port TCPPORT
 **   --th-trace          trace TH1 execution (for debugging purposes)
 **   --repolist          If REPOSITORY is dir, URL "/" lists repos.
@@ -2518,7 +2594,7 @@ void cmd_webserver(void){
   int flags = 0;            /* Server flags */
 #if !defined(_WIN32)
   int noJail;               /* Do not enter the chroot jail */
-  const char *zMaxLatency;   /* Maximum runtime of any single HTTP request */
+  const char *zTimeout = 0; /* Max runtime of any single HTTP request */
 #endif
   int allowRepoList;         /* List repositories on URL "/" */
   const char *zAltBase;      /* Argument to the --baseurl option */
@@ -2538,6 +2614,7 @@ void cmd_webserver(void){
   if( g.zErrlog==0 ){
     g.zErrlog = "-";
   }
+  g.zExtRoot = find_option("extroot",0,1);
   zFileGlob = find_option("files-urlenc",0,1);
   if( zFileGlob ){
     char *z = mprintf("%s", zFileGlob);
@@ -2549,7 +2626,7 @@ void cmd_webserver(void){
   skin_override();
 #if !defined(_WIN32)
   noJail = find_option("nojail",0,0)!=0;
-  zMaxLatency = find_option("max-latency",0,1);
+  zTimeout = find_option("max-latency",0,1);
 #endif
   g.useLocalauth = find_option("localauth", 0, 0)!=0;
   Th_InitTraceLog();
@@ -2667,9 +2744,10 @@ void cmd_webserver(void){
   ** child process, the HTTP or SCGI request is pending on file
   ** descriptor 0 and the reply should be written to file descriptor 1.
   */
-  if( zMaxLatency ){
-    signal(SIGALRM, sigalrm_handler);
-    alarm(atoi(zMaxLatency));
+  if( zTimeout ){
+    fossil_set_timeout(atoi(zTimeout));
+  }else{
+    fossil_set_timeout(FOSSIL_DEFAULT_TIMEOUT);
   }
   g.httpIn = stdin;
   g.httpOut = stdout;

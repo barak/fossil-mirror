@@ -142,7 +142,7 @@ static struct {
 /*
 ** Names of manifest types
 */
-static const char *azNameOfMType[] = {
+static const char *const azNameOfMType[] = {
   "manifest",
   "cluster",
   "tag",
@@ -347,16 +347,15 @@ struct ManifestText {
 ** Return NULL if there are no more tokens on the current line.
 */
 static char *next_token(ManifestText *p, int *pLen){
-  char *z;
   char *zStart;
-  int c;
+  int n;
   if( p->atEol ) return 0;
-  zStart = z = p->z;
-  while( (c=(*z))!=' ' && c!='\n' ){ z++; }
-  *z = 0;
-  p->z = &z[1];
-  p->atEol = c=='\n';
-  if( pLen ) *pLen = z - zStart;
+  zStart = p->z;
+  n = strcspn(p->z, " \n");
+  p->atEol = p->z[n]=='\n';
+  p->z[n] = 0;
+  p->z += n+1;
+  if( pLen ) *pLen = n;
   return zStart;
 }
 
@@ -511,7 +510,7 @@ Manifest *manifest_parse(Blob *pContent, int rid, Blob *pErr){
         if( zName==0 || zTarget==0 ) goto manifest_syntax_error;
         if( p->zAttachName!=0 ) goto manifest_syntax_error;
         defossilize(zName);
-        if( !file_is_simple_pathname(zName, 0) ){
+        if( !file_is_simple_pathname_nonstrict(zName) ){
           SYNTAX("invalid filename on A-card");
         }
         defossilize(zTarget);
@@ -609,7 +608,7 @@ Manifest *manifest_parse(Blob *pContent, int rid, Blob *pErr){
         zName = next_token(&x,0);
         if( zName==0 ) SYNTAX("missing filename on F-card");
         defossilize(zName);
-        if( !file_is_simple_pathname(zName, 0) ){
+        if( !file_is_simple_pathname_nonstrict(zName) ){
           SYNTAX("F-card filename is not a simple path");
         }
         zUuid = next_token(&x, &sz);
@@ -622,7 +621,7 @@ Manifest *manifest_parse(Blob *pContent, int rid, Blob *pErr){
         zPriorName = next_token(&x,0);
         if( zPriorName ){
           defossilize(zPriorName);
-          if( !file_is_simple_pathname(zPriorName, 0) ){
+          if( !file_is_simple_pathname_nonstrict(zPriorName) ){
             SYNTAX("F-card old filename is not a simple path");
           }
         }
@@ -1149,12 +1148,14 @@ void manifest_test_parse_cmd(void){
 /*
 ** COMMAND: test-parse-all-blobs
 **
-** Usage: %fossil test-parse-all-blobs
+** Usage: %fossil test-parse-all-blobs [--limit N]
 **
 ** Parse all entries in the BLOB table that are believed to be non-data
 ** artifacts and report any errors.  Run this test command on historical
 ** repositories after making any changes to the manifest_parse()
 ** implementation to confirm that the changes did not break anything.
+**
+** If the --limit N argument is given, parse no more than N blobs
 */
 void manifest_test_parse_all_blobs_cmd(void){
   Manifest *p;
@@ -1162,10 +1163,14 @@ void manifest_test_parse_all_blobs_cmd(void){
   Stmt q;
   int nTest = 0;
   int nErr = 0;
+  int N = 1000000000;
+  const char *z;
   db_find_and_open_repository(0, 0);
+  z = find_option("limit", 0, 1);
+  if( z ) N = atoi(z);
   verify_all_options();
   db_prepare(&q, "SELECT DISTINCT objid FROM EVENT");
-  while( db_step(&q)==SQLITE_ROW ){
+  while( (N--)>0 && db_step(&q)==SQLITE_ROW ){
     int id = db_column_int(&q,0);
     fossil_print("Checking %d       \r", id);
     nTest++;

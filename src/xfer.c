@@ -1122,7 +1122,7 @@ static int disableLogin = 0;
 ** clone clients to specify a URL that omits default pathnames, such
 ** as "http://fossil-scm.org/" instead of "http://fossil-scm.org/index.cgi".
 **
-** WEBPAGE: xfer
+** WEBPAGE: xfer  raw-content
 **
 ** This is the transfer handler on the server side.  The transfer
 ** message has been uncompressed and placed in the g.cgiIn blob.
@@ -1561,7 +1561,7 @@ void page_xfer(void){
       ){
         Stmt q;
         sqlite3_int64 iNow = time(0);
-        const sqlite3_int64 maxAge = 3600*24; /* Locks expire after 24 hours */
+        sqlite3_int64 maxAge = db_get_int("lock-timeout",60);
         int seenFault = 0;
         db_prepare(&q,
           "SELECT json_extract(value,'$.login'),"
@@ -1574,7 +1574,7 @@ void page_xfer(void){
         while( db_step(&q)==SQLITE_ROW ){
           int x = db_column_int(&q,3);
           const char *zName = db_column_text(&q,4);
-          if( db_column_int64(&q,1)<iNow-maxAge || !is_a_leaf(x) ){
+          if( db_column_int64(&q,1)<=iNow-maxAge || !is_a_leaf(x) ){
             /* check-in locks expire after maxAge seconds, or when the
             ** check-in is no longer a leaf */
             db_multi_exec("DELETE FROM config WHERE name=%Q", zName);
@@ -1785,6 +1785,7 @@ int client_sync(
   int autopushFailed = 0; /* Autopush following commit failed if true */
   const char *zCkinLock;  /* Name of check-in to lock.  NULL for none */
   const char *zClientId;  /* A unique identifier for this check-out */
+  unsigned int mHttpFlags;/* Flags for the http_exchange() subsystem */
 
   if( db_get_boolean("dont-push", 0) ) syncFlags &= ~SYNC_PUSH;
   if( (syncFlags & (SYNC_PUSH|SYNC_PULL|SYNC_CLONE|SYNC_UNVERSIONED))==0
@@ -2022,8 +2023,13 @@ int client_sync(
     }
     fflush(stdout);
     /* Exchange messages with the server */
-    if( http_exchange(&send, &recv, (syncFlags & SYNC_CLONE)==0 || nCycle>0,
-        MAX_REDIRECTS) ){
+    if( (syncFlags & SYNC_CLONE)!=0 && nCycle==0 ){
+      /* Do not send a login card on the first round-trip of a clone */
+      mHttpFlags = 0;
+    }else{
+      mHttpFlags = HTTP_USE_LOGIN;
+    }
+    if( http_exchange(&send, &recv, mHttpFlags, MAX_REDIRECTS, 0) ){
       nErr++;
       go = 2;
       break;

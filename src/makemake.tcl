@@ -63,6 +63,7 @@ set src {
   encode
   etag
   event
+  extcgi
   export
   file
   finfo
@@ -70,6 +71,7 @@ set src {
   forum
   fshell
   fusefs
+  fuzz
   glob
   graph
   gzip
@@ -180,8 +182,8 @@ set extra_files {
 #
 set SQLITE_OPTIONS {
   -DNDEBUG=1
-  -DSQLITE_THREADSAFE=0
   -DSQLITE_DQS=0
+  -DSQLITE_THREADSAFE=0
   -DSQLITE_DEFAULT_MEMSTATUS=0
   -DSQLITE_DEFAULT_WAL_SYNCHRONOUS=1
   -DSQLITE_LIKE_DOESNT_MATCH_BLOBS
@@ -311,9 +313,6 @@ writeln -nonewline "OBJ ="
 foreach s [lsort $src] {
   writeln -nonewline " \\\n \$(OBJDIR)/$s.o"
 }
-writeln "\n"
-writeln "APPNAME = $name\$(E)"
-writeln "\n"
 
 writeln [string map [list \
     <<<SQLITE_OPTIONS>>> [join $SQLITE_OPTIONS " \\\n                 "] \
@@ -443,7 +442,7 @@ EXTRAOBJ = <<<NEXT_LINE>>>
 writeln {
 $(APPNAME):	$(OBJDIR)/headers $(OBJDIR)/codecheck1 $(OBJ) $(EXTRAOBJ)
 	$(OBJDIR)/codecheck1 $(TRANS_SRC)
-	$(TCC) -o $(APPNAME) $(OBJ) $(EXTRAOBJ) $(LIB)
+	$(TCC) $(TCCFLAGS) -o $(APPNAME) $(OBJ) $(EXTRAOBJ) $(LIB)
 
 # This rule prevents make from using its default rules to try build
 # an executable named "manifest" out of the file named "manifest.c"
@@ -714,7 +713,7 @@ endif
 #    to create a hard link between an "openssl-1.x" sub-directory of the
 #    Fossil source code directory and the target OpenSSL source directory.
 #
-OPENSSLDIR = $(SRCDIR)/../compat/openssl-1.1.1c
+OPENSSLDIR = $(SRCDIR)/../compat/openssl-1.1.1d
 OPENSSLINCDIR = $(OPENSSLDIR)/include
 OPENSSLLIBDIR = $(OPENSSLDIR)
 
@@ -1571,7 +1570,7 @@ USE_SEE = 0
 !endif
 
 !if $(FOSSIL_ENABLE_SSL)!=0
-SSLDIR    = $(B)\compat\openssl-1.1.1c
+SSLDIR    = $(B)\compat\openssl-1.1.1d
 SSLINCDIR = $(SSLDIR)\include
 !if $(FOSSIL_DYNAMIC_BUILD)!=0
 SSLLIBDIR = $(SSLDIR)

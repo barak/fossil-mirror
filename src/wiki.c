@@ -249,6 +249,20 @@ void wiki_rules_page(void){
 }
 
 /*
+** WEBPAGE: markup_help
+**
+** Show links to the md_rules and wiki_rules pages.
+*/
+void markup_help_page(void){
+  style_header("Fossil Markup Styles");
+  @ <ul>
+  @ <li><p>%z(href("%R/wiki_rules"))Fossil Wiki Formatting Rules</a></p></li>
+  @ <li><p>%z(href("%R/md_rules"))Markdown Formatting Rules</a></p></li>
+  @ </ul>
+  style_footer();
+}
+
+/*
 ** Returns non-zero if moderation is required for wiki changes and wiki
 ** attachments.
 */
@@ -732,7 +746,7 @@ void wikiedit_page(void){
       }
     }
     form_begin(0, "%R/wikiedit");
-    @ <div>Markup style:
+    @ <div>%z(href("%R/markup_help"))Markup style</a>:
     mimetype_option_menu(zMimetype);
     @ <br /><textarea name="w" class="wikiedit" cols="80" \
     @  rows="%d(n)" wrap="virtual" placeholder="%h(zPlaceholder)">\
@@ -814,7 +828,7 @@ void wikinew_page(void){
   form_begin(0, "%R/wikinew");
   @ <p>Name of new wiki page:
   @ <input style="width: 35;" type="text" name="name" value="%h(zName)" /><br />
-  @ Markup style:
+  @ %z(href("%R/markup_help"))Markup style</a>:
   mimetype_option_menu("text/x-fossil-wiki");
   @ <br /><input type="submit" value="Create" />
   @ </p></form>
@@ -1483,6 +1497,7 @@ void wiki_cmd(void){
     Blob content;                 /* Input content */
     int rid = 0;
     Manifest *pWiki = 0;          /* Parsed wiki page content */
+    const int isCreate = 'r'==g.argv[2][1] /* else "commit" */;
     const char *zMimeType = find_option("mimetype", "M", 1);
     const char *zETime = find_option("technote", "t", 1);
     const char *zTags = find_option("technote-tags", NULL, 1);
@@ -1498,29 +1513,30 @@ void wiki_cmd(void){
     }else{
       blob_read_from_file(&content, g.argv[4], ExtFILE);
     }
+    if ( !zETime ){
+      rid = db_int(0, "SELECT x.rid FROM tag t, tagxref x"
+                   " WHERE x.tagid=t.tagid AND t.tagname='wiki-%q'"
+                   " ORDER BY x.mtime DESC LIMIT 1",
+                   zPageName
+                   );
+      if( rid>0 ){
+        pWiki = manifest_get(rid, CFTYPE_WIKI, 0);
+      }
+    }else{
+      rid = wiki_technote_to_rid(zETime);
+      if( rid>0 ){
+        pWiki = manifest_get(rid, CFTYPE_EVENT, 0);
+      }
+    }
     if( !zMimeType || !*zMimeType ){
       /* Try to deduce the mime type based on the prior version. */
-      if ( !zETime ){
-        rid = db_int(0, "SELECT x.rid FROM tag t, tagxref x"
-                     " WHERE x.tagid=t.tagid AND t.tagname='wiki-%q'"
-                     " ORDER BY x.mtime DESC LIMIT 1",
-                     zPageName
-                     );
-        if( rid>0 && (pWiki = manifest_get(rid, CFTYPE_WIKI, 0))!=0
-           && (pWiki->zMimetype && *pWiki->zMimetype) ){
-          zMimeType = pWiki->zMimetype;
-        }
-      }else{
-        rid = wiki_technote_to_rid(zETime);
-        if( rid>0 && (pWiki = manifest_get(rid, CFTYPE_EVENT, 0))!=0
-           && (pWiki->zMimetype && *pWiki->zMimetype) ){
-          zMimeType = pWiki->zMimetype;
-        }
+      if( pWiki!=0 && (pWiki->zMimetype && *pWiki->zMimetype) ){
+        zMimeType = pWiki->zMimetype;
       }
     }else{
       zMimeType = wiki_filter_mimetypes(zMimeType);
     }
-    if( g.argv[2][1]=='r' && rid>0 ){
+    if( isCreate && rid>0 ){
       if ( !zETime ){
         fossil_fatal("wiki page %s already exists", zPageName);
       }else{
@@ -1528,7 +1544,7 @@ void wiki_cmd(void){
            and should create a new tech note */
         rid = 0;
       }
-    }else if( g.argv[2][1]=='o' && rid == 0 ){
+    }else if( !isCreate && rid == 0 ){
       if ( !zETime ){
         fossil_fatal("no such wiki page: %s", zPageName);
       }else{
@@ -1605,24 +1621,6 @@ void wiki_cmd(void){
 
 wiki_cmd_usage:
   usage("export|create|commit|list ...");
-}
-
-/*
-** COMMAND: test-markdown-render
-**
-** Usage: %fossil test-markdown-render FILE
-**
-** Render markdown wiki from FILE to stdout.
-**
-*/
-void test_markdown_render(void){
-  Blob in, out;
-  verify_all_options();
-  if( g.argc!=3 ) usage("FILE");
-  blob_zero(&out);
-  blob_read_from_file(&in, g.argv[2], ExtFILE);
-  markdown_to_html(&in, 0, &out);
-  blob_write_to_file(&out, "-");
 }
 
 /*

@@ -15,11 +15,16 @@
 **
 *******************************************************************************
 **
-** This file contains C functions and procedures that provide useful
-** services to CGI programs.  There are procedures for parsing and
-** dispensing QUERY_STRING parameters and cookies, the "mprintf()"
-** formatting function and its cousins, and routines to encode and
-** decode strings in HTML or HTTP.
+** This file contains C functions and procedures used by CGI programs
+** (Fossil launched as CGI) to interpret CGI environment variables,
+** gather the results, and send they reply back to the CGI server.
+** This file also contains routines for running a simple web-server
+** (the "fossil ui" or "fossil server" command) and launching subprocesses
+** to handle each inbound HTTP request using CGI.
+**
+** This file contains routines used by Fossil when it is acting as a
+** CGI client.  For the code used by Fossil when it is acting as a
+** CGI server (for the /ext webpage) see the "extcgi.c" source file.
 */
 #include "config.h"
 #ifdef _WIN32
@@ -143,6 +148,13 @@ Blob *cgi_output_blob(void){
 }
 
 /*
+** Return complete text of the output header
+*/
+const char *cgi_header(void){
+  return blob_str(&cgiContent[0]);
+}
+
+/*
 ** Combine the header and body of the CGI into a single string.
 */
 static void cgi_combine_header_and_body(void){
@@ -164,8 +176,8 @@ char *cgi_extract_content(void){
 /*
 ** Additional information used to form the HTTP reply
 */
-static char *zContentType = "text/html";     /* Content type of the reply */
-static char *zReplyStatus = "OK";            /* Reply status description */
+static const char *zContentType = "text/html";     /* Content type of the reply */
+static const char *zReplyStatus = "OK";            /* Reply status description */
 static int iReplyStatus = 200;               /* Reply status code */
 static Blob extraHeader = BLOB_INITIALIZER;  /* Extra header text */
 
@@ -479,6 +491,27 @@ void cgi_set_parameter_nocopy(const char *zName, const char *zValue, int isQP){
 /*
 ** Add another query parameter or cookie to the parameter set.
 ** zName is the name of the query parameter or cookie and zValue
+** is its fully decoded value.  zName will be modified to be an
+** all lowercase string.
+**
+** zName and zValue are not copied and must not change or be
+** deallocated after this routine returns.  This routine changes
+** all ASCII alphabetic characters in zName to lower case.  The
+** caller must not change them back.
+*/
+void cgi_set_parameter_nocopy_tolower(
+  char *zName,
+  const char *zValue,
+  int isQP
+){
+  int i;
+  for(i=0; zName[i]; i++){ zName[i] = fossil_tolower(zName[i]); }
+  cgi_set_parameter_nocopy(zName, zValue, isQP);
+}
+
+/*
+** Add another query parameter or cookie to the parameter set.
+** zName is the name of the query parameter or cookie and zValue
 ** is its fully decoded value.
 **
 ** Copies are made of both the zName and zValue parameters.
@@ -513,6 +546,11 @@ void cgi_replace_query_parameter(const char *zName, const char *zValue){
     }
   }
   cgi_set_parameter_nocopy(zName, zValue, 1);
+}
+void cgi_replace_query_parameter_tolower(char *zName, const char *zValue){
+  int i;
+  for(i=0; zName[i]; i++){ zName[i] = fossil_tolower(zName[i]); }
+  cgi_replace_query_parameter(zName, zValue);
 }
 
 /*
@@ -551,7 +589,6 @@ void cgi_delete_query_parameter(const char *zName){
 void cgi_setenv(const char *zName, const char *zValue){
   cgi_set_parameter_nocopy(zName, mprintf("%s",zValue), 0);
 }
-
 
 /*
 ** Add a list of query parameters or cookies to the parameter set.
@@ -605,8 +642,12 @@ static void add_param_list(char *z, int terminator){
       if( *z ){ *z++ = 0; }
       zValue = "";
     }
-    if( fossil_islower(zName[0]) && fossil_no_strange_characters(zName+1) ){
-      cgi_set_parameter_nocopy(zName, zValue, isQP);
+    if( zName[0] && fossil_no_strange_characters(zName+1) ){
+      if( fossil_islower(zName[0]) ){
+        cgi_set_parameter_nocopy(zName, zValue, isQP);
+      }else if( fossil_isupper(zName[0]) ){
+        cgi_set_parameter_nocopy_tolower(zName, zValue, isQP);
+      }
     }
 #ifdef FOSSIL_ENABLE_JSON
     json_setenv( zName, cson_value_new_string(zValue,strlen(zValue)) );
@@ -749,11 +790,19 @@ static void process_multipart_form_data(char *z, int len){
     if( zLine[0]==0 ){
       int nContent = 0;
       zValue = get_bounded_content(&z, &len, zBoundry, &nContent);
-      if( zName && zValue && fossil_islower(zName[0]) ){
-        cgi_set_parameter_nocopy(zName, zValue, 1);
-        if( showBytes ){
-          cgi_set_parameter_nocopy(mprintf("%s:bytes", zName),
-               mprintf("%d",nContent), 1);
+      if( zName && zValue ){
+        if( fossil_islower(zName[0]) ){
+          cgi_set_parameter_nocopy(zName, zValue, 1);
+          if( showBytes ){
+            cgi_set_parameter_nocopy(mprintf("%s:bytes", zName),
+                 mprintf("%d",nContent), 1);
+          }
+        }else if( fossil_isupper(zName[0]) ){
+          cgi_set_parameter_nocopy_tolower(zName, zValue, 1);
+          if( showBytes ){
+            cgi_set_parameter_nocopy_tolower(mprintf("%s:bytes", zName),
+                 mprintf("%d",nContent), 1);
+          }
         }
       }
       zName = 0;
@@ -769,14 +818,24 @@ static void process_multipart_form_data(char *z, int len){
           zName = azArg[++i];
         }else if( c=='f' && sqlite3_strnicmp(azArg[i],"filename=",n)==0 ){
           char *z = azArg[++i];
-          if( zName && z && fossil_islower(zName[0]) ){
-            cgi_set_parameter_nocopy(mprintf("%s:filename",zName), z, 1);
+          if( zName && z ){
+            if( fossil_islower(zName[0]) ){
+              cgi_set_parameter_nocopy(mprintf("%s:filename",zName), z, 1);
+            }else if( fossil_isupper(zName[0]) ){
+              cgi_set_parameter_nocopy_tolower(mprintf("%s:filename",zName),
+                                               z, 1);
+            }
           }
           showBytes = 1;
         }else if( c=='c' && sqlite3_strnicmp(azArg[i],"content-type:",n)==0 ){
           char *z = azArg[++i];
-          if( zName && z && fossil_islower(zName[0]) ){
-            cgi_set_parameter_nocopy(mprintf("%s:mimetype",zName), z, 1);
+          if( zName && z ){
+            if( fossil_islower(zName[0]) ){
+              cgi_set_parameter_nocopy(mprintf("%s:mimetype",zName), z, 1);
+            }else if( fossil_isupper(zName[0]) ){
+              cgi_set_parameter_nocopy_tolower(mprintf("%s:mimetype",zName),
+                                               z, 1);
+            }
           }
         }
       }
@@ -935,13 +994,15 @@ static NORETURN void malformed_request(const char *zMsg);
 void cgi_init(void){
   char *z;
   const char *zType;
+  char *zSemi;
   int len;
   const char *zRequestUri = cgi_parameter("REQUEST_URI",0);
   const char *zScriptName = cgi_parameter("SCRIPT_NAME",0);
   const char *zPathInfo = cgi_parameter("PATH_INFO",0);
 
 #ifdef FOSSIL_ENABLE_JSON
-  json_main_bootstrap();
+  int noJson = P("no_json")!=0;
+  if( noJson==0 ){ json_main_bootstrap(); }
 #endif
   g.isHTTP = 1;
   cgi_destination(CGI_BODY);
@@ -980,32 +1041,24 @@ void cgi_init(void){
   }
 
   len = atoi(PD("CONTENT_LENGTH", "0"));
-  g.zContentType = zType = P("CONTENT_TYPE");
+  zType = P("CONTENT_TYPE");
+  zSemi = zType ? strchr(zType, ';') : 0;
+  if( zSemi ){
+    g.zContentType = mprintf("%.*s", (int)(zSemi-zType), zType);
+    zType = g.zContentType;
+  }else{
+    g.zContentType = zType;
+  }
   blob_zero(&g.cgiIn);
   if( len>0 && zType ){
-    if( fossil_strcmp(zType,"application/x-www-form-urlencoded")==0
-         || strncmp(zType,"multipart/form-data",19)==0 ){
-      z = fossil_malloc( len+1 );
-      len = fread(z, 1, len, g.httpIn);
-      z[len] = 0;
-      cgi_trace(z);
-      if( zType[0]=='a' ){
-        add_param_list(z, '&');
-      }else{
-        process_multipart_form_data(z, len);
-      }
-    }else if( fossil_strcmp(zType, "application/x-fossil")==0 ){
+    if( fossil_strcmp(zType, "application/x-fossil")==0 ){
       blob_read_from_channel(&g.cgiIn, g.httpIn, len);
       blob_uncompress(&g.cgiIn, &g.cgiIn);
-    }else if( fossil_strcmp(zType, "application/x-fossil-debug")==0 ){
-      blob_read_from_channel(&g.cgiIn, g.httpIn, len);
-    }else if( fossil_strcmp(zType, "application/x-fossil-uncompressed")==0 ){
-      blob_read_from_channel(&g.cgiIn, g.httpIn, len);
     }
 #ifdef FOSSIL_ENABLE_JSON
-    else if( fossil_strcmp(zType, "application/json")
-              || fossil_strcmp(zType,"text/plain")/*assume this MIGHT be JSON*/
-              || fossil_strcmp(zType,"application/javascript")){
+    else if( noJson==0 && (fossil_strcmp(zType, "application/json")==0
+              || fossil_strcmp(zType,"text/plain")==0/*assume this MIGHT be JSON*/
+              || fossil_strcmp(zType,"application/javascript")==0) ){
       g.json.isJsonMode = 1;
       cgi_parse_POST_JSON(g.httpIn, (unsigned int)len);
       /* FIXMEs:
@@ -1026,8 +1079,30 @@ void cgi_init(void){
       cgi_set_content_type(json_guess_content_type());
     }
 #endif /* FOSSIL_ENABLE_JSON */
+    else{
+      blob_read_from_channel(&g.cgiIn, g.httpIn, len);
+    }
   }
+}
 
+/*
+** Decode POST parameter information in the cgiIn content, if any.
+*/
+void cgi_decode_post_parameters(void){
+  int len = blob_size(&g.cgiIn);
+  if( len==0 ) return;
+  if( fossil_strcmp(g.zContentType,"application/x-www-form-urlencoded")==0
+   || strncmp(g.zContentType,"multipart/form-data",19)==0
+  ){
+    char *z = blob_str(&g.cgiIn);
+    cgi_trace(z);
+    if( g.zContentType[0]=='a' ){
+      add_param_list(z, '&');
+    }else{
+      process_multipart_form_data(z, len);
+    }
+    blob_init(&g.cgiIn, 0, 0);
+  }
 }
 
 /*
@@ -1945,7 +2020,7 @@ int cgi_http_server(
         }
         nchildren--;
       }
-    }  
+    }
   }
   /* NOT REACHED */
   fossil_exit(1);

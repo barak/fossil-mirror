@@ -11,7 +11,6 @@ set doclist {
   aboutdownload.wiki {How The Download Page Works}
   adding_code.wiki {Adding New Features To Fossil}
   adding_code.wiki {Hacking Fossil}
-  admin-v-setup.md {The Differences Between the Setup and Admin User Capabilities}
   alerts.md {Email Alerts And Notifications}
   antibot.wiki {Defense against Spiders and Bots}
   backoffice.md {The "Backoffice" mechanism of Fossil}
@@ -20,6 +19,11 @@ set doclist {
   branching.wiki {Branching, Forking, Merging, and Tagging}
   bugtheory.wiki {Bug Tracking In Fossil}
   build.wiki {Compiling and Installing Fossil}
+  caps/ {Administering User Capabilities}
+  caps/admin-v-setup.md {Differences Between Setup and Admin Users}
+  caps/login-groups.md {Differences Between Setup and Admin Users}
+  caps/ref.html {User Capability Reference}
+  cgi.wiki {CGI Script Configuration Options}
   changes.wiki {Fossil Changelog}
   checkin_names.wiki {Check-in And Version Names}
   checkin.wiki {Check-in Checklist}
@@ -31,6 +35,7 @@ set doclist {
   customskin.md {Theming: Customizing The Appearance of Web Pages}
   customskin.md {Custom Skins}
   custom_ticket.wiki {Customizing The Ticket System}
+  defcsp.md {The Default Content Security Policy}
   delta_encoder_algorithm.wiki {Fossil Delta Encoding Algorithm}
   delta_format.wiki {Fossil Delta Format}
   embeddeddoc.wiki {Embedded Project Documentation}
@@ -43,6 +48,7 @@ set doclist {
   forum.wiki {Fossil Forums}
   foss-cklist.wiki {Checklist For Successful Open-Source Projects}
   fossil-from-msvc.wiki {Integrating Fossil in the Microsoft Express 2010 IDE}
+  fossil_prompt.wiki {Fossilized Bash Prompt}
   fossil-v-git.wiki {Fossil Versus Git}
   globs.md {File Name Glob Patterns}
   grep.md {Fossil grep vs POSIX grep}
@@ -53,7 +59,9 @@ set doclist {
   index.wiki {Home Page}
   inout.wiki {Import And Export To And From Git}
   image-format-vs-repo-size.md {Image Format vs Fossil Repo Size}
+  javascript.md {Use of JavaScript in Fossil}
   makefile.wiki {The Fossil Build Process}
+  mirrorlimitations.md {Limitations On Git Mirrors}
   mirrortogithub.md {How To Mirror A Fossil Repository On GitHub}
   /md_rules {Markdown Formatting Rules}
   newrepo.wiki {How To Create A New Fossil Repository}
@@ -65,10 +73,13 @@ set doclist {
   quotes.wiki
       {Quotes: What People Are Saying About Fossil, Git, and DVCSes in General}
   ../test/release-checklist.wiki {Pre-Release Testing Checklist}
+  rebaseharm.md {Rebase Considered Harmful}
   reviews.wiki {Reviews}
   selfcheck.wiki {Fossil Repository Integrity Self Checks}
   selfhost.wiki {Fossil Self Hosting Repositories}
-  server.wiki {How To Configure A Fossil Server}
+  server/ {How To Configure A Fossil Server}
+  serverext.wiki {CGI Server Extensions}
+  serverext.wiki {Adding Extensions To A Fossil Server Using CGI Scripts}
   settings.wiki {Fossil Settings}
   /sitemap {Site Map}
   shunning.wiki {Shunning: Deleting Content From Fossil}

@@ -100,7 +100,7 @@ USE_SEE = 0
 !endif
 
 !if $(FOSSIL_ENABLE_SSL)!=0
-SSLDIR    = $(B)\compat\openssl-1.1.1c
+SSLDIR    = $(B)\compat\openssl-1.1.1d
 SSLINCDIR = $(SSLDIR)\include
 !if $(FOSSIL_DYNAMIC_BUILD)!=0
 SSLLIBDIR = $(SSLDIR)
@@ -278,8 +278,8 @@ RCC       = $(RCC) /DUSE_SEE=1
 !endif
 
 SQLITE_OPTIONS = /DNDEBUG=1 \
-                 /DSQLITE_THREADSAFE=0 \
                  /DSQLITE_DQS=0 \
+                 /DSQLITE_THREADSAFE=0 \
                  /DSQLITE_DEFAULT_MEMSTATUS=0 \
                  /DSQLITE_DEFAULT_WAL_SYNCHRONOUS=1 \
                  /DSQLITE_LIKE_DOESNT_MATCH_BLOBS \
@@ -305,8 +305,8 @@ SQLITE_OPTIONS = /DNDEBUG=1 \
                  /DSQLITE_WIN32_NO_ANSI
 
 SHELL_OPTIONS = /DNDEBUG=1 \
-                /DSQLITE_THREADSAFE=0 \
                 /DSQLITE_DQS=0 \
+                /DSQLITE_THREADSAFE=0 \
                 /DSQLITE_DEFAULT_MEMSTATUS=0 \
                 /DSQLITE_DEFAULT_WAL_SYNCHRONOUS=1 \
                 /DSQLITE_LIKE_DOESNT_MATCH_BLOBS \
@@ -381,12 +381,14 @@ SRC   = add_.c \
         etag_.c \
         event_.c \
         export_.c \
+        extcgi_.c \
         file_.c \
         finfo_.c \
         foci_.c \
         forum_.c \
         fshell_.c \
         fusefs_.c \
+        fuzz_.c \
         glob_.c \
         graph_.c \
         gzip_.c \
@@ -593,12 +595,14 @@ OBJ   = $(OX)\add$O \
         $(OX)\etag$O \
         $(OX)\event$O \
         $(OX)\export$O \
+        $(OX)\extcgi$O \
         $(OX)\file$O \
         $(OX)\finfo$O \
         $(OX)\foci$O \
         $(OX)\forum$O \
         $(OX)\fshell$O \
         $(OX)\fusefs$O \
+        $(OX)\fuzz$O \
         $(OX)\glob$O \
         $(OX)\graph$O \
         $(OX)\gzip$O \
@@ -794,12 +798,14 @@ $(OX)\linkopts: $B\win\Makefile.msc
 	echo $(OX)\etag.obj >> $@
 	echo $(OX)\event.obj >> $@
 	echo $(OX)\export.obj >> $@
+	echo $(OX)\extcgi.obj >> $@
 	echo $(OX)\file.obj >> $@
 	echo $(OX)\finfo.obj >> $@
 	echo $(OX)\foci.obj >> $@
 	echo $(OX)\forum.obj >> $@
 	echo $(OX)\fshell.obj >> $@
 	echo $(OX)\fusefs.obj >> $@
+	echo $(OX)\fuzz.obj >> $@
 	echo $(OX)\glob.obj >> $@
 	echo $(OX)\graph.obj >> $@
 	echo $(OX)\gzip.obj >> $@
@@ -1239,6 +1245,12 @@ $(OX)\export$O : export_.c export.h
 export_.c : $(SRCDIR)\export.c
 	translate$E $** > $@
 
+$(OX)\extcgi$O : extcgi_.c extcgi.h
+	$(TCC) /Fo$@ -c extcgi_.c
+
+extcgi_.c : $(SRCDIR)\extcgi.c
+	translate$E $** > $@
+
 $(OX)\file$O : file_.c file.h
 	$(TCC) /Fo$@ -c file_.c
 
@@ -1273,6 +1285,12 @@ $(OX)\fusefs$O : fusefs_.c fusefs.h
 	$(TCC) /Fo$@ -c fusefs_.c
 
 fusefs_.c : $(SRCDIR)\fusefs.c
+	translate$E $** > $@
+
+$(OX)\fuzz$O : fuzz_.c fuzz.h
+	$(TCC) /Fo$@ -c fuzz_.c
+
+fuzz_.c : $(SRCDIR)\fuzz.c
 	translate$E $** > $@
 
 $(OX)\glob$O : glob_.c glob.h
@@ -1880,12 +1898,14 @@ headers: makeheaders$E page_index.h builtin_data.h default_css.h VERSION.h
 			etag_.c:etag.h \
 			event_.c:event.h \
 			export_.c:export.h \
+			extcgi_.c:extcgi.h \
 			file_.c:file.h \
 			finfo_.c:finfo.h \
 			foci_.c:foci.h \
 			forum_.c:forum.h \
 			fshell_.c:fshell.h \
 			fusefs_.c:fusefs.h \
+			fuzz_.c:fuzz.h \
 			glob_.c:glob.h \
 			graph_.c:graph.h \
 			gzip_.c:gzip.h \

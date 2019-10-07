@@ -703,6 +703,49 @@ int file_mkfolder(
   return rc;
 }
 
+#if defined(_WIN32)
+/*
+** Returns non-zero if the specified name represents a real directory, i.e.
+** not a junction or symbolic link.  This is important for some operations,
+** e.g. removing directories via _wrmdir(), because its detection of empty
+** directories will (apparently) not work right for junctions and symbolic
+** links, etc.
+*/
+int file_is_normal_dir(wchar_t *zName){
+  /*
+  ** Mask off attributes, applicable to directories, that are harmless for
+  ** our purposes.  This may need to be updated if other attributes should
+  ** be ignored by this function.
+  */
+  DWORD dwAttributes = GetFileAttributesW(zName);
+  if( dwAttributes==INVALID_FILE_ATTRIBUTES ) return 0;
+  dwAttributes &= ~(
+    FILE_ATTRIBUTE_ARCHIVE | FILE_ATTRIBUTE_COMPRESSED |
+    FILE_ATTRIBUTE_ENCRYPTED | FILE_ATTRIBUTE_NORMAL |
+    FILE_ATTRIBUTE_NOT_CONTENT_INDEXED
+  );
+  return dwAttributes==FILE_ATTRIBUTE_DIRECTORY;
+}
+
+/*
+** COMMAND: test-is-normal-dir
+**
+** Usage: %fossil test-is-normal-dir NAME...
+**
+** Returns non-zero if the specified names represent real directories, i.e.
+** not junctions, symbolic links, etc.
+*/
+void test_is_normal_dir(void){
+  int i;
+  for(i=2; i<g.argc; i++){
+    wchar_t *zMbcs = fossil_utf8_to_path(g.argv[i], 1);
+    fossil_print("ATTRS \"%s\" -> %lx\n", g.argv[i], GetFileAttributesW(zMbcs));
+    fossil_print("ISDIR \"%s\" -> %d\n", g.argv[i], file_is_normal_dir(zMbcs));
+    fossil_path_free(zMbcs);
+  }
+}
+#endif
+
 /*
 ** Removes the directory named in the argument, if it exists.  The directory
 ** must be empty and cannot be the current directory or the root directory.
@@ -715,7 +758,11 @@ int file_rmdir(const char *zName){
   if( rc==1 ){
 #if defined(_WIN32)
     wchar_t *zMbcs = fossil_utf8_to_path(zName, 1);
-    rc = _wrmdir(zMbcs);
+    if( file_is_normal_dir(zMbcs) ){
+      rc = _wrmdir(zMbcs);
+    }else{
+      rc = ENOTDIR; /* junction, symbolic link, etc. */
+    }
 #else
     char *zMbcs = fossil_utf8_to_path(zName, 1);
     rc = rmdir(zName);
@@ -829,6 +876,23 @@ int file_is_simple_pathname(const char *z, int bStrictUtf8){
     }
   }
   if( z[i-1]=='/' ) return 0;
+  return 1;
+}
+int file_is_simple_pathname_nonstrict(const char *z){
+  unsigned char c = (unsigned char) z[0];
+  if( c=='/' || c==0 ) return 0;
+  if( c=='.' ){
+    if( z[1]=='/' || z[1]==0 ) return 0;
+    if( z[1]=='.' && (z[2]=='/' || z[2]==0) ) return 0;
+  }
+  while( (z = strchr(z+1, '/'))!=0 ){
+    if( z[1]=='/' ) return 0;
+    if( z[1]==0 ) return 0;
+    if( z[1]=='.' ){
+      if( z[2]=='/' || z[2]==0 ) return 0;
+      if( z[2]=='.' && (z[3]=='/' || z[3]==0) ) return 0;
+    }
+  }
   return 1;
 }
 
@@ -1676,6 +1740,59 @@ int fossil_setenv(const char *zName, const char *zValue){
 }
 
 /*
+** Clear all environment variables
+*/
+int fossil_clearenv(void){
+#ifdef _WIN32
+  int rc = 0;
+  LPWCH zzEnv = GetEnvironmentStringsW();
+  if( zzEnv ){
+    LPCWSTR zEnv = zzEnv; /* read-only */
+    while( 1 ){
+      LPWSTR zNewEnv = _wcsdup(zEnv); /* writable */
+      if( zNewEnv ){
+        LPWSTR zEquals = wcsstr(zNewEnv, L"=");
+        if( zEquals ){
+          zEquals[1] = 0; /* no value */
+          if( zNewEnv==zEquals || _wputenv(zNewEnv)==0 ){ /* via CRT */
+            /* do nothing */
+          }else{
+            zEquals[0] = 0; /* name only */
+            if( !SetEnvironmentVariableW(zNewEnv, NULL) ){ /* via Win32 */
+              rc = 1;
+            }
+          }
+          if( rc==0 ){
+            zEnv += (lstrlenW(zEnv) + 1); /* double NUL term? */
+            if( zEnv[0]==0 ){
+              free(zNewEnv);
+              break; /* no more vars */
+            }
+          }
+        }else{
+          rc = 1;
+        }
+      }else{
+        rc = 1;
+      }
+      free(zNewEnv);
+      if( rc!=0 ) break;
+    }
+    if( !FreeEnvironmentStringsW(zzEnv) ){
+      rc = 2;
+    }
+  }else{
+    rc = 1;
+  }
+  return rc;
+#else
+  extern char **environ;
+  environ = 0;
+  return 0;
+#endif
+}
+
+/*
 ** Like fopen() but always takes a UTF8 argument.
 **
 ** This function assumes ExtFILE. In other words, symbolic links
@@ -1700,7 +1817,7 @@ FILE *fossil_fopen(const char *zName, const char *zMode){
 ** path element.
 */
 const char *file_is_win_reserved(const char *zPath){
-  static const char *azRes[] = { "CON", "PRN", "AUX", "NUL", "COM", "LPT" };
+  static const char *const azRes[] = { "CON", "PRN", "AUX", "NUL", "COM", "LPT" };
   static char zReturn[5];
   int i;
   while( zPath[0] ){
@@ -1933,7 +2050,7 @@ static int touch_cmd_vfile_mrid( int vid, char const *zName ){
 **
 */
 void touch_cmd(){
-  const char * zGlobList; /* -g List of glob patterns */ 
+  const char * zGlobList; /* -g List of glob patterns */
   const char * zGlobFile; /* -G File of glob patterns */
   Glob * pGlob = 0;       /* List of glob patterns */
   int verboseFlag;
@@ -2100,7 +2217,7 @@ void touch_cmd(){
       changeCount +=
         touch_cmd_stamp_one_file( zAbs, zArg, newMtime, dryRunFlag,
                                   verboseFlag, quietFlag );
-    }        
+    }
   }
   db_end_transaction(0);
   blob_reset(&absBuffer);

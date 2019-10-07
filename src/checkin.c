@@ -82,7 +82,7 @@ static void locate_unmanaged_files(
   nRoot = (int)strlen(g.zLocalRoot);
   if( argc==0 ){
     blob_init(&name, g.zLocalRoot, nRoot - 1);
-    vfile_scan(&name, blob_size(&name), scanFlags, pIgnore, 0);
+    vfile_scan(&name, blob_size(&name), scanFlags, pIgnore, 0, RepoFILE);
     blob_reset(&name);
   }else{
     for(i=0; i<argc; i++){
@@ -90,7 +90,7 @@ static void locate_unmanaged_files(
       zName = blob_str(&name);
       isDir = file_isdir(zName, RepoFILE);
       if( isDir==1 ){
-        vfile_scan(&name, nRoot-1, scanFlags, pIgnore, 0);
+        vfile_scan(&name, nRoot-1, scanFlags, pIgnore, 0, RepoFILE);
       }else if( isDir==0 ){
         fossil_warning("not found: %s", &zName[nRoot]);
       }else if( file_access(zName, R_OK) ){
@@ -1107,7 +1107,7 @@ void clean_cmd(void){
     Blob root;
     blob_init(&root, g.zLocalRoot, nRoot - 1);
     vfile_dir_scan(&root, blob_size(&root), scanFlags, pIgnore,
-                   pEmptyDirs);
+                   pEmptyDirs, RepoFILE);
     blob_reset(&root);
     db_prepare(&q,
         "SELECT %Q || x FROM dscan_temp"
@@ -1941,6 +1941,7 @@ static int tagCmp(const void *a, const void *b){
 ** COMMAND: commit
 **
 ** Usage: %fossil commit ?OPTIONS? ?FILE...?
+**    or: %fossil ci ?OPTIONS? ?FILE...?
 **
 ** Create a new version containing all of the changes in the current
 ** checkout.  You will be prompted to enter a check-in comment unless
@@ -2068,9 +2069,10 @@ void commit_cmd(void){
   int szD;               /* Size of the delta manifest */
   int szB;               /* Size of the baseline manifest */
   int nConflict = 0;     /* Number of unresolved merge conflicts */
-  int abortCommit = 0;
-  Blob ans;
-  char cReply;
+  int abortCommit = 0;   /* Abort the commit due to text format conversions */
+  Blob ans;              /* Answer to continuation prompts */
+  char cReply;           /* First character of ans */
+  int bRecheck = 0;      /* Repeat fork and closed-branch checks*/
 
   memset(&sCiInfo, 0, sizeof(sCiInfo));
   url_proxy_options();
@@ -2125,6 +2127,17 @@ void commit_cmd(void){
   outputManifest = db_get_manifest_setting();
   verify_all_options();
 
+  /* Get the ID of the parent manifest artifact */
+  vid = db_lget_int("checkout", 0);
+  if( vid==0 ){
+    useCksum = 1;
+    if( sCiInfo.zBranch==0 ) {
+      sCiInfo.zBranch=db_get("main-branch", 0);
+    }
+  }else if( content_is_private(vid) ){
+    g.markPrivate = 1;
+  }
+
   /* Do not allow the creation of a new branch using an existing open
   ** branch name unless the --force flag is used */
   if( sCiInfo.zBranch!=0
@@ -2151,14 +2164,6 @@ void commit_cmd(void){
   */
   if( !forceDelta && !db_get_boolean("seen-delta-manifest",0) ){
     forceBaseline = 1;
-  }
-
-  /* Get the ID of the parent manifest artifact */
-  vid = db_lget_int("checkout", 0);
-  if( vid==0 ){
-    useCksum = 1;
-  }else if( content_is_private(vid) ){
-    g.markPrivate = 1;
   }
 
   /*
@@ -2271,68 +2276,96 @@ void commit_cmd(void){
                  "--allow-empty to override.");
   }
 
-  /*
-  ** Do not allow a commit that will cause a fork unless the --allow-fork
-  ** or --force flags is used, or unless this is a private check-in.
-  ** The initial commit MUST have tags "trunk" and "sym-trunk".
+  /* This loop checks for potential forks and for check-ins against a
+  ** closed branch.  The checks are repeated once after interactive
+  ** check-in comment editing.
   */
-  if( sCiInfo.zBranch==0
-   && allowFork==0
-   && forceFlag==0
-   && g.markPrivate==0
-   && (vid==0 || !is_a_leaf(vid) || g.ckinLockFail)
-  ){
-    if( g.ckinLockFail ){
-      fossil_fatal("Might fork due to a check-in race with user \"%s\"\n"
-                   "Try \"update\" first, or --branch, or use --override-lock",
-                   g.ckinLockFail);
-    }else{
-      fossil_fatal("Would fork.  \"update\" first or use --branch or "
-                   "--allow-fork.");
-    }
-  }
-
-  /*
-  ** Do not allow a commit against a closed leaf unless the commit
-  ** ends up on a different branch.
-  */
-  if(
-      /* parent check-in has the "closed" tag... */
-      db_exists("SELECT 1 FROM tagxref"
-                " WHERE tagid=%d AND rid=%d AND tagtype>0",
-                TAG_CLOSED, vid)
-      /* ... and the new check-in has no --branch option or the --branch
-      ** option does not actually change the branch */
-   && (sCiInfo.zBranch==0
-       || db_exists("SELECT 1 FROM tagxref"
-                    " WHERE tagid=%d AND rid=%d AND tagtype>0"
-                    "   AND value=%Q", TAG_BRANCH, vid, sCiInfo.zBranch))
-  ){
-    fossil_fatal("cannot commit against a closed leaf");
-  }
-
-  if( zComment ){
-    blob_zero(&comment);
-    blob_append(&comment, zComment, -1);
-  }else if( zComFile ){
-    blob_zero(&comment);
-    blob_read_from_file(&comment, zComFile, ExtFILE);
-    blob_to_utf8_no_bom(&comment, 1);
-  }else if( dryRunFlag ){
-    blob_zero(&comment);
-  }else if( !noPrompt ){
-    char *zInit = db_text(0, "SELECT value FROM vvar WHERE name='ci-comment'");
-    prepare_commit_comment(&comment, zInit, &sCiInfo, vid);
-    if( zInit && zInit[0] && fossil_strcmp(zInit, blob_str(&comment))==0 ){
-      prompt_user("unchanged check-in comment.  continue (y/N)? ", &ans);
-      cReply = blob_str(&ans)[0];
-      blob_reset(&ans);
-      if( cReply!='y' && cReply!='Y' ){
-        fossil_exit(1);
+  do{
+    /*
+    ** Do not allow a commit that will cause a fork unless the --allow-fork
+    ** or --force flags is used, or unless this is a private check-in.
+    ** The initial commit MUST have tags "trunk" and "sym-trunk".
+    */
+    if( sCiInfo.zBranch==0
+     && allowFork==0
+     && forceFlag==0
+     && g.markPrivate==0
+     && (vid==0 || !is_a_leaf(vid) || g.ckinLockFail)
+    ){
+      if( g.ckinLockFail ){
+        fossil_fatal("Might fork due to a check-in race with user \"%s\"\n"
+                     "Try \"update\" first, or --branch, or "
+                     "use --override-lock",
+                     g.ckinLockFail);
+      }else{
+        fossil_fatal("Would fork.  \"update\" first or use --branch or "
+                     "--allow-fork.");
       }
     }
-    free(zInit);
-  }
+  
+    /*
+    ** Do not allow a commit against a closed leaf unless the commit
+    ** ends up on a different branch.
+    */
+    if(
+        /* parent check-in has the "closed" tag... */
+        db_exists("SELECT 1 FROM tagxref"
+                  " WHERE tagid=%d AND rid=%d AND tagtype>0",
+                  TAG_CLOSED, vid)
+        /* ... and the new check-in has no --branch option or the --branch
+        ** option does not actually change the branch */
+     && (sCiInfo.zBranch==0
+         || db_exists("SELECT 1 FROM tagxref"
+                      " WHERE tagid=%d AND rid=%d AND tagtype>0"
+                      "   AND value=%Q", TAG_BRANCH, vid, sCiInfo.zBranch))
+    ){
+      fossil_fatal("cannot commit against a closed leaf");
+    }
+
+    /* Always exit the loop on the second pass */
+    if( bRecheck ) break;
+  
+    /* Get the check-in comment.  This might involve prompting the
+    ** user for the check-in comment, in which case we should resync
+    ** to renew the check-in lock and repeat the checks for conflicts.
+    */
+    if( zComment ){
+      blob_zero(&comment);
+      blob_append(&comment, zComment, -1);
+    }else if( zComFile ){
+      blob_zero(&comment);
+      blob_read_from_file(&comment, zComFile, ExtFILE);
+      blob_to_utf8_no_bom(&comment, 1);
+    }else if( dryRunFlag ){
+      blob_zero(&comment);
+    }else if( !noPrompt ){
+      char *zInit = db_text(0,"SELECT value FROM vvar WHERE name='ci-comment'");
+      prepare_commit_comment(&comment, zInit, &sCiInfo, vid);
+      if( zInit && zInit[0] && fossil_strcmp(zInit, blob_str(&comment))==0 ){
+        prompt_user("unchanged check-in comment.  continue (y/N)? ", &ans);
+        cReply = blob_str(&ans)[0];
+        blob_reset(&ans);
+        if( cReply!='y' && cReply!='Y' ){
+          fossil_exit(1);
+        }
+      }
+      free(zInit);
+      db_multi_exec("REPLACE INTO vvar VALUES('ci-comment',%B)", &comment);
+      db_end_transaction(0);
+      db_begin_transaction();
+      if( !g.markPrivate && vid!=0 && !allowFork && !forceFlag ){
+        /* Do another auto-pull, renewing the check-in lock.  Then set
+        ** bRecheck so that we loop back above to verify that the check-in
+        ** is still not against a closed branch and still won't fork. */
+        int syncFlags = SYNC_PULL|SYNC_CKIN_LOCK;
+        if( autosync_loop(syncFlags, db_get_int("autosync-tries", 1), 1) ){
+          fossil_exit(1);
+        }
+        bRecheck = 1;
+      }
+    }
+  }while( bRecheck );
+
   if( blob_size(&comment)==0 ){
     if( !dryRunFlag ){
       if( !noPrompt ){
@@ -2347,10 +2380,6 @@ void commit_cmd(void){
         fossil_exit(1);
       }
     }
-  }else{
-    db_multi_exec("REPLACE INTO vvar VALUES('ci-comment',%B)", &comment);
-    db_end_transaction(0);
-    db_begin_transaction();
   }
 
   /*

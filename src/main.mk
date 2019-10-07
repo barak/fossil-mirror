@@ -53,12 +53,14 @@ SRC = \
   $(SRCDIR)/etag.c \
   $(SRCDIR)/event.c \
   $(SRCDIR)/export.c \
+  $(SRCDIR)/extcgi.c \
   $(SRCDIR)/file.c \
   $(SRCDIR)/finfo.c \
   $(SRCDIR)/foci.c \
   $(SRCDIR)/forum.c \
   $(SRCDIR)/fshell.c \
   $(SRCDIR)/fusefs.c \
+  $(SRCDIR)/fuzz.c \
   $(SRCDIR)/glob.c \
   $(SRCDIR)/graph.c \
   $(SRCDIR)/gzip.c \
@@ -266,12 +268,14 @@ TRANS_SRC = \
   $(OBJDIR)/etag_.c \
   $(OBJDIR)/event_.c \
   $(OBJDIR)/export_.c \
+  $(OBJDIR)/extcgi_.c \
   $(OBJDIR)/file_.c \
   $(OBJDIR)/finfo_.c \
   $(OBJDIR)/foci_.c \
   $(OBJDIR)/forum_.c \
   $(OBJDIR)/fshell_.c \
   $(OBJDIR)/fusefs_.c \
+  $(OBJDIR)/fuzz_.c \
   $(OBJDIR)/glob_.c \
   $(OBJDIR)/graph_.c \
   $(OBJDIR)/gzip_.c \
@@ -405,12 +409,14 @@ OBJ = \
  $(OBJDIR)/etag.o \
  $(OBJDIR)/event.o \
  $(OBJDIR)/export.o \
+ $(OBJDIR)/extcgi.o \
  $(OBJDIR)/file.o \
  $(OBJDIR)/finfo.o \
  $(OBJDIR)/foci.o \
  $(OBJDIR)/forum.o \
  $(OBJDIR)/fshell.o \
  $(OBJDIR)/fusefs.o \
+ $(OBJDIR)/fuzz.o \
  $(OBJDIR)/glob.o \
  $(OBJDIR)/graph.o \
  $(OBJDIR)/gzip.o \
@@ -505,11 +511,6 @@ OBJ = \
  $(OBJDIR)/xfer.o \
  $(OBJDIR)/xfersetup.o \
  $(OBJDIR)/zip.o
-
-APPNAME = fossil$(E)
-
-
-
 all:	$(OBJDIR) $(APPNAME)
 
 install:	all
@@ -567,8 +568,8 @@ $(OBJDIR)/default_css.h:	$(SRCDIR)/default_css.txt $(OBJDIR)/mkcss
 
 # Setup the options used to compile the included SQLite library.
 SQLITE_OPTIONS = -DNDEBUG=1 \
-                 -DSQLITE_THREADSAFE=0 \
                  -DSQLITE_DQS=0 \
+                 -DSQLITE_THREADSAFE=0 \
                  -DSQLITE_DEFAULT_MEMSTATUS=0 \
                  -DSQLITE_DEFAULT_WAL_SYNCHRONOUS=1 \
                  -DSQLITE_LIKE_DOESNT_MATCH_BLOBS \
@@ -594,8 +595,8 @@ SQLITE_OPTIONS = -DNDEBUG=1 \
 
 # Setup the options used to compile the included SQLite shell.
 SHELL_OPTIONS = -DNDEBUG=1 \
-                -DSQLITE_THREADSAFE=0 \
                 -DSQLITE_DQS=0 \
+                -DSQLITE_THREADSAFE=0 \
                 -DSQLITE_DEFAULT_MEMSTATUS=0 \
                 -DSQLITE_DEFAULT_WAL_SYNCHRONOUS=1 \
                 -DSQLITE_LIKE_DOESNT_MATCH_BLOBS \
@@ -686,7 +687,7 @@ EXTRAOBJ = \
 
 $(APPNAME):	$(OBJDIR)/headers $(OBJDIR)/codecheck1 $(OBJ) $(EXTRAOBJ)
 	$(OBJDIR)/codecheck1 $(TRANS_SRC)
-	$(TCC) -o $(APPNAME) $(OBJ) $(EXTRAOBJ) $(LIB)
+	$(TCC) $(TCCFLAGS) -o $(APPNAME) $(OBJ) $(EXTRAOBJ) $(LIB)
 
 # This rule prevents make from using its default rules to try build
 # an executable named "manifest" out of the file named "manifest.c"
@@ -742,12 +743,14 @@ $(OBJDIR)/headers:	$(OBJDIR)/page_index.h $(OBJDIR)/builtin_data.h $(OBJDIR)/def
 	$(OBJDIR)/etag_.c:$(OBJDIR)/etag.h \
 	$(OBJDIR)/event_.c:$(OBJDIR)/event.h \
 	$(OBJDIR)/export_.c:$(OBJDIR)/export.h \
+	$(OBJDIR)/extcgi_.c:$(OBJDIR)/extcgi.h \
 	$(OBJDIR)/file_.c:$(OBJDIR)/file.h \
 	$(OBJDIR)/finfo_.c:$(OBJDIR)/finfo.h \
 	$(OBJDIR)/foci_.c:$(OBJDIR)/foci.h \
 	$(OBJDIR)/forum_.c:$(OBJDIR)/forum.h \
 	$(OBJDIR)/fshell_.c:$(OBJDIR)/fshell.h \
 	$(OBJDIR)/fusefs_.c:$(OBJDIR)/fusefs.h \
+	$(OBJDIR)/fuzz_.c:$(OBJDIR)/fuzz.h \
 	$(OBJDIR)/glob_.c:$(OBJDIR)/glob.h \
 	$(OBJDIR)/graph_.c:$(OBJDIR)/graph.h \
 	$(OBJDIR)/gzip_.c:$(OBJDIR)/gzip.h \
@@ -1145,6 +1148,14 @@ $(OBJDIR)/export.o:	$(OBJDIR)/export_.c $(OBJDIR)/export.h $(SRCDIR)/config.h
 
 $(OBJDIR)/export.h:	$(OBJDIR)/headers
 
+$(OBJDIR)/extcgi_.c:	$(SRCDIR)/extcgi.c $(OBJDIR)/translate
+	$(OBJDIR)/translate $(SRCDIR)/extcgi.c >$@
+
+$(OBJDIR)/extcgi.o:	$(OBJDIR)/extcgi_.c $(OBJDIR)/extcgi.h $(SRCDIR)/config.h
+	$(XTCC) -o $(OBJDIR)/extcgi.o -c $(OBJDIR)/extcgi_.c
+
+$(OBJDIR)/extcgi.h:	$(OBJDIR)/headers
+
 $(OBJDIR)/file_.c:	$(SRCDIR)/file.c $(OBJDIR)/translate
 	$(OBJDIR)/translate $(SRCDIR)/file.c >$@
 
@@ -1192,6 +1203,14 @@ $(OBJDIR)/fusefs.o:	$(OBJDIR)/fusefs_.c $(OBJDIR)/fusefs.h $(SRCDIR)/config.h
 	$(XTCC) -o $(OBJDIR)/fusefs.o -c $(OBJDIR)/fusefs_.c
 
 $(OBJDIR)/fusefs.h:	$(OBJDIR)/headers
+
+$(OBJDIR)/fuzz_.c:	$(SRCDIR)/fuzz.c $(OBJDIR)/translate
+	$(OBJDIR)/translate $(SRCDIR)/fuzz.c >$@
+
+$(OBJDIR)/fuzz.o:	$(OBJDIR)/fuzz_.c $(OBJDIR)/fuzz.h $(SRCDIR)/config.h
+	$(XTCC) -o $(OBJDIR)/fuzz.o -c $(OBJDIR)/fuzz_.c
+
+$(OBJDIR)/fuzz.h:	$(OBJDIR)/headers
 
 $(OBJDIR)/glob_.c:	$(SRCDIR)/glob.c $(OBJDIR)/translate
 	$(OBJDIR)/translate $(SRCDIR)/glob.c >$@

@@ -330,7 +330,7 @@ void add_cmd(void){
     zName = blob_str(&fullName);
     isDir = file_isdir(zName, RepoFILE);
     if( isDir==1 ){
-      vfile_scan(&fullName, nRoot-1, scanFlags, pClean, pIgnore);
+      vfile_scan(&fullName, nRoot-1, scanFlags, pClean, pIgnore, RepoFILE);
     }else if( isDir==0 ){
       fossil_warning("not found: %s", zName);
     }else{
@@ -341,6 +341,7 @@ void add_cmd(void){
         char *prompt = mprintf("file \"%s\" matches \"ignore-glob\".  "
                                "Add it (a=all/y/N)? ", zTreeName);
         prompt_user(prompt, &ans);
+        fossil_free(prompt);
         cReply = blob_str(&ans)[0];
         blob_reset(&ans);
         if( cReply=='a' || cReply=='A' ){
@@ -679,7 +680,7 @@ void addremove_cmd(void){
   /* now we read the complete file structure into a temp table */
   pClean = glob_create(zCleanFlag);
   pIgnore = glob_create(zIgnoreFlag);
-  vfile_scan(&path, blob_size(&path), scanFlags, pClean, pIgnore);
+  vfile_scan(&path, blob_size(&path), scanFlags, pClean, pIgnore, RepoFILE);
   glob_free(pIgnore);
   glob_free(pClean);
   nAdd = add_files_in_sfile(vid);
