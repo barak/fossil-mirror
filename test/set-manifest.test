@@ -37,7 +37,7 @@ proc file_contains {fname match} {
   return 0
 }
 
-# We need a respository, so let it have one.
+# We need a repository, so let it have one.
 test_setup
 
 #### Verify classic behavior of the manifest setting

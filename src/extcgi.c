@@ -111,7 +111,7 @@ const char *ext_pathname_ok(const char *zName){
 **
 ** The /ext page is only functional if the "extroot: DIR" setting is
 ** found in the CGI script that launched Fossil, or if the "--extroot DIR"
-** flag is present when Fossil is lauched using the "server", "ui", or
+** flag is present when Fossil is launched using the "server", "ui", or
 ** "http" commands.  DIR must be an absolute pathname (relative to the
 ** chroot jail) of the root of the file hierarchy that implements the CGI
 ** functionality.  Executable files are CGI.  Non-executable files are
