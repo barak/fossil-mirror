@@ -1,5 +1,5 @@
-C merge\sversion-2.10
-D 2019-10-07T17:17:56.683
+C bump\sstandards\sversion\n\n
+D 2019-10-07T17:19:23.990
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .editorconfig 858e35d8c2d55ef6a89bce4c0077a76ac5cd94c6fad3cd238969cb9c2db9675a
 F .fossil-settings/binary-glob 34cc11b3b509fd5064afe327e70765799f314c9a
@@ -54,10 +54,10 @@ F auto.def cd0b3f9a15bbd884f56303aac2ad0456516671ea60e46cc8825a687792ce4969
 F autosetup/LICENSE 34b2f1d7acba3eeb992e4281307640989cd08d0a
 F autosetup/README.autosetup ce1de4d412c2c929f43da338d3cb19e3644f3af238dd499e180dae432152a03c
 F autosetup/autosetup 26637357e40f2fb404a17f613ba6bb9230fa40ee097ec5822bba6efb3c34ddbe x
-F autosetup/autosetup-config.guess 3b75d9d5f8326458c69745d92193103e27e0481d2f9abd1bae73623cfc598114 x autosetup/config.guess
-F autosetup/autosetup-config.sub 0697a5484327430771886185831e84042e91ce215da18fa282616d22c26f478e x autosetup/config.sub
-F autosetup/autosetup-find-tclsh 2d5d8c103ed193f0627e79467df9e476b0cffe1c5ef99626c2bae5d3cb8ff005 x autosetup/find-tclsh
-F autosetup/autosetup-test-tclsh f197a4c7bfa8bde7672864fc36dcbc7f85bdda6c x autosetup/test-tclsh
+F autosetup/autosetup-config.guess 3b75d9d5f8326458c69745d92193103e27e0481d2f9abd1bae73623cfc598114 x
+F autosetup/autosetup-config.sub 0697a5484327430771886185831e84042e91ce215da18fa282616d22c26f478e x
+F autosetup/autosetup-find-tclsh 2d5d8c103ed193f0627e79467df9e476b0cffe1c5ef99626c2bae5d3cb8ff005 x
+F autosetup/autosetup-test-tclsh f197a4c7bfa8bde7672864fc36dcbc7f85bdda6c x
 F autosetup/cc-db.tcl 4d410387006384f65ec986af45c5799eab1b8ef33f2b74bbcb976c0988ee8279
 F autosetup/cc-lib.tcl 8f02d3adf5051668b603b89ef907fdc74e394ca164207d4db7c33c9a82da4f28
 F autosetup/cc-shared.tcl 381d7305415d3c4509554cc762e094b6b4897fa05ba1fe6d103c02c71405c3d3
@@ -321,7 +321,7 @@ F compat/zlib/zutil.h f32dab3880d47eca1b71c308cf6542b32941b23c
 F configure 05e4b3ca2e1ff283d82e0c4ced9215edc47157c4b4ba6839fb7f895bf224dcd2 x
 F debian/README.Debian 81dbebe77d57559e2e00c13d51b3f64f45e2dbc89ea3c0cf076153d4af78408c
 F debian/changelog d38ad05f6e6a138fb731ef5ebd7ed415e9a5ca779d78b94dc7a400335dd07253
-F debian/control a85104bf28c7414a72b32242211ee76556884ae20c8520d35eb4477e808eab35
+F debian/control 3b5639a3abf7f9a2f08da6c773e59daf899bfad7bb32dedb41da098ce2320ef6
 F debian/copyright 6868486c1595673321e52bc60f1fb3dc4375cf43a2fe8653305527eb6a3cb07a
 F debian/fossil.bash-completion e1e460f40668463a8e3e8df9a99de8f9301c9730
 F debian/fossil.docs 45a770a8534b1a439a32546145737975a9217b30
@@ -796,7 +796,7 @@ F www/build-icons/openbsd.gif f6eeddc2b1bcb0b5fbcac7a6be1afc98d4444b48
 F www/build-icons/src.gif b82914bcd9de7a1511db313dafdf37cfda0ab055
 F www/build-icons/win32.gif bfc3d418ac068df331d80494e8f866c40eb744c3
 F www/build.wiki bcf17529f482d64242778d4b7c0730f499c3c27426e49b1d326a879b70817c78
-F www/caps/admin-v-setup.md c3b9ac2648ac6665bcec46a29a3361bedd0ad08b168f388a1a7bc686cebe9aaf w www/admin-v-setup.md
+F www/caps/admin-v-setup.md c3b9ac2648ac6665bcec46a29a3361bedd0ad08b168f388a1a7bc686cebe9aaf
 F www/caps/impl.md 0e8cdffdbe3f7b40b65c8b6b359b9bf80b6687e3e1964f1fae7cd9a3718a2651
 F www/caps/index.md 3b128763bffea03157b88410b839dabbcb5cabf7b873de1c95fda3847b571793
 F www/caps/login-groups.md 521dc08f39657f8e5b778cb35e15bd94257ba4dd3465a04cb8c822d437da6b41
@@ -906,7 +906,7 @@ F www/server/any/stunnel.md ee439f644292a5f6272a97b95a9e5bd2c86fd753ec2cd6c78db4
 F www/server/any/xinetd.md dd52096aff2f39ef55072724e16bed332a4ce813260515e7e7cd8f16706d83bb
 F www/server/debian/nginx.md f9e435dd8557b4094e889fa6f0378f8bc4fffde14ef9e9c84e27dde0f8e4c93e
 F www/server/debian/service.md a55670c4ec6a1b2853cf632b4596a03a4ae7b460e8735ff74f64388630f81b21
-F www/server/index.html 53527cad50f6a442a4b15c12f4ce133035893c1b71c4439e5f833280ffdf60e4 w www/server.wiki
+F www/server/index.html 53527cad50f6a442a4b15c12f4ce133035893c1b71c4439e5f833280ffdf60e4
 F www/server/macos/service.md 8dc953ab84f55046d9f516bfd2497f5b5d2989943a091f3e7095745f0c67732e
 F www/server/whyuseaserver.wiki 716bdc37dda1d5c147a7ded08b9ea8223f85a7aeb57ed00621efcfa72862d645
 F www/server/windows/cgi-bin-perm.png 8d72c174650311d18cb15cda0278a9148f87bc45ef8819aab7946e1ee7d3b7be
@@ -939,8 +939,8 @@ F www/webui.wiki 5b434406349aa3c2553513ceab666633747c0a6de6432573a3bc0507c210b94
 F www/whyusefossil.wiki 730056ead695df82c7aa9dd099cf34b4bfbfd473
 F www/wikitheory.wiki d11fd8dfa727887d941fe998fd48030c60276b81c1d460e656ac5acb5e87af99
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P ba22640229a279fe35ceaa9c4648ab02e94dcd32065d2f24e93803a0838a5cbe 9d9ef82234f63758ff19a121677cc81a6c43d70c9995207e9237ddb4a7dcc8bf
-R 244cd91b1e4412b6b4f50a1cd9120563
+P 870937e909dea16cd829033dd1aabd82f5fb37bfcc1755ce98cb8b5f3d7812c5
+R 19925ab1c8113e8220c7b1b9b7346a40
 U barak
-Z 05948bed87e67633e4182b8fa7491572
+Z 98e42a03da22683715e22093ec18672c
 # Remove this line to create a well-formed Fossil manifest.
