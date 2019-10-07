@@ -67,7 +67,4 @@ Brief "cheat sheet" of relevant fossil commands.
  fossil co trunk
  tar --exclude .fslckout --exclude _FOSSIL_ -C .. -zcf fossil_${VER}.orig.tar.gz fossil
 
- # upstream spelling error to consider addressing:
- rgrep -i '\(respository\|recepient\|accidently\)'
-
- -- Barak A. Pearlmutter <bap@debian.org>, Wed, 28 Aug 2019 11:40:34 +0100
+ -- Barak A. Pearlmutter <bap@debian.org>, Mon,  7 Oct 2019 18:37:29 +0100

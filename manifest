@@ -1,5 +1,5 @@
-C spelling
-D 2019-10-07T17:33:30.800
+C spelling\sfixed,\sremove\sfrom\sREADME.Debian\n\n
+D 2019-10-07T17:37:50.131
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .editorconfig 858e35d8c2d55ef6a89bce4c0077a76ac5cd94c6fad3cd238969cb9c2db9675a
 F .fossil-settings/binary-glob 34cc11b3b509fd5064afe327e70765799f314c9a
@@ -319,7 +319,7 @@ F compat/zlib/zlib2ansi e9859eecf47ae66280573d73969c061989615134 x
 F compat/zlib/zutil.c 2f1fcc93488ac84acf984415b6ea0bd63c72aa49
 F compat/zlib/zutil.h f32dab3880d47eca1b71c308cf6542b32941b23c
 F configure 05e4b3ca2e1ff283d82e0c4ced9215edc47157c4b4ba6839fb7f895bf224dcd2 x
-F debian/README.Debian 81dbebe77d57559e2e00c13d51b3f64f45e2dbc89ea3c0cf076153d4af78408c
+F debian/README.Debian 2d1eb9c0f32e02f0db1df55e6580860b8c91da2dd13aecf52af4e5dd91b85ead
 F debian/changelog 8a1d3edabb6473769deb0d32a05040c5d1ad0c94d88570d03162a428f162eee0
 F debian/control 3b5639a3abf7f9a2f08da6c773e59daf899bfad7bb32dedb41da098ce2320ef6
 F debian/copyright 6868486c1595673321e52bc60f1fb3dc4375cf43a2fe8653305527eb6a3cb07a
@@ -939,8 +939,8 @@ F www/webui.wiki 5b434406349aa3c2553513ceab666633747c0a6de6432573a3bc0507c210b94
 F www/whyusefossil.wiki 730056ead695df82c7aa9dd099cf34b4bfbfd473
 F www/wikitheory.wiki d11fd8dfa727887d941fe998fd48030c60276b81c1d460e656ac5acb5e87af99
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P a56cb60278a7370c519051d33f4c4ef6191a9d30c1d00e4015977b9353f58c66
-R 7d22bb0e224e9646640d0f9430387909
+P ab7b3a3c4cbd40540c39107fa4757dc036bc3f6a1890b52fa2a4797d791e9c6d
+R 32c0d94e41db02406775b3e3e6523351
 U barak
-Z f066ba4cb562730597048442027cafa9
+Z 48d29cd8b2e3811a6c4aa38dc1bc3755
 # Remove this line to create a well-formed Fossil manifest.
