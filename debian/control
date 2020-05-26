@@ -13,6 +13,7 @@ Build-depends: debhelper-compat (= 13),
                tcl | tclsh,
                tcl-dev,
                zlib1g-dev | libz-dev
+Rules-Requires-Root: no
 Vcs-Fossil: https://people.debian.org/~bap/fossil.fsl
 Homepage: https://fossil-scm.org
 
