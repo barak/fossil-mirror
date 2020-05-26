@@ -1,5 +1,5 @@
-C merge\sversion-2.11
-D 2020-05-26T14:59:38.027
+C bump\spolicy\sand\sdh\sversions\sand\slog\schanges
+D 2020-05-26T15:08:37.109
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .editorconfig 132c5a213aa3ce13dcc9c19f8a7ea306e3640bec4ae693378116cee339c34a1a
 F .fossil-settings/binary-glob 34cc11b3b509fd5064afe327e70765799f314c9a
@@ -320,8 +320,8 @@ F compat/zlib/zutil.c 2f1fcc93488ac84acf984415b6ea0bd63c72aa49
 F compat/zlib/zutil.h f32dab3880d47eca1b71c308cf6542b32941b23c
 F configure 05e4b3ca2e1ff283d82e0c4ced9215edc47157c4b4ba6839fb7f895bf224dcd2 x
 F debian/README.Debian 2d1eb9c0f32e02f0db1df55e6580860b8c91da2dd13aecf52af4e5dd91b85ead
-F debian/changelog 8a1d3edabb6473769deb0d32a05040c5d1ad0c94d88570d03162a428f162eee0
-F debian/control 3b5639a3abf7f9a2f08da6c773e59daf899bfad7bb32dedb41da098ce2320ef6
+F debian/changelog d66060639eac95349c9e14cc1b4d764d47b358d305ac0686ccdcc72c3d4e012b
+F debian/control c28fd0380417913d6d79a02a33a93f01be29d639f12df0834847133387d49ee6
 F debian/copyright 6868486c1595673321e52bc60f1fb3dc4375cf43a2fe8653305527eb6a3cb07a
 F debian/fossil.bash-completion e1e460f40668463a8e3e8df9a99de8f9301c9730
 F debian/fossil.docs 45a770a8534b1a439a32546145737975a9217b30
@@ -990,8 +990,8 @@ F www/webui.wiki 5b434406349aa3c2553513ceab666633747c0a6de6432573a3bc0507c210b94
 F www/whyusefossil.wiki dbd69d8ff58ecec64500aa7ac73bec5f09ab7eea99feabdeeff02e0f08c4c50c
 F www/wikitheory.wiki 91e6796caf7c8fbed00a58d3eea377d0f89f494f5637fd8af09dc41290e716f6
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P d536454b07dba143f96ad19539c7c5b5826eb72977fd47c98fad175c2e4b78df 4df919803b6716ecd8bcbb01963c54c3647777e572d24c86cb816a86ec6af93c
-R 05a64a20a0069b4cf8155c9ad07ee727
+P a1a58e1d60f59eebaa94ff695775d4d82e2b6ef42638112a4ff5b643ccb4c41e
+R e5f97ab50fe5251cf41ca01e654a329b
 U barak
-Z e76c8e3e375a26db71570c394ba32c32
+Z 0f003b87b5ef8d3c2f548b0ce39e12b6
 # Remove this line to create a well-formed Fossil manifest.

@@ -2,8 +2,8 @@ Source: fossil
 Section: vcs
 Priority: optional
 Maintainer: Barak A. Pearlmutter <bap@debian.org>
-Standards-Version: 4.4.1
-Build-depends: debhelper-compat (= 12),
+Standards-Version: 4.5.0
+Build-depends: debhelper-compat (= 13),
                bash-completion,
                libfuse-dev,
                libreadline-dev,
