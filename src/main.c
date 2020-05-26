@@ -80,7 +80,6 @@
 struct FossilUserPerms {
   char Setup;            /* s: use Setup screens on web interface */
   char Admin;            /* a: administrative permission */
-  char Delete;           /* d: delete wiki or tickets */
   char Password;         /* p: change password */
   char Query;            /* q: create new reports */
   char Write;            /* i: xfer inbound. check-in */
@@ -269,8 +268,9 @@ struct Global {
                                   false. This changes how errors are
                                   reported. In JSON mode we try to
                                   always output JSON-form error
-                                  responses and always exit() with
-                                  code 0 to avoid an HTTP 500 error.
+                                  responses and always (in CGI mode)
+                                  exit() with code 0 to avoid an HTTP
+                                  500 error.
                                */
     int resultCode;            /* used for passing back specific codes
                                ** from /json callbacks. */
@@ -366,6 +366,9 @@ static void fossil_atexit(void) {
   if(g.db){
     db_close(0);
   }
+  manifest_clear_cache();
+  content_clear_cache(1);
+  rebuild_clear_cache();
   /*
   ** FIXME: The next two lines cannot always be enabled; however, they
   **        are very useful for tracking down TH1 memory leaks.
@@ -781,7 +784,17 @@ int fossil_main(int argc, char **argv){
       }
       g.argc = nNewArgc;
       g.argv = zNewArgv;
-    }
+#if 0
+    }else if( g.argc==2 && file_is_repository(g.argv[1]) ){
+      char **zNewArgv = fossil_malloc( sizeof(char*)*4 );
+      zNewArgv[0] = g.argv[0];
+      zNewArgv[1] = "ui";
+      zNewArgv[2] = g.argv[1];
+      zNewArgv[3] = 0;
+      g.argc = 3;
+      g.argv = zNewArgv;
+#endif
+    }   
     zCmdName = g.argv[1];
   }
 #ifndef _WIN32
@@ -811,6 +824,21 @@ int fossil_main(int argc, char **argv){
 #endif
   g.zCmdName = zCmdName;
   rc = dispatch_name_search(zCmdName, CMDFLAG_COMMAND|CMDFLAG_PREFIX, &pCmd);
+  if( rc==1 && g.argc==2 && file_is_repository(g.argv[1]) ){
+    /* If the command-line is "fossil ABC" and "ABC" is no a valid command,
+    ** but "ABC" is the name of a repository file, make the command be
+    ** "fossil ui ABC" instead.
+    */
+    char **zNewArgv = fossil_malloc( sizeof(char*)*4 );
+    zNewArgv[0] = g.argv[0];
+    zNewArgv[1] = "ui";
+    zNewArgv[2] = g.argv[1];
+    zNewArgv[3] = 0;
+    g.argc = 3;
+    g.argv = zNewArgv;
+    g.zCmdName = zCmdName = "ui";
+    rc = dispatch_name_search(zCmdName, CMDFLAG_COMMAND|CMDFLAG_PREFIX, &pCmd);
+  }
   if( rc==1 ){
 #ifdef FOSSIL_ENABLE_TH1_HOOKS
     if( !g.isHTTP && !g.fNoThHook ){
@@ -842,6 +870,13 @@ int fossil_main(int argc, char **argv){
                  g.argv[0], zCmdName, g.argv[0], blob_str(&couldbe), g.argv[0]);
     fossil_exit(1);
   }
+#ifdef FOSSIL_ENABLE_JSON
+  else if( rc==0 && strcmp("json",pCmd->zName)==0 ){
+    g.json.isJsonMode = 1;
+  }else{
+    assert(!g.json.isJsonMode && "JSON-mode misconfiguration.");
+  }
+#endif
   atexit( fossil_atexit );
 #ifdef FOSSIL_ENABLE_TH1_HOOKS
   /*
@@ -902,12 +937,24 @@ static void remove_from_argv(int i, int n){
 
 
 /*
-** Look for a command-line option.  If present, return a pointer.
-** Return NULL if missing.
+** Look for a command-line option.  If present, remove it from the
+** argument list and return a pointer to either the flag's name (if
+** hasArg==0), sans leading - or --, or its value (if hasArg==1).
+** Return NULL if the flag is not found.
+**
+** zLong is the "long" form of the flag and zShort is the
+** short/abbreviated form (typically a single letter, but it may be
+** longer). zLong must not be NULL, but zShort may be.
 **
 ** hasArg==0 means the option is a flag.  It is either present or not.
-** hasArg==1 means the option has an argument.  Return a pointer to the
-** argument.
+** hasArg==1 means the option has an argument, in which case a pointer
+** to the argument's value is returned. For zLong, a flag value (if
+** hasValue==1) may either be in the form (--flag=value) or (--flag
+** value). For zShort, only the latter form is accepted.
+**
+** If a standalone argument of "--" is encountered in the argument
+** list while searching for the given flag(s), this routine stops
+** searching and NULL is returned.
 */
 const char *find_option(const char *zLong, const char *zShort, int hasArg){
   int i;
@@ -923,7 +970,8 @@ const char *find_option(const char *zLong, const char *zShort, int hasArg){
     z++;
     if( z[0]=='-' ){
       if( z[1]==0 ){
-        remove_from_argv(i, 1);
+        /* Stop processing at "--" without consuming it.
+           verify_all_options() will consume this flag. */
         break;
       }
       z++;
@@ -957,7 +1005,13 @@ int has_option(const char *zOption){
     char *z = g.argv[i];
     if( z[0]!='-' ) continue;
     z++;
-    if( z[0]=='-' ) z++;
+    if( z[0]=='-' ){
+      if( z[1]==0 ){
+        /* Stop processing at "--" */
+        break;
+      }
+      z++;
+    }
     if( strncmp(z,zOption,n)==0 && (z[n]==0 || z[n]=='=') ) return 1;
   }
   return 0;
@@ -971,7 +1025,10 @@ int has_option(const char *zOption){
 **
 ** pnUsedArgs is used to store the number of matched arguments.
 **
-** Caller is responsible to free allocated memory.
+** Caller is responsible for freeing allocated memory by passing the
+** head of the array (not each entry) to fossil_free(). (The
+** individual entries have the same lifetime as values returned from
+** find_option().)
 */
 const char **find_repeatable_option(
   const char *zLong,
@@ -1015,18 +1072,37 @@ const char *find_repository_option(){
 ** Verify that there are no unprocessed command-line options.  If
 ** Any remaining command-line argument begins with "-" print
 ** an error message and quit.
+**
+** Exception: if "--" is encountered, it is consumed from the argument
+** list and this function immediately returns. The effect is to treat
+** all arguments after "--" as non-flags (conventionally used to
+** enable passing-in of filenames which start with a dash).
+**
+** This function must normally only be called one time per app
+** invokation. The exception is commands which process their
+** arguments, call this to confirm that there are no extraneous flags,
+** then modify the arguments list for forwarding to another
+** (sub)command (which itself will call this to confirm its own
+** arguments).
 */
 void verify_all_options(void){
   int i;
   for(i=1; i<g.argc; i++){
-    if( g.argv[i][0]=='-' && g.argv[i][1]!=0 ){
-      fossil_fatal(
-        "unrecognized command-line option, or missing argument: %s",
-        g.argv[i]);
+    const char * arg = g.argv[i];
+    if( arg[0]=='-' ){
+      if( arg[1]=='-' && arg[2]==0 ){
+        /* Remove "--" from the list and treat all following
+        ** arguments as non-flags. */
+        remove_from_argv(i, 1);
+        break;
+      }else if( arg[1]!=0 ){
+        fossil_fatal(
+          "unrecognized command-line option or missing argument: %s",
+          arg);
+      }
     }
   }
 }
-
 
 /*
 ** This function returns a human readable version string.
@@ -1042,7 +1118,7 @@ const char *get_version(){
 ** the "version" command and "test-version" web page.  It assumes the blob
 ** passed to it is uninitialized; otherwise, it will leak memory.
 */
-static void get_version_blob(
+void fossil_version_blob(
   Blob *pOut,                 /* Write the manifest here */
   int bVerbose                /* Non-zero for full information. */
 ){
@@ -1177,7 +1253,7 @@ void version_cmd(void){
 
   /* We should be done with options.. */
   verify_all_options();
-  get_version_blob(&versionInfo, verboseFlag);
+  fossil_version_blob(&versionInfo, verboseFlag);
   fossil_print("%s", blob_str(&versionInfo));
 }
 
@@ -1200,7 +1276,7 @@ void test_version_page(void){
   verboseFlag = PD("verbose", 0) != 0;
   style_header("Version Information");
   style_submenu_element("Stat", "stat");
-  get_version_blob(&versionInfo, verboseFlag);
+  fossil_version_blob(&versionInfo, verboseFlag);
   @ <pre>
   @ %h(blob_str(&versionInfo))
   @ </pre>
@@ -1468,7 +1544,21 @@ static void process_one_web_page(
   }else if( PB("localtime") ){
     g.fTimeFormat = 2;
   }
-
+#ifdef FOSSIL_ENABLE_JSON
+  /*
+  ** Ensure that JSON mode is set up if we're visiting /json, to allow
+  ** us to customize some following behaviour (error handling and only
+  ** process JSON-mode POST data if we're actually in a /json
+  ** page). This is normally set up before this routine is called, but
+  ** it looks like the ssh_request_loop() approach to dispatching
+  ** might bypass that.
+  */
+  if( g.json.isJsonMode==0 && zPathInfo!=0
+      && 0==strncmp("/json",zPathInfo,5)
+      && (zPathInfo[5]==0 || zPathInfo[5]=='/')){
+    g.json.isJsonMode = 1;
+  }
+#endif
   /* If the repository has not been opened already, then find the
   ** repository based on the first element of PATH_INFO and open it.
   */
@@ -1599,7 +1689,7 @@ static void process_one_web_page(
 
       /* If we reach this point, it means that the search of the PATH_INFO
       ** string is finished.  Either zRepo contains the name of the
-      ** repository to be used, or else no repository could be found an
+      ** repository to be used, or else no repository could be found and
       ** some kind of error response is required.
       */
       if( szFile<1024 ){
@@ -1623,7 +1713,7 @@ static void process_one_web_page(
           @ </head><body>
           @ <h1>Not Found</h1>
           @ </body>
-          cgi_set_status(404, "not found");
+          cgi_set_status(404, "Not Found");
           cgi_reply();
         }
         return;
@@ -1730,17 +1820,6 @@ static void process_one_web_page(
     }
     break;
   }
-#ifdef FOSSIL_ENABLE_JSON
-  /*
-  ** Workaround to allow us to customize some following behaviour for
-  ** JSON mode.  The problem is, we don't always know if we're in JSON
-  ** mode at this point (namely, for GET mode we don't know but POST
-  ** we do), so we snoop g.zPath and cheat a bit.
-  */
-  if( !g.json.isJsonMode && g.zPath && (0==strncmp("json",g.zPath,4)) ){
-    g.json.isJsonMode = 1;
-  }
-#endif
   if( g.zExtra ){
     /* CGI parameters get this treatment elsewhere, but places like getfile
     ** will use g.zExtra directly.
@@ -1996,17 +2075,22 @@ void cmd_cgi(void){
   Glob *pFileGlob = 0;               /* Pattern for files */
   int allowRepoList = 0;             /* Allow lists of repository files */
   Blob config, line, key, value, value2;
-  if( g.argc==3 && fossil_strcmp(g.argv[1],"cgi")==0 ){
-    zFile = g.argv[2];
-  }else{
-    zFile = g.argv[1];
-  }
+  /* Initialize the CGI environment. */
   g.httpOut = stdout;
   g.httpIn = stdin;
   fossil_binary_mode(g.httpOut);
   fossil_binary_mode(g.httpIn);
   g.cgiOutput = 1;
   fossil_set_timeout(FOSSIL_DEFAULT_TIMEOUT);
+  /* Find the name of the CGI control file */
+  if( g.argc==3 && fossil_strcmp(g.argv[1],"cgi")==0 ){
+    zFile = g.argv[2];
+  }else if( g.argc>=2 ){
+    zFile = g.argv[1];
+  }else{
+    cgi_panic("No CGI control file specified");
+  }
+  /* Read and parse the CGI control file. */
   blob_read_from_file(&config, zFile, ExtFILE);
   while( blob_line(&config, &line) ){
     if( !blob_token(&line, &key) ) continue;
@@ -2103,16 +2187,6 @@ void cmd_cgi(void){
       blob_reset(&value2);
       continue;
     }
-    if( blob_eq(&key, "debug:") && blob_token(&line, &value) ){
-      /* debug: FILENAME
-      **
-      ** Causes output from cgi_debug() and CGIDEBUG(()) calls to go
-      ** into FILENAME.
-      */
-      g.fDebug = fossil_fopen(blob_str(&value), "ab");
-      blob_reset(&value);
-      continue;
-    }
     if( blob_eq(&key, "errorlog:") && blob_token(&line, &value) ){
       /* errorlog: FILENAME
       **
@@ -2161,6 +2235,21 @@ void cmd_cgi(void){
       */
       skin_use_alternative(blob_str(&value));
       blob_reset(&value);
+      continue;
+    }
+    if( blob_eq(&key, "cgi-debug:") && blob_token(&line, &value) ){
+      /* cgi-debug: FILENAME
+      **
+      ** Causes output from cgi_debug() and CGIDEBUG(()) calls to go
+      ** into FILENAME.  Useful for debugging CGI configuration problems.
+      */
+      char *zNow = cgi_iso8601_datestamp();
+      cgi_load_environment();
+      g.fDebug = fossil_fopen(blob_str(&value), "ab");
+      blob_reset(&value);
+      cgi_debug("-------- BEGIN cgi at %s --------\n", zNow);
+      fossil_free(zNow);
+      cgi_print_all(1,2);
       continue;
     }
   }
@@ -2436,14 +2525,20 @@ void ssh_request_loop(const char *zIpAddr, Glob *FileGlob){
 **
 ** Options:
 **   --th-trace          trace TH1 execution (for debugging purposes)
+**   --usercap   CAP     user capability string.  (Default: "sx")
 **
 */
 void cmd_test_http(void){
   const char *zIpAddr;    /* IP address of remote client */
+  const char *zUserCap;
 
   Th_InitTraceLog();
-  login_set_capabilities("sx", 0);
-  g.useLocalauth = 1;
+  zUserCap = find_option("usercap",0,1);
+  if( zUserCap==0 ){
+    g.useLocalauth = 1;
+    zUserCap = "sx";
+  }
+  login_set_capabilities(zUserCap, 0);
   g.httpIn = stdin;
   g.httpOut = stdout;
   fossil_binary_mode(g.httpOut);

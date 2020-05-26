@@ -176,10 +176,12 @@ char *cgi_extract_content(void){
 /*
 ** Additional information used to form the HTTP reply
 */
-static const char *zContentType = "text/html";     /* Content type of the reply */
-static const char *zReplyStatus = "OK";            /* Reply status description */
+static const char *zContentType = "text/html";   /* Content type of the reply */
+static const char *zReplyStatus = "OK";          /* Reply status description */
 static int iReplyStatus = 200;               /* Reply status code */
 static Blob extraHeader = BLOB_INITIALIZER;  /* Extra header text */
+static int rangeStart = 0;                   /* Start of Range: */
+static int rangeEnd = 0;                     /* End of Range: plus 1 */
 
 /*
 ** Set the reply content type
@@ -211,6 +213,12 @@ void cgi_set_status(int iStat, const char *zStat){
 */
 void cgi_append_header(const char *zLine){
   blob_append(&extraHeader, zLine, -1);
+}
+void cgi_printf_header(const char *zLine, ...){
+  va_list ap;
+  va_start(ap, zLine);
+  blob_vappendf(&extraHeader, zLine, ap);
+  va_end(ap);
 }
 
 /*
@@ -268,18 +276,26 @@ void cgi_reply(void){
   }
 
   if( g.fullHttpReply ){
+    if( rangeEnd>0
+     && iReplyStatus==200 
+     && fossil_strcmp(P("REQUEST_METHOD"),"GET")==0
+    ){
+      iReplyStatus = 206;
+      zReplyStatus = "Partial Content";
+    }
     fprintf(g.httpOut, "HTTP/1.0 %d %s\r\n", iReplyStatus, zReplyStatus);
     fprintf(g.httpOut, "Date: %s\r\n", cgi_rfc822_datestamp(time(0)));
     fprintf(g.httpOut, "Connection: close\r\n");
     fprintf(g.httpOut, "X-UA-Compatible: IE=edge\r\n");
   }else{
+    assert( rangeEnd==0 );
     fprintf(g.httpOut, "Status: %d %s\r\n", iReplyStatus, zReplyStatus);
   }
   if( g.isConst ){
     /* isConst means that the reply is guaranteed to be invariant, even
     ** after configuration changes and/or Fossil binary recompiles. */
     fprintf(g.httpOut, "Cache-Control: max-age=31536000\r\n");
-  }else if( etag_tag()!=0 ){
+  }else if( etag_tag()[0]!=0 ){
     fprintf(g.httpOut, "ETag: %s\r\n", etag_tag());
     fprintf(g.httpOut, "Cache-Control: max-age=%d\r\n", etag_maxage());
   }else{
@@ -315,14 +331,14 @@ void cgi_reply(void){
   /* Content intended for logged in users should only be cached in
   ** the browser, not some shared location.
   */
-  fprintf(g.httpOut, "Content-Type: %s; charset=utf-8\r\n", zContentType);
-  if( fossil_strcmp(zContentType,"application/x-fossil")==0 ){
-    cgi_combine_header_and_body();
-    blob_compress(&cgiContent[0], &cgiContent[0]);
-  }
+  if( iReplyStatus!=304 ) {
+    fprintf(g.httpOut, "Content-Type: %s; charset=utf-8\r\n", zContentType);
+    if( fossil_strcmp(zContentType,"application/x-fossil")==0 ){
+      cgi_combine_header_and_body();
+      blob_compress(&cgiContent[0], &cgiContent[0]);
+    }
 
-  if( iReplyStatus != 304 ) {
-    if( is_gzippable() ){
+    if( is_gzippable() && iReplyStatus!=206 ){
       int i;
       gzip_begin(0);
       for( i=0; i<2; i++ ){
@@ -335,24 +351,38 @@ void cgi_reply(void){
       fprintf(g.httpOut, "Vary: Accept-Encoding\r\n");
     }
     total_size = blob_size(&cgiContent[0]) + blob_size(&cgiContent[1]);
+    if( iReplyStatus==206 ){
+      fprintf(g.httpOut, "Content-Range: bytes %d-%d/%d\r\n",
+              rangeStart, rangeEnd-1, total_size);
+      total_size = rangeEnd - rangeStart; 
+    }
     fprintf(g.httpOut, "Content-Length: %d\r\n", total_size);
   }else{
     total_size = 0;
   }
   fprintf(g.httpOut, "\r\n");
-  if( total_size>0 && iReplyStatus != 304
+  if( total_size>0
+   && iReplyStatus!=304
    && fossil_strcmp(P("REQUEST_METHOD"),"HEAD")!=0
   ){
     int i, size;
     for(i=0; i<2; i++){
       size = blob_size(&cgiContent[i]);
-      if( size>0 ){
-        fwrite(blob_buffer(&cgiContent[i]), 1, size, g.httpOut);
+      if( size<=rangeStart ){
+        rangeStart -= size;
+      }else{
+        int n = size - rangeStart;
+        if( n>total_size ){
+          n = total_size;
+        }
+        fwrite(blob_buffer(&cgiContent[i])+rangeStart, 1, n, g.httpOut);
+        rangeStart = 0;
+        total_size -= n;
       }
     }
   }
   fflush(g.httpOut);
-  CGIDEBUG(("DONE\n"));
+  CGIDEBUG(("-------- END cgi ---------\n"));
 
   /* After the webpage has been sent, do any useful background
   ** processing.
@@ -404,6 +434,27 @@ NORETURN void cgi_redirectf(const char *zFormat, ...){
   va_start(ap, zFormat);
   cgi_redirect(vmprintf(zFormat, ap));
   va_end(ap);
+}
+
+/*
+** Add a "Content-disposition: attachment; filename=%s" header to the reply.
+*/
+void cgi_content_disposition_filename(const char *zFilename){
+  char *z;
+  int i, n;
+
+           /*  0123456789 123456789 123456789 123456789 123456*/
+  z = mprintf("Content-Disposition: attachment; filename=\"%s\";\r\n",
+                    file_tail(zFilename));
+  n = (int)strlen(z);
+  for(i=43; i<n-4; i++){
+    char c = z[i];
+    if( fossil_isalnum(c) ) continue;
+    if( c=='.' || c=='-' || c=='/' ) continue;
+    z[i] = '_';
+  }
+  cgi_append_header(z);
+  fossil_free(z);
 }
 
 /*
@@ -684,32 +735,32 @@ static char *get_line_from_string(char **pz, int *pLen){
 
 /*
 ** The input *pz points to content that is terminated by a "\r\n"
-** followed by the boundry marker zBoundry.  An extra "--" may or
-** may not be appended to the boundry marker.  There are *pLen characters
+** followed by the boundary marker zBoundary.  An extra "--" may or
+** may not be appended to the boundary marker.  There are *pLen characters
 ** in *pz.
 **
 ** This routine adds a "\000" to the end of the content (overwriting
 ** the "\r\n") and returns a pointer to the content.  The *pz input
-** is adjusted to point to the first line following the boundry.
+** is adjusted to point to the first line following the boundary.
 ** The length of the content is stored in *pnContent.
 */
 static char *get_bounded_content(
   char **pz,         /* Content taken from here */
   int *pLen,         /* Number of bytes of data in (*pz)[] */
-  char *zBoundry,    /* Boundry text marking the end of content */
+  char *zBoundary,    /* Boundary text marking the end of content */
   int *pnContent     /* Write the size of the content here */
 ){
   char *z = *pz;
   int len = *pLen;
   int i;
-  int nBoundry = strlen(zBoundry);
+  int nBoundary = strlen(zBoundary);
   *pnContent = len;
   for(i=0; i<len; i++){
-    if( z[i]=='\n' && strncmp(zBoundry, &z[i+1], nBoundry)==0 ){
+    if( z[i]=='\n' && strncmp(zBoundary, &z[i+1], nBoundary)==0 ){
       if( i>0 && z[i-1]=='\r' ) i--;
       z[i] = 0;
       *pnContent = i;
-      i += nBoundry;
+      i += nBoundary;
       break;
     }
   }
@@ -778,18 +829,18 @@ static int tokenize_line(char *z, int mxArg, char **azArg){
 static void process_multipart_form_data(char *z, int len){
   char *zLine;
   int nArg, i;
-  char *zBoundry;
+  char *zBoundary;
   char *zValue;
   char *zName = 0;
   int showBytes = 0;
   char *azArg[50];
 
-  zBoundry = get_line_from_string(&z, &len);
-  if( zBoundry==0 ) return;
+  zBoundary = get_line_from_string(&z, &len);
+  if( zBoundary==0 ) return;
   while( (zLine = get_line_from_string(&z, &len))!=0 ){
     if( zLine[0]==0 ){
       int nContent = 0;
-      zValue = get_bounded_content(&z, &len, zBoundry, &nContent);
+      zValue = get_bounded_content(&z, &len, zBoundary, &nContent);
       if( zName && zValue ){
         if( fossil_islower(zName[0]) ){
           cgi_set_parameter_nocopy(zName, zValue, 1);
@@ -999,6 +1050,9 @@ void cgi_init(void){
   const char *zRequestUri = cgi_parameter("REQUEST_URI",0);
   const char *zScriptName = cgi_parameter("SCRIPT_NAME",0);
   const char *zPathInfo = cgi_parameter("PATH_INFO",0);
+#ifdef _WIN32
+  const char *zServerSoftware = cgi_parameter("SERVER_SOFTWARE",0);
+#endif
 
 #ifdef FOSSIL_ENABLE_JSON
   int noJson = P("no_json")!=0;
@@ -1007,6 +1061,20 @@ void cgi_init(void){
   g.isHTTP = 1;
   cgi_destination(CGI_BODY);
   if( zScriptName==0 ) malformed_request("missing SCRIPT_NAME");
+#ifdef _WIN32
+  /* The Microsoft IIS web server does not define REQUEST_URI, instead it uses
+  ** PATH_INFO for virtually the same purpose.  Define REQUEST_URI the same as
+  ** PATH_INFO and redefine PATH_INFO with SCRIPT_NAME removed from the 
+  ** beginning. */
+  if( zServerSoftware && strstr(zServerSoftware, "Microsoft-IIS") ){
+    int i, j;
+    cgi_set_parameter("REQUEST_URI", zPathInfo);
+    for(i=0; zPathInfo[i]==zScriptName[i] && zPathInfo[i]; i++){}
+    for(j=i; zPathInfo[j] && zPathInfo[j]!='?'; j++){}
+    zPathInfo = mprintf("%.*s", j-i, zPathInfo+i);
+    cgi_replace_parameter("PATH_INFO", zPathInfo);
+  }
+#endif
   if( zRequestUri==0 ){
     const char *z = zPathInfo;
     if( zPathInfo==0 ){
@@ -1020,9 +1088,23 @@ void cgi_init(void){
     int i, j;
     for(i=0; zRequestUri[i]==zScriptName[i] && zRequestUri[i]; i++){}
     for(j=i; zRequestUri[j] && zRequestUri[j]!='?'; j++){}
-    cgi_set_parameter("PATH_INFO", mprintf("%.*s", j-i, zRequestUri+i));
+    zPathInfo = mprintf("%.*s", j-i, zRequestUri+i);
+    cgi_set_parameter("PATH_INFO", zPathInfo);
   }
-
+#ifdef FOSSIL_ENABLE_JSON
+  if(strncmp("/json",zPathInfo,5)==0
+     && (zPathInfo[5]==0 || zPathInfo[5]=='/')){
+    /* We need to change some following behaviour depending on whether
+    ** we are operating in JSON mode or not. We cannot, however, be
+    ** certain whether we should/need to be in JSON mode until the
+    ** PATH_INFO is set up.
+    */
+    g.json.isJsonMode = 1;
+  }else{
+    assert(!g.json.isJsonMode &&
+           "Internal misconfiguration of g.json.isJsonMode");
+  }
+#endif
   z = (char*)P("HTTP_COOKIE");
   if( z ){
     z = mprintf("%s",z);
@@ -1056,25 +1138,14 @@ void cgi_init(void){
       blob_uncompress(&g.cgiIn, &g.cgiIn);
     }
 #ifdef FOSSIL_ENABLE_JSON
-    else if( noJson==0 && (fossil_strcmp(zType, "application/json")==0
-              || fossil_strcmp(zType,"text/plain")==0/*assume this MIGHT be JSON*/
-              || fossil_strcmp(zType,"application/javascript")==0) ){
-      g.json.isJsonMode = 1;
+    else if( noJson==0 && g.json.isJsonMode!=0 
+             && json_can_consume_content_type(zType)!=0 ){
       cgi_parse_POST_JSON(g.httpIn, (unsigned int)len);
-      /* FIXMEs:
+      /*
+       Potential TODOs:
 
-      - See if fossil really needs g.cgiIn to be set for this purpose
-      (i don't think it does). If it does then fill g.cgiIn and
-      refactor to parse the JSON from there.
-
-      - After parsing POST JSON, copy the "first layer" of keys/values
-      to cgi_setenv(), honoring the upper-case distinction used
-      in add_param_list(). However...
-
-      - If we do that then we might get a disconnect in precedence of
-      GET/POST arguments. i prefer for GET entries to take precedence
-      over like-named POST entries, but in order for that to happen we
-      need to process QUERY_STRING _after_ reading the POST data.
+       1) If parsing fails, immediately return an error response
+       without dispatching the ostensibly-upcoming JSON API.
       */
       cgi_set_content_type(json_guess_content_type());
     }
@@ -1153,6 +1224,10 @@ const char *cgi_parameter(const char *zName, const char *zDefault){
     nUsedQP = j;
   }
 
+  /* Invoking with a NULL zName is just a way to cause the parameters
+  ** to be sorted.  So go ahead and bail out in that case */
+  if( zName==0 || zName[0]==0 ) return 0;
+
   /* Do a binary search for a matching query parameter */
   lo = 0;
   hi = nUsedQP-1;
@@ -1171,11 +1246,12 @@ const char *cgi_parameter(const char *zName, const char *zDefault){
 
   /* If no match is found and the name begins with an upper-case
   ** letter, then check to see if there is an environment variable
-  ** with the given name.
+  ** with the given name. Handle environment variables with empty values
+  ** the same as non-existent environment variables.
   */
-  if( zName && fossil_isupper(zName[0]) ){
+  if( fossil_isupper(zName[0]) ){
     const char *zValue = fossil_getenv(zName);
-    if( zValue ){
+    if( zValue && zValue[0] ){
       cgi_set_parameter_nocopy(zName, zValue, 0);
       CGIDEBUG(("env-match [%s] = [%s]\n", zName, zValue));
       return zValue;
@@ -1298,12 +1374,48 @@ int cgi_all(const char *z, ...){
 }
 
 /*
-** Print all query parameters on standard output.  Format the
-** parameters as HTML.  This is used for testing and debugging.
+** Load all relevant environment variables into the parameter buffer.
+** Invoke this routine prior to calling cgi_print_all() in order to see
+** the full CGI environment.  This routine intended for debugging purposes
+** only.
+*/
+void cgi_load_environment(void){
+  /* The following is a list of environment variables that Fossil considers
+  ** to be "relevant". */
+  static const char *const azCgiVars[] = {
+    "COMSPEC", "DOCUMENT_ROOT", "GATEWAY_INTERFACE", "SCGI",
+    "HTTP_ACCEPT", "HTTP_ACCEPT_CHARSET", "HTTP_ACCEPT_ENCODING",
+    "HTTP_ACCEPT_LANGUAGE", "HTTP_AUTHENICATION",
+    "HTTP_CONNECTION", "HTTP_HOST",
+    "HTTP_IF_NONE_MATCH", "HTTP_IF_MODIFIED_SINCE",
+    "HTTP_USER_AGENT", "HTTP_REFERER", "PATH_INFO", "PATH_TRANSLATED",
+    "QUERY_STRING", "REMOTE_ADDR", "REMOTE_PORT",
+    "REMOTE_USER", "REQUEST_METHOD",
+    "REQUEST_URI", "SCRIPT_FILENAME", "SCRIPT_NAME", "SERVER_PROTOCOL",
+    "HOME", "FOSSIL_HOME", "USERNAME", "USER", "FOSSIL_USER",
+    "SQLITE_TMPDIR", "TMPDIR",
+    "TEMP", "TMP", "FOSSIL_VFS",
+    "FOSSIL_FORCE_TICKET_MODERATION", "FOSSIL_FORCE_WIKI_MODERATION",
+    "FOSSIL_TCL_PATH", "TH1_DELETE_INTERP", "TH1_ENABLE_DOCS",
+    "TH1_ENABLE_HOOKS", "TH1_ENABLE_TCL", "REMOTE_HOST",
+  };
+  int i;
+  for(i=0; i<count(azCgiVars); i++) (void)P(azCgiVars[i]);
+}
+
+/*
+** Print all query parameters on standard output.
+** This is used for testing and debugging.
 **
 ** Omit the values of the cookies unless showAll is true.
+**
+** The eDest parameter determines where the output is shown:
+**
+**     eDest==0:    Rendering as HTML into the CGI reply
+**     eDest==1:    Written to stderr
+**     eDest==2:    Written to cgi_debug
 */
-void cgi_print_all(int showAll, int onConsole){
+void cgi_print_all(int showAll, unsigned int eDest){
   int i;
   cgi_parameter("","");  /* Force the parameters into sorted order */
   for(i=0; i<nUsedQP; i++){
@@ -1312,10 +1424,19 @@ void cgi_print_all(int showAll, int onConsole){
       if( fossil_stricmp("HTTP_COOKIE",zName)==0 ) continue;
       if( fossil_strnicmp("fossil-",zName,7)==0 ) continue;
     }
-    if( onConsole ){
-      fossil_trace("%s = %s\n", zName, aParamQP[i].zValue);
-    }else{
-      cgi_printf("%h = %h  <br />\n", zName, aParamQP[i].zValue);
+    switch( eDest ){
+      case 0: {
+        cgi_printf("%h = %h  <br />\n", zName, aParamQP[i].zValue);
+        break;
+      }
+      case 1: {  
+        fossil_trace("%s = %s\n", zName, aParamQP[i].zValue);
+        break;
+      }
+      case 2: {
+        cgi_debug("%s = %s\n", zName, aParamQP[i].zValue);
+        break;
+      }
     }
   }
 }
@@ -1539,6 +1660,7 @@ void cgi_handle_http_request(const char *zIpAddr){
     g.zIpAddr = mprintf("%s", zIpAddr);
   }
 
+
   /* Get all the optional fields that follow the first line.
   */
   while( fgets(zLine,sizeof(zLine),g.httpIn) ){
@@ -1583,6 +1705,13 @@ void cgi_handle_http_request(const char *zIpAddr){
       if( zIpAddr!=0 ){
         g.zIpAddr = mprintf("%s", zIpAddr);
         cgi_replace_parameter("REMOTE_ADDR", g.zIpAddr);
+      }
+    }else if( fossil_strcmp(zFieldName,"range:")==0 ){
+      int x1 = 0;
+      int x2 = 0;
+      if( sscanf(zVal,"bytes=%d-%d",&x1,&x2)==2 && x1>=0 && x1<=x2 ){
+        rangeStart = x1;
+        rangeEnd = x2+1;
       }
     }
   }
@@ -2058,6 +2187,26 @@ char *cgi_rfc822_datestamp(time_t now){
     return mprintf("%s, %d %s %02d %02d:%02d:%02d +0000",
                    azDays[pTm->tm_wday], pTm->tm_mday, azMonths[pTm->tm_mon],
                    pTm->tm_year+1900, pTm->tm_hour, pTm->tm_min, pTm->tm_sec);
+  }
+}
+
+/*
+** Returns an ISO8601-formatted time string suitable for debugging
+** purposes.
+**
+** The value returned is always a string obtained from mprintf() and must
+** be freed using fossil_free() to avoid a memory leak.
+*/
+char *cgi_iso8601_datestamp(void){
+  struct tm *pTm;
+  time_t now = time(0);
+  pTm = gmtime(&now);
+  if( pTm==0 ){
+    return mprintf("");
+  }else{
+    return mprintf("%04d-%02d-%02d %02d:%02d:%02d",
+                   pTm->tm_year+1900, pTm->tm_mon, pTm->tm_mday,
+                   pTm->tm_hour, pTm->tm_min, pTm->tm_sec);
   }
 }
 
