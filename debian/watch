@@ -1,7 +1,4 @@
 version=4
 
-# Example URL:
-# https://www.fossil-scm.org/fossil/uv/fossil-src-2.4.tar.gz
-
-https://www.fossil-scm.org/fossil/uvlist \
- .*/fossil-src-([\.\d]+)\.tar\.gz
+https://www.fossil-scm.org/@PACKAGE@/uvlist \
+ .*/@PACKAGE@-src-@ANY_VERSION@@ARCHIVE_EXT@
