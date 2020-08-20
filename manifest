@@ -1,10 +1,11 @@
 B f268e999f6f91f70667a902937a01471bda664dc093ecd7765ec5505de38b0de
-C add\spretty\s@@s\sto\suscan\ssupport\sfile
-D 2020-08-20T20:01:35.328
+C raise\ssqlite3\sbuild\sdependency\sto\smatch\supstream
+D 2020-08-20T20:07:12.765
 F debian/changelog 363b8383704e28dca675413182496a68bb821b59281421ab14043c0bc8fc527b
+F debian/control 31e8d95dda31f5f86f34a0fa52084be5727a11124cb39a1ce64b196997d8ad4b
 F debian/watch 44d235519648859fca4865494065ddb34620523b65e6ae0a2c1a64dd8997b683
-P 4f0f2282903059da97ef330fb1ad1c80b095f94bd71d32e701f7d8bf70602993
-R 44cd714e08975adedc3dd50e6bc1aa00
+P 2ebf79cb29768ce985f1aae0e99e63cdbf76b2f83059a32dff24075f9de80f44
+R ee73354f3daf5628b4ac101b7efac08a
 U barak
-Z a735b6af2863621fa89a2ba0099d1832
+Z 889696e9aae236a17dcc6ad5085ed253
 # Remove this line to create a well-formed Fossil manifest.
