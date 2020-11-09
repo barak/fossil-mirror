@@ -1,8 +1,10 @@
 fossil (1:2.13-1) unstable; urgency=medium
 
   * New upstream version
+  * Remove unused debian/copyright stanza
+  * Correctly capitalize build dependency field name
 
- -- Barak A. Pearlmutter <bap@debian.org>  Mon, 09 Nov 2020 20:41:23 +0000
+ -- Barak A. Pearlmutter <bap@debian.org>  Mon, 09 Nov 2020 21:04:01 +0000
 
 fossil (1:2.12.1-1) unstable; urgency=medium
 
