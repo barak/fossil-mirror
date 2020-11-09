@@ -479,10 +479,8 @@ void ticket_create_table(int separateConnection){
   db_set_authorizer(ticket_schema_auth,0,"Ticket-Schema");
   if( separateConnection ){
     if( db_transaction_nesting_depth() ) db_end_transaction(0);
-    db_set_authorizer(ticket_schema_auth,0,"Ticket-Schema");
     db_init_database(g.zRepositoryName, zSql, 0);
   }else{
-    db_set_authorizer(ticket_schema_auth,0,"Ticket-Schema");
     db_multi_exec("%s", zSql/*safe-for-%s*/);
   }
   db_clear_authorizer();

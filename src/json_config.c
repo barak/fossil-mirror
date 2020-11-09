@@ -85,7 +85,6 @@ static const struct JsonConfigProperty {
 { "crnl-glob",              CONFIGSET_PROJ },
 { "encoding-glob",          CONFIGSET_PROJ },
 { "empty-dirs",             CONFIGSET_PROJ },
-#endif
 { "dotfiles",               CONFIGSET_PROJ },
 
 { "ticket-table",           CONFIGSET_TKT  },

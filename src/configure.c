@@ -147,7 +147,6 @@ static struct {
   { "crnl-glob",              CONFIGSET_PROJ },
   { "encoding-glob",          CONFIGSET_PROJ },
   { "empty-dirs",             CONFIGSET_PROJ },
-#endif
   { "dotfiles",               CONFIGSET_PROJ },
   { "parent-project-code",    CONFIGSET_PROJ },
   { "parent-project-name",    CONFIGSET_PROJ },

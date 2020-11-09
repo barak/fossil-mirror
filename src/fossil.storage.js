@@ -93,7 +93,6 @@
   */
   F.storage = {
     storageKeyPrefix: storageKeyPrefix,
-    storageKeyPrefix: storageKeyPrefix,
     /** Sets the storage key k to value v, implicitly converting
         it to a string. */
     set: (k,v)=>$storage.setItem(storageKeyPrefix+k,v),

@@ -3220,7 +3220,6 @@ int db_get_boolean(const char *zName, int dflt){
   fossil_free(zVal);
   return dflt;
 }
-#ifdef FOSSIL_LEGACY_ALLOW_SYMLINKS
 int db_get_versioned_boolean(const char *zName, int dflt){
   char *zVal = db_get_versioned(zName, 0);
   if( zVal==0 ) return dflt;
@@ -3228,7 +3227,6 @@ int db_get_versioned_boolean(const char *zName, int dflt){
   if( is_false(zVal) ) return 0;
   return dflt;
 }
-#endif /* FOSSIL_LEGACY_ALLOW_SYMLINKS */
 char *db_lget(const char *zName, const char *zDefault){
   return db_text(zDefault,
                  "SELECT value FROM vvar WHERE name=%Q", zName);
@@ -3436,7 +3434,6 @@ void cmd_open(void){
   int keepFlag;
   int forceMissingFlag;
   int allowNested;
-#endif
   int setmtimeFlag;              /* --setmtime.  Set mtimes on files */
   int bForce = 0;                /* --force.  Open even if non-empty dir */
   static char *azNewArgv[] = { 0, "checkout", "--prompt", 0, 0, 0, 0 };
@@ -3547,7 +3544,6 @@ void cmd_open(void){
     }
   }
 
-#endif
 
 #if defined(_WIN32) || defined(__CYGWIN__)
 # define LOCALDB_NAME "./_FOSSIL_"
@@ -3561,7 +3557,6 @@ void cmd_open(void){
                    (char*)0);
   db_delete_on_failure(LOCALDB_NAME);
   db_open_local(0);
-#endif /* FOSSIL_LEGACY_ALLOW_SYMLINKS */
   db_lset("repository", zRepo);
   db_record_repository_filename(zRepo);
   db_set_checkout(0);
