@@ -3,7 +3,7 @@ Section: vcs
 Priority: optional
 Maintainer: Barak A. Pearlmutter <bap@debian.org>
 Standards-Version: 4.5.0
-Build-depends: debhelper-compat (= 13),
+Build-Depends: debhelper-compat (= 13),
                bash-completion,
                libfuse-dev,
                libreadline-dev,
