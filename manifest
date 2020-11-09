@@ -1,5 +1,5 @@
-C update\sdebian/changelog
-D 2020-11-09T20:42:13.868
+C lintian\sunused-file-paragraph-in-dep5-copyright\sparagraph\sat\sline\s15
+D 2020-11-09T20:59:18.742
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .editorconfig 132c5a213aa3ce13dcc9c19f8a7ea306e3640bec4ae693378116cee339c34a1a
 F .fossil-settings/binary-glob 34cc11b3b509fd5064afe327e70765799f314c9a
@@ -322,7 +322,7 @@ F configure 05e4b3ca2e1ff283d82e0c4ced9215edc47157c4b4ba6839fb7f895bf224dcd2 x
 F debian/README.Debian 2d1eb9c0f32e02f0db1df55e6580860b8c91da2dd13aecf52af4e5dd91b85ead
 F debian/changelog fad63c4b7f311820d58fb07f58927425143c1183036f16e605d8c86a555671a1
 F debian/control 31e8d95dda31f5f86f34a0fa52084be5727a11124cb39a1ce64b196997d8ad4b
-F debian/copyright 6868486c1595673321e52bc60f1fb3dc4375cf43a2fe8653305527eb6a3cb07a
+F debian/copyright 39f1cc441231142d81e631e6d0764eb5193f4aef6b441aaa23298f82dce120fc
 F debian/fossil.bash-completion e1e460f40668463a8e3e8df9a99de8f9301c9730
 F debian/fossil.docs 45a770a8534b1a439a32546145737975a9217b30
 F debian/fossil.manpages 8ca3a843375393ec37484e4dbae3d4dfe5b4ddcf
@@ -994,8 +994,8 @@ F www/webui.wiki fa9d968f06142fd5238e256ff2ab7792dd7090dfe80f2b210f2b5230260be31
 F www/whyusefossil.wiki 2a00518b480015b13e9767007e481466256c4945481b0d33a78c570d3c461823
 F www/wikitheory.wiki 91e6796caf7c8fbed00a58d3eea377d0f89f494f5637fd8af09dc41290e716f6
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P 45a5598e6a0d55e6c4fecb70d9a44526311d2bd6b70acb52cfced32c6baf45f8
-R b3da5f22debe8caf8a7a1ab60e21d741
+P 6eb088b95e243c0bb8206fdcdcc970de76604e3af25c952178588b5842a6a621
+R aa27ed0949c568731cf33df020bffa07
 U barak
-Z e40442009ca53f296b53d39de5f15de4
+Z 9195e81bbdc2ad5489661bfd564e7467
 # Remove this line to create a well-formed Fossil manifest.
