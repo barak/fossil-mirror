@@ -1635,6 +1635,7 @@ void fileedit_page(void){
   db_begin_transaction();
   CheckinMiniInfo_init(&cimi);
   style_header("File Editor");
+  style_emit_noscript_for_js_page();
   /* As of this point, don't use return or fossil_fatal(). Write any
   ** error in (&err) and goto end_footer instead so that we can be
   ** sure to emit the error message, do any cleanup, and end the
@@ -1667,9 +1668,9 @@ void fileedit_page(void){
   ** selectors, but we do have the BODY, which we can decorate with
   ** whatever CSS we wish...
   */
-  style_emit_script_tag(0,0);
+  style_script_begin(__FILE__,__LINE__);
   CX("document.body.classList.add('fileedit');\n");
-  style_emit_script_tag(1,0);
+  style_script_end();
   
   /* Status bar */
   CX("<div id='fossil-status-bar' "
@@ -1707,12 +1708,16 @@ void fileedit_page(void){
        "class='hidden'"
        ">");
     CX("<div class='flex-container flex-row child-gap-small'>");
-    CX("<button class='fileedit-content-reload confirmer' "
-       "title='Reload the file from the server, discarding "
+    CX("<div class='input-with-label'>"
+       "<button class='fileedit-content-reload confirmer' "
+       ">Discard &amp; Reload</button>"
+       "<div class='help-buttonlet'>"
+       "Reload the file from the server, discarding "
        "any local edits. To help avoid accidental loss of "
        "edits, it requires confirmation (a second click) within "
-       "a few seconds or it will not reload.'"
-       ">Discard &amp; Reload</button>");
+       "a few seconds or it will not reload."
+       "</div>"
+       "</div>");
     style_select_list_int("select-font-size",
                           "editor_font_size", "Editor font size",
                           NULL/*tooltip*/,
@@ -1744,16 +1749,19 @@ void fileedit_page(void){
       ** the text editor with their own. */
        "data-f-preview-via='_postPreview' "
        /* ^^^ fossil.page[methodName](content, callback) */
-       "data-f-preview-to='#fileedit-tab-preview-wrapper' "
+       "data-f-preview-to='_previewTo' "
        /* ^^^ dest elem ID */
        ">Refresh</button>");
     /* Toggle auto-update of preview when the Preview tab is selected. */
-    style_labeled_checkbox("cb-preview-autoupdate",
-                           NULL,
-                           "Auto-refresh?",
-                           "1", 1,
-                           "If on, the preview will automatically "
-                           "refresh when this tab is selected.");
+    CX("<div class='input-with-label'>"
+       "<input type='checkbox' value='1' "
+       "id='cb-preview-autorefresh' checked>"
+       "<label for='cb-preview-autorefresh'>Auto-refresh?</label>"
+       "<div class='help-buttonlet'>"
+       "If on, the preview will automatically "
+       "refresh (if needed) when this tab is selected."
+       "</div>"
+       "</div>");
 
     /* Default preview rendering mode selection... */
     previewRenderMode = zFileMime
@@ -1981,10 +1989,9 @@ void fileedit_page(void){
   }
   CX("</div>"/*#fileedit-tab-help*/);
 
-  builtin_request_js("sbsdiff.js");
-  style_emit_fossil_js_apis(0, "fetch", "dom", "tabs", "confirmer",
-                            "storage", 0);
-  builtin_fulfill_js_requests();
+  builtin_fossil_js_bundle_or("fetch", "dom", "tabs", "confirmer",
+                              "storage", "popupwidget", "copybutton",
+                              "pikchr", 0);
   /*
   ** Set up a JS-side mapping of the AJAX_RENDER_xyz values. This is
   ** used for dynamically toggling certain UI components on and off.
@@ -1994,6 +2001,7 @@ void fileedit_page(void){
   ** the JS multiple times.
   */
   ajax_emit_js_preview_modes(1);
+  builtin_request_js("sbsdiff.js");
   builtin_request_js("fossil.page.fileedit.js");
   builtin_fulfill_js_requests();
   {
@@ -2001,7 +2009,7 @@ void fileedit_page(void){
     ** blob, and/or switch to tab #0, where the file selector
     ** lives. The extra C scopes here correspond to JS-level scopes,
     ** to improve grokability. */
-    style_emit_script_tag(0,0);
+    style_script_begin(__FILE__,__LINE__);
     CX("\n(function(){\n");
     CX("try{\n");
     {
@@ -2050,7 +2058,7 @@ void fileedit_page(void){
        "fossil.error(e); console.error('Exception:',e);"
        "}\n");
     CX("})();")/*anonymous function*/;
-    style_emit_script_tag(1,0);
+    style_script_end();
   }
   blob_reset(&err);
   CheckinMiniInfo_cleanup(&cimi);

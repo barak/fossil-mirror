@@ -123,10 +123,10 @@ void home_page(void){
     if( fossil_strcmp(zIndexPage, zPathInfo)==0 ) zIndexPage = 0;
   }
   if( zIndexPage ){
-    cgi_redirectf("%s/%s", g.zTop, zIndexPage);
+    cgi_redirectf("%R/%s", zIndexPage);
   }
   if( !g.perm.RdWiki ){
-    cgi_redirectf("%s/login?g=%s/home", g.zTop, g.zTop);
+    cgi_redirectf("%R/login?g=%R/home");
   }
   if( zPageName ){
     login_check_credentials();
@@ -188,6 +188,7 @@ const char *wiki_filter_mimetypes(const char *zMimetype){
 **
 **   text/x-fossil-wiki      Fossil wiki
 **   text/x-markdown         Markdown
+**   text/x-pikchr           Pikchr
 **   anything else...        Plain text
 **
 ** If zMimetype is a null pointer, then use "text/x-fossil-wiki".
@@ -201,6 +202,20 @@ void wiki_render_by_mimetype(Blob *pWiki, const char *zMimetype){
     safe_html(&tail);
     @ %s(blob_str(&tail))
     blob_reset(&tail);
+  }else if( fossil_strcmp(zMimetype, "text/x-pikchr")==0 ){
+    const char *zPikchr = blob_str(pWiki);
+    int w, h;
+    char *zOut = pikchr(zPikchr, "pikchr", 0, &w, &h);
+    if( w>0 ){
+      @ <div class="pikchr-svg" style="max-width:%d(w)px">
+      @ %s(zOut)
+      @ </div>
+    }else{
+      @ <pre class='error'>\n">
+      @ %s(zOut);
+      @ </pre>
+    }
+    free(zOut);
   }else{
     @ <pre class='textPlain'>
     @ %h(blob_str(pWiki))
@@ -222,8 +237,10 @@ void markdown_rules_page(void){
   }else{
     style_submenu_element("Plain-Text", "%R/md_rules?txt=1");
   }
+  style_submenu_element("Wiki", "%R/wiki_rules");
   blob_init(&x, builtin_text("markdown.md"), -1);
   blob_materialize(&x);
+  interwiki_append_map_table(&x);
   safe_html_context(DOCSRC_TRUSTED);
   wiki_render_by_mimetype(&x, fTxt ? "text/plain" : "text/x-markdown");
   blob_reset(&x);
@@ -244,8 +261,10 @@ void wiki_rules_page(void){
   }else{
     style_submenu_element("Plain-Text", "%R/wiki_rules?txt=1");
   }
+  style_submenu_element("Markdown","%R/md_rules");
   blob_init(&x, builtin_text("wiki.wiki"), -1);
   blob_materialize(&x);
+  interwiki_append_map_table(&x);
   safe_html_context(DOCSRC_TRUSTED);
   wiki_render_by_mimetype(&x, fTxt ? "text/plain" : "text/x-fossil-wiki");
   blob_reset(&x);
@@ -316,7 +335,7 @@ static void wiki_standard_submenu(unsigned int ok){
     style_submenu_element("New", "%R/wikinew");
   }
   if( (ok & W_SANDBOX)!=0 ){
-    style_submenu_element("Sandbox", "%R/wiki?name=Sandbox");
+    style_submenu_element("Sandbox", "%R/wikiedit?name=Sandbox");
   }
 }
 
@@ -334,7 +353,7 @@ void wiki_helppage(void){
   @ <li> %z(href("%R/timeline?y=w"))Recent changes</a> to wiki pages.</li>
   @ <li> Formatting rules for %z(href("%R/wiki_rules"))Fossil Wiki</a> and for
   @ %z(href("%R/md_rules"))Markdown Wiki</a>.</li>
-  @ <li> Use the %z(href("%R/wiki?name=Sandbox"))Sandbox</a>
+  @ <li> Use the %z(href("%R/wikiedit?name=Sandbox"))Sandbox</a>
   @      to experiment.</li>
   if( g.perm.NewWiki ){
     @ <li>  Create a %z(href("%R/wikinew"))new wiki page</a>.</li>
@@ -579,6 +598,7 @@ void wiki_page(void){
   }
   attachment_list(zPageName, "<hr /><h2>Attachments:</h2><ul>");
   manifest_destroy(pWiki);
+  document_emit_js(/*for optional pikchr support*/);
   style_footer();
 }
 
@@ -933,18 +953,13 @@ static void wiki_ajax_route_diff(void){
 **
 ** URL params:
 **
-**  page = wiki page name. This is only needed for authorization
-**  checking.
 **  mimetype = the wiki page mimetype (determines rendering style)
 **  content = the wiki page content
 */
 static void wiki_ajax_route_preview(void){
-  const char * zPageName = P("page");
   const char * zContent = P("content");
 
-  if(!wiki_ajax_can_write(zPageName, 0)){
-    return;
-  }else if( zContent==0 ){
+  if( zContent==0 ){
     ajax_route_error(400,"Missing content to preview.");
     return;
   }else{
@@ -980,7 +995,8 @@ static void wiki_render_page_list_json(int verbose, int includeContent){
   db_begin_transaction();
   db_prepare(&q, "SELECT"
              " substr(tagname,6) AS name"
-             " FROM tag WHERE tagname GLOB 'wiki-*'"
+             " FROM tag JOIN tagxref USING('tagid')"
+             " WHERE tagname GLOB 'wiki-*'"
              " UNION SELECT 'Sandbox' AS name"
              " ORDER BY name COLLATE NOCASE");
   CX("[");
@@ -1042,13 +1058,7 @@ void wiki_ajax_page(void){
   {"diff", wiki_ajax_route_diff, 1, 1},
   {"fetch", wiki_ajax_route_fetch, 0, 0},
   {"list", wiki_ajax_route_list, 0, 0},
-  {"preview", wiki_ajax_route_preview, 0, 1}
-  /* preview access mode: whether or not wiki-write mode is needed
-     really depends on multiple factors. e.g. the sandbox page does
-     not normally require more than anonymous access. We set its
-     write-mode to false and do those checks manually in that route's
-     handler.
-  */,
+  {"preview", wiki_ajax_route_preview, 0, 1},
   {"save", wiki_ajax_route_save, 1, 1}
   };
 
@@ -1067,6 +1077,9 @@ void wiki_ajax_page(void){
   login_check_credentials();
   if( pRoute->bWriteMode!=0 && g.perm.WrWiki==0 ){
     ajax_route_error(403,"Write permissions required.");
+    return;
+  }else if( pRoute->bWriteMode==0 && g.perm.RdWiki==0 ){
+    ajax_route_error(403,"Read-Wiki permissions required.");
     return;
   }else if(0==cgi_csrf_safe(pRoute->bPost)){
     ajax_route_error(403,
@@ -1105,24 +1118,30 @@ void wikiedit_page(void){
   }
   isSandbox = is_sandbox(zPageName);
   if( isSandbox ){
-    if( !g.perm.WrWiki ){
-      login_needed(g.anon.WrWiki);
+    if( !g.perm.RdWiki ){
+      login_needed(g.anon.RdWiki);
       return;
     }
     found = 1;
-  }else if( zPageName!=0 ){
+  }else if( zPageName!=0 && zPageName[0]!=0){
     int rid = 0;
     if( !wiki_special_permission(zPageName) ){
       login_needed(0);
       return;
     }
     found = wiki_fetch_by_name(zPageName, 0, &rid, 0);
-    if( (rid && !g.perm.WrWiki) || (!rid && !g.perm.NewWiki) ){
-      login_needed(rid ? g.anon.WrWiki : g.anon.NewWiki);
+    if( (rid && !g.perm.RdWiki) || (!rid && !g.perm.NewWiki) ){
+      login_needed(rid ? g.anon.RdWiki : g.anon.NewWiki);
+      return;
+    }
+  }else{
+    if( !g.perm.RdWiki ){
+      login_needed(g.anon.RdWiki);
       return;
     }
   }
   style_header("Wiki Editor");
+  style_emit_noscript_for_js_page();
 
   /* Status bar */
   CX("<div id='fossil-status-bar' "
@@ -1158,11 +1177,12 @@ void wikiedit_page(void){
        "data-tab-label='Editor' "
        "class='hidden'"
        ">");
-    CX("<div class='flex-container flex-row child-gap-small'>");
-    CX("<span class='input-with-label'>"
+    CX("<div class='"
+       "wikiedit-options flex-container flex-row child-gap-small'>");
+    CX("<div class='input-with-label'>"
        "<label>Mime type</label>");
     mimetype_option_menu(0);
-    CX("</span>");
+    CX("</div>");
     style_select_list_int("select-font-size",
                           "editor_font_size", "Editor font size",
                           NULL/*tooltip*/,
@@ -1170,18 +1190,30 @@ void wikiedit_page(void){
                           "100%", 100, "125%", 125,
                           "150%", 150, "175%", 175,
                           "200%", 200, NULL);
-    CX("<button class='wikiedit-save'>"
+    CX("<div class='input-with-label'>"
+       /*will get moved around dynamically*/
+       "<button class='wikiedit-save'>"
        "Save</button>"
-       /*will get moved around dynamically*/);
-    CX("<button class='wikiedit-save-close'>"
-       "Save &amp; Close</button>"/*will get moved around dynamically*/);
+       "<button class='wikiedit-save-close'>"
+       "Save &amp; Close</button>"
+       "<div class='help-buttonlet'>"
+       "Save edits to this page and optionally return "
+       "to the wiki page viewer."
+       "</div>"
+       "</div>" /*will get moved around dynamically*/);
     CX("<span class='save-button-slot'></span>");
-    CX("<button class='wikiedit-content-reload' "
-       "title='Reload the file from the server, discarding "
+
+    CX("<div class='input-with-label'>"
+       "<button class='wikiedit-content-reload' "
+       ">Discard &amp; Reload</button>"
+       "<div class='help-buttonlet'>"
+       "Reload the file from the server, discarding "
        "any local edits. To help avoid accidental loss of "
        "edits, it requires confirmation (a second click) within "
-       "a few seconds or it will not reload.'"
-       ">Discard &amp; Reload</button>");
+       "a few seconds or it will not reload."
+       "</div>"
+       "</div>");
+
     CX("</div>");
     CX("<div class='flex-container flex-column stretch'>");
     CX("<textarea name='content' id='wikiedit-content-editor' "
@@ -1206,16 +1238,15 @@ void wikiedit_page(void){
       ** the text editor with their own. */
        "data-f-preview-via='_postPreview' "
        /* ^^^ fossil.page[methodName](content, callback) */
-       "data-f-preview-to='#wikiedit-tab-preview-wrapper' "
-       /* ^^^ dest elem ID */
+       "data-f-preview-to='_previewTo' "
+       /* ^^^ dest elem ID or fossil.page[methodName]*/
        ">Refresh</button>");
     /* Toggle auto-update of preview when the Preview tab is selected. */
-    style_labeled_checkbox("cb-preview-autoupdate",
-                           NULL,
-                           "Auto-refresh?",
-                           "1", 1,
-                           "If on, the preview will automatically "
-                           "refresh when this tab is selected.");
+    CX("<div class='input-with-label'>"
+       "<input type='checkbox' value='1' "
+       "id='cb-preview-autorefresh' checked>"
+       "<label for='cb-preview-autorefresh'>Auto-refresh?</label>"
+       "</div>");
     CX("<span class='save-button-slot'></span>");
     CX("</div>"/*.wikiedit-options*/);
     CX("<div id='wikiedit-tab-preview-wrapper'></div>");
@@ -1233,8 +1264,10 @@ void wikiedit_page(void){
     CX("<div class='wikiedit-options flex-container "
        "flex-row child-gap-small' "
        "id='wikiedit-tab-diff-buttons'>");
-    CX("<button class='sbs'>Side-by-side</button>"
-       "<button class='unified'>Unified</button>");
+    CX("<div class='input-with-label'>"
+       "<button class='sbs'>Side-by-side</button>"
+       "<button class='unified'>Unified</button>"
+       "</div>");
     CX("<span class='save-button-slot'></span>");
     CX("</div>");
     CX("<div id='wikiedit-tab-diff-wrapper'>"
@@ -1266,13 +1299,14 @@ void wikiedit_page(void){
     well_formed_wiki_name_rules();
     CX("</div>"/*#wikiedit-tab-save*/);
   }
-
+  builtin_fossil_js_bundle_or("fetch", "dom", "tabs", "confirmer",
+                              "storage", "popupwidget", "copybutton",
+                              "pikchr", 0);
   builtin_request_js("sbsdiff.js");
-  style_emit_fossil_js_apis(0, "fetch", "dom", "tabs", "confirmer",
-                            "storage", "page.wikiedit", 0);
+  builtin_request_js("fossil.page.wikiedit.js");
   builtin_fulfill_js_requests();
   /* Dynamically populate the editor... */
-  style_emit_script_tag(0,0);
+  style_script_begin(__FILE__,__LINE__);
   {
     /* Render the current page list to save us an XHR request
        during page initialization. This must be OUTSIDE of
@@ -1311,7 +1345,7 @@ void wikiedit_page(void){
      "fossil.error(e); console.error('Exception:',e);"
      "}\n");
   CX("});\n"/*fossil.onPageLoad()*/);
-  style_emit_script_tag(1,0);
+  style_script_end();
   style_footer();
 }
 
@@ -1526,63 +1560,30 @@ void wikiappend_page(void){
 ** Show the complete change history for a single wiki page.
 */
 void whistory_page(void){
-  Stmt q;
   const char *zPageName;
-  double rNow;
-  int showRid;
+  Blob sql;
+  Stmt q;
   login_check_credentials();
-  if( !g.perm.Hyperlink ){ login_needed(g.anon.Hyperlink); return; }
+  if( !g.perm.RdWiki ){ login_needed(g.anon.RdWiki); return; }
   zPageName = PD("name","");
   style_header("History Of %s", zPageName);
-  showRid = P("showid")!=0;
-  db_prepare(&q,
-    "SELECT"
-    "  event.mtime,"
-    "  blob.uuid,"
-    "  coalesce(event.euser,event.user),"
-    "  event.objid"
-    " FROM event, blob, tag, tagxref"
-    " WHERE event.type='w' AND blob.rid=event.objid"
-    "   AND tag.tagname='wiki-%q'"
-    "   AND tagxref.tagid=tag.tagid AND tagxref.srcid=event.objid"
-    " ORDER BY event.mtime DESC",
-    zPageName
+  blob_init(&sql, 0, 0);
+  blob_append(&sql, timeline_query_for_www(), -1);
+  blob_append_sql(&sql,
+     "AND event.objid IN ("
+     " SELECT tagxref.srcid"
+     " FROM tagxref, tag"
+     " WHERE tagxref.tagid=tag.tagid"
+     " AND tag.tagname='wiki-%q')"
+     " ORDER BY mtime DESC",
+     zPageName
   );
-  @ <h2>History of <a href="%R/wiki?name=%T(zPageName)">%h(zPageName)</a></h2>
-  @ <div class="brlist">
-  @ <table>
-  @ <thead><tr>
-  @ <th>Age</th>
-  @ <th>Hash</th>
-  @ <th>User</th>
-  if( showRid ){
-    @ <th>RID</th>
-  }
-  @ <th>&nbsp;</th>
-  @ </tr></thead><tbody>
-  rNow = db_double(0.0, "SELECT julianday('now')");
-  while( db_step(&q)==SQLITE_ROW ){
-    double rMtime = db_column_double(&q, 0);
-    const char *zUuid = db_column_text(&q, 1);
-    const char *zUser = db_column_text(&q, 2);
-    int wrid = db_column_int(&q, 3);
-    /* sqlite3_int64 iMtime = (sqlite3_int64)(rMtime*86400.0); */
-    char *zAge = human_readable_age(rNow - rMtime);
-    @ <tr>
-    /* @ <td data-sortkey="%016llx(iMtime)">%s(zAge)</td> */
-    @ <td>%s(zAge)</td>
-    fossil_free(zAge);
-    @ <td>%z(href("%R/info/%s",zUuid))%S(zUuid)</a></td>
-    @ <td>%h(zUser)</td>
-    if( showRid ){
-      @ <td>%z(href("%R/artifact/%S",zUuid))%d(wrid)</a></td>
-    }
-    @ <td>%z(href("%R/wdiff?id=%S",zUuid))diff</a></td>
-    @ </tr>
-  }
-  @ </tbody></table></div>
+  db_prepare(&q, "%s", blob_sql_text(&sql));
+  www_print_timeline(&q,
+    TIMELINE_DISJOINT|TIMELINE_GRAPH|TIMELINE_REFS,
+    0, 0, 0, 0, 0, 0);
   db_finalize(&q);
-  /* style_table_sorter(); */
+  blob_reset(&sql);
   style_footer();
 }
 
@@ -1704,9 +1705,9 @@ void wcontent_page(void){
   if( !g.perm.RdWiki ){ login_needed(g.anon.RdWiki); return; }
   style_header("Available Wiki Pages");
   if( showAll ){
-    style_submenu_element("Active", "%s/wcontent", g.zTop);
+    style_submenu_element("Active", "%R/wcontent");
   }else{
-    style_submenu_element("All", "%s/wcontent?all=1", g.zTop);
+    style_submenu_element("All", "%R/wcontent?all=1");
   }
   wiki_standard_submenu(W_ALL_BUT(W_LIST));
   db_prepare(&q, listAllWikiPages/*works-like:""*/);
@@ -1742,7 +1743,7 @@ void wcontent_page(void){
       @ %z(href("%R/whistory?name=%T",zWName))<s>%h(zWDisplayName)</s></a></td>
     }else{
       @ <tr><td data-sortkey="%h(zSort)">\
-      @ %z(href("%R/wiki?name=%T",zWName))%h(zWDisplayName)</a></td>
+      @ %z(href("%R/wiki?name=%T&p",zWName))%h(zWDisplayName)</a></td>
     }
     zAge = human_readable_age(rNow - rWmtime);
     @ <td data-sortkey="%016llx(iMtime)">%s(zAge)</td>
@@ -2270,14 +2271,14 @@ int wiki_render_associated(
     " ORDER BY mtime DESC LIMIT 1",
     zPrefix, zName
   );
-  if( rid==0 ){
+  pWiki = rid==0 ? 0 : manifest_get(rid, CFTYPE_WIKI, 0);
+  if( pWiki==0 || pWiki->zWiki==0 || pWiki->zWiki[0]==0 ){
     if( g.perm.WrWiki && g.perm.Write && (mFlags & WIKIASSOC_MENU_WRITE)!=0 ){
       style_submenu_element("Add Wiki", "%R/wikiedit?name=%s/%t",
                             zPrefix, zName);
     }
+    return 0;
   }
-  pWiki = manifest_get(rid, CFTYPE_WIKI, 0);
-  if( pWiki==0 ) return 0;
   if( fossil_strcmp(pWiki->zMimetype, "text/x-markdown")==0 ){
     Blob tail = BLOB_INITIALIZER;
     Blob title = BLOB_INITIALIZER;

@@ -42,6 +42,19 @@
 #include "hook.h"
 
 /*
+** SETTING: hooks sensitive
+** The "hooks" setting contains JSON that describes all defined
+** hooks.  The value is an array of objects.  Each object describes
+** a single hook.  Example:
+**
+**
+**    {
+**    "type": "after-receive",  // type of hook
+**    "cmd": "command-to-run",  // command to run
+**    "seq": 50                 // run in this order
+**    }
+*/
+/*
 ** List of valid hook types:
 */
 static const char *azType[] = {
@@ -124,12 +137,16 @@ static char *hook_subst(
 ** soon and so post-receive hooks can be run without delay.
 */
 void hook_expecting_more_artifacts(int N){
-  if( N>0 ){
+  if( !db_is_writeable("repository") ){
+    /* No-op */
+  }else if( N>0 ){
+    db_unprotect(PROTECT_CONFIG);
     db_multi_exec(
       "REPLACE INTO config(name,value,mtime)"
       "VALUES('hook-embargo',now()+%d,now())",
       N
     );
+    db_protect_pop();
   }else{
     db_unset("hook-embargo",0);
   }
@@ -245,6 +262,7 @@ void hook_cmd(void){
     validate_type(zType);
     nSeq = zSeq ? atoi(zSeq) : 10;
     db_begin_write();
+    db_unprotect(PROTECT_CONFIG);
     db_multi_exec(
        "INSERT OR IGNORE INTO config(name,value) VALUES('hooks','[]');\n"
        "UPDATE config"
@@ -255,6 +273,7 @@ void hook_cmd(void){
        " WHERE name='hooks';",
        zCmd, zType, nSeq
     );
+    db_protect_pop();
     db_commit_transaction();
   }else
   if( strncmp(zCmd, "edit", nCmd)==0 ){
@@ -292,7 +311,9 @@ void hook_cmd(void){
         blob_append_sql(&sql, ",'$[%d].seq',%d", id, nSeq);
       }
       blob_append_sql(&sql,") WHERE name='hooks';");
+      db_unprotect(PROTECT_CONFIG);
       db_multi_exec("%s", blob_sql_text(&sql));
+      db_protect_pop();
       blob_reset(&sql);
     }
     db_commit_transaction();
@@ -302,6 +323,7 @@ void hook_cmd(void){
     verify_all_options();
     if( g.argc<4 ) usage("delete ID ...");
     db_begin_write();
+    db_unprotect(PROTECT_CONFIG);
     db_multi_exec(
        "INSERT OR IGNORE INTO config(name,value) VALUES('hooks','[]');\n"
     );
@@ -323,6 +345,7 @@ void hook_cmd(void){
         atoi(zId)
       );
     }
+    db_protect_pop();
     db_commit_transaction();
   }else
   if( strncmp(zCmd, "list", nCmd)==0 ){
@@ -467,6 +490,20 @@ int hook_backoffice(void){
 hook_backoffice_done:
   db_commit_transaction();
   return cnt;
+}
+
+/*
+** Return true if one or more hooks of type zType exit.
+*/
+int hook_exists(const char *zType){
+  return db_exists(
+      "SELECT 1"
+      "  FROM config, json_each(config.value) AS jx"
+      " WHERE config.name='hooks' AND json_valid(config.value)"
+      "   AND json_extract(jx.value,'$.type')=%Q"
+      " ORDER BY json_extract(jx.value,'$.seq');",
+      zType
+  );
 }
 
 /*

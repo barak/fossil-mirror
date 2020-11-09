@@ -460,10 +460,12 @@ const char *captcha_decode(unsigned int seed){
 
   zSecret = db_get("captcha-secret", 0);
   if( zSecret==0 ){
+    db_unprotect(PROTECT_CONFIG);
     db_multi_exec(
       "REPLACE INTO config(name,value)"
       " VALUES('captcha-secret', lower(hex(randomblob(20))));"
     );
+    db_protect_pop();
     zSecret = db_get("captcha-secret", 0);
     assert( zSecret!=0 );
   }
@@ -562,7 +564,7 @@ void captcha_speakit_button(unsigned int uSeed, const char *zMsg){
   if( zMsg==0 ) zMsg = "Speak the text";
   @ <input aria-label="%h(zMsg)" type="button" value="%h(zMsg)" \
   @ id="speakthetext">
-  @ <script nonce="%h(style_nonce())">
+  @ <script nonce="%h(style_nonce())">/* captcha_speakit_button() */
   @ document.getElementById("speakthetext").onclick = function(){
   @   var audio = window.fossilAudioCaptcha \
   @ || new Audio("%R/captcha-audio/%u(uSeed)");

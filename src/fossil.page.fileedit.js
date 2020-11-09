@@ -466,20 +466,23 @@
         'input-with-label'
       );
       const sel = this.e.select = D.select();
-      const btnClear = this.e.btnClear
-            = D.button("Discard Edits");
+      const btnClear = this.e.btnClear = D.button("Discard Edits"),
+            btnHelp = D.append(
+              D.addClass(D.div(), "help-buttonlet"),
+              'Locally-edited files. Timestamps are the last local edit time. ',
+              'Only the ',P.config.defaultMaxStashSize,' most recent files ',
+              'are retained. Saving or reloading a file removes it from this list. ',
+              D.append(D.code(),F.storage.storageImplName()),
+              ' = ',F.storage.storageHelpDescription()
+            );
+
       D.append(wrapper, "Local edits (",
                D.append(D.code(),
                         F.storage.storageImplName()),
                "):",
-               sel, btnClear);
-      D.attr(wrapper, "title", [
-        'Locally-edited files. Timestamps are the last local edit time.',
-        'Only the',P.config.defaultMaxStashSize,'most recent checkin/file',
-        'combinations are retained.',
-        'Committing or reloading a file removes it from this list.'
-      ].join(' '));
-      D.option(D.disable(sel), "(empty)");
+               btnHelp, sel, btnClear);
+      F.helpButtonlets.setup(btnHelp);
+      D.option(D.disable(sel), undefined, "(empty)");
       F.page.addEventListener('fileedit-stash-updated',(e)=>this.updateList(e.detail));
       F.page.addEventListener('fileedit-file-loaded',(e)=>this.updateList($stash, e.detail));
       sel.addEventListener('change',function(e){
@@ -494,6 +497,7 @@
         ));
       }
       domInsertPoint.parentNode.insertBefore(wrapper, domInsertPoint);
+      P.tabs.switchToTab(1/*DOM visibility workaround*/);
       F.confirmer(btnClear, {
         /* must come after insertion into the DOM for the pinSize option to work. */
         pinSize: true,
@@ -511,6 +515,7 @@
       });
       D.addClass(this.e.btnClear,'hidden' /* must not be set until after confirmer is set up!*/);
       $stash._fireStashEvent(/*read the page-load-time stash*/);
+      P.tabs.switchToTab(0/*DOM visibility workaround*/);
       delete this.init;
     },
     /**
@@ -540,7 +545,7 @@
       D.clearElement(this.e.select);
       if(0===ilist.length){
         D.addClass(this.e.btnClear, 'hidden');
-        D.option(D.disable(this.e.select),"No local edits");
+        D.option(D.disable(this.e.select),undefined,"No local edits");
         return;
       }
       D.enable(this.e.select);
@@ -640,7 +645,7 @@
   F.onPageLoad(function() {
     P.base = {tag: E('base')};
     P.base.originalHref = P.base.tag.href;
-    P.tabs = new fossil.TabManager('#fileedit-tabs');
+    P.tabs = new F.TabManager('#fileedit-tabs');
     P.e = { /* various DOM elements we work with... */
       taEditor: E('#fileedit-content-editor'),
       taCommentSmall: E('#fileedit-comment'),
@@ -656,7 +661,7 @@
       selectFontSizeWrap: E('#select-font-size'),
       selectDiffWS:  E('select[name=diff_ws]'),
       cbLineNumbersWrap: E('#cb-line-numbers'),
-      cbAutoPreview: E('#cb-preview-autoupdate > input[type=checkbox]'),
+      cbAutoPreview: E('#cb-preview-autorefresh'),
       previewTarget: E('#fileedit-tab-preview-wrapper'),
       manifestTarget: E('#fileedit-manifest'),
       diffTarget: E('#fileedit-tab-diff-wrapper'),
@@ -684,17 +689,12 @@
       D.addClass(P.e.taCommentBig, 'hidden');
     }
     D.removeClass(P.e.taComment, 'hidden');
-    P.tabs.e.container.insertBefore(
-      /* Move the status bar between the tab buttons and
-         tab panels. Seems to be the best fit in terms of
-         functionality and visibility. */
-      E('#fossil-status-bar'), P.tabs.e.tabs
-    );
-    P.tabs.e.container.insertBefore(P.e.editStatus, P.tabs.e.tabs);
-
+    P.tabs.addCustomWidget( E('#fossil-status-bar') ).addCustomWidget(P.e.editStatus);
+    let currentTab/*used for ctrl-enter switch between editor and preview*/;
     P.tabs.addEventListener(
       /* Set up auto-refresh of the preview tab... */
       'before-switch-to', function(ev){
+        currentTab = ev.detail;
         if(ev.detail===P.e.tabs.preview){
           P.baseHrefForFile();
           if(P.previewNeedsUpdate && P.e.cbAutoPreview.checked) P.preview();
@@ -722,6 +722,33 @@
         }
       }
     );
+    ////////////////////////////////////////////////////////////
+    // Trigger preview on Ctrl-Enter. This only works on the built-in
+    // editor widget, not a client-provided one.
+    P.e.taEditor.addEventListener('keydown',function(ev){
+      if(ev.ctrlKey && 13 === ev.keyCode){
+        ev.preventDefault();
+        ev.stopPropagation();
+        P.e.taEditor.blur(/*force change event, if needed*/);
+        P.tabs.switchToTab(P.e.tabs.preview);
+        if(!P.e.cbAutoPreview.checked){/* If NOT in auto-preview mode, trigger an update. */
+          P.preview();
+        }
+      }
+    }, false);
+    // If we're in the preview tab, have ctrl-enter switch back to the editor.
+    document.body.addEventListener('keydown',function(ev){
+      if(ev.ctrlKey && 13 === ev.keyCode){
+        if(currentTab === P.e.tabs.preview){
+          //ev.preventDefault();
+          //ev.stopPropagation();
+          P.tabs.switchToTab(P.e.tabs.content);
+          P.e.taEditor.focus(/*doesn't work for client-supplied editor widget!
+                              And it's slow as molasses for long docs, as focus()
+                              forces a document reflow.*/);
+        }
+      }
+    }, true);
 
     F.connectPagePreviewers(
       P.e.tabs.preview.querySelector(
@@ -739,6 +766,7 @@
     P.e.btnCommit.addEventListener(
       "click",(e)=>P.commit(), false
     );
+    P.tabs.switchToTab(1/*DOM visibility workaround*/);
     F.confirmer(P.e.btnReload, {
       pinSize: true,
       confirmText: "Really reload, losing edits?",
@@ -749,9 +777,7 @@
       "click",(e)=>P.toggleCommentMode(), false
     );
 
-    P.e.taEditor.addEventListener(
-      'change', ()=>P.stashContentChange(), false
-    );
+    P.e.taEditor.addEventListener('change', ()=>P.notifyOfChange(), false);
     P.e.cbIsExe.addEventListener(
       'change', ()=>P.stashContentChange(true), false
     );
@@ -851,6 +877,23 @@
     this.fileContent.get = getter;
     this.fileContent.set = setter;
     return this;
+  };
+
+  /**
+     Alerts the editor app that a "change" has happened in the editor.
+     When connecting 3rd-party editor widgets to this app, it is (or
+     may be) necessary to call this for any "change" events the widget
+     emits.  Whether or not "change" means that there were "really"
+     edits is irrelevant.
+
+     This function may perform an arbitrary amount of work, so it
+     should not be called for every keypress within the editor
+     widget. Calling it for "blur" events is generally sufficient, and
+     calling it for each Enter keypress is generally reasonable but
+     also computationally costly.
+  */
+  P.notifyOfChange = function(){
+    P.stashContentChange();
   };
 
   /**
@@ -1100,16 +1143,25 @@
   */
   P.preview = function f(switchToTab){
     if(!affirmHasFile()) return this;
-    const target = this.e.previewTarget,
-          self = this;
-    const updateView = function(c){
-      D.clearElement(target);
-      if('string'===typeof c) target.innerHTML = c;
+    return this._postPreview(this.fileContent(), function(c){
+      P._previewTo(c);
       if(switchToTab) self.tabs.switchToTab(self.e.tabs.preview);
-    };
-    return this._postPreview(this.fileContent(), updateView);
+    });
   };
 
+    /**
+     Callback for use with F.connectPagePreviewers(). Gets passed
+     the preview content.
+  */
+  P._previewTo = function(c){
+    const target = this.e.previewTarget;
+    D.clearElement(target);
+    if('string'===typeof c) D.parseHtml(target,c);
+    if(F.pikchr){
+      F.pikchr.addSrcView(target.querySelectorAll('svg.pikchr'));
+    }
+  };
+  
   /**
      Callback for use with F.connectPagePreviewers()
   */
@@ -1144,7 +1196,7 @@
         });
       },
       onerror: (e)=>{
-        fossil.fetch.onerror(e);
+        F.fetch.onerror(e);
         callback("Error fetching preview: "+e);
       }
     });
@@ -1192,12 +1244,12 @@
     ).fetch('fileedit/diff',{
       payload: fd,
       onload: function(c){
-        target.innerHTML = [
+        D.parseHtml(D.clearElement(target),[
           "<div>Diff <code>[",
           self.finfo.checkin,
           "]</code> &rarr; Local Edits</div>",
           c||'No changes.'
-        ].join('');
+        ].join(''));
         if(sbs) P.tweakSbsDiffs2();
         F.message('Updated diff.');
         self.tabs.switchToTab(self.e.tabs.diff);
@@ -1224,14 +1276,17 @@
       f.onload = function(c){
         const oldFinfo = JSON.parse(JSON.stringify(self.finfo))
         if(c.manifest){
-          target.innerHTML = [
+          D.parseHtml(D.clearElement(target), [
             "<h3>Manifest",
             (c.dryRun?" (dry run)":""),
             ": ", F.hashDigits(c.checkin),"</h3>",
-            "<code class='fileedit-manifest'>",
-            c.manifest,
+            "<pre><code class='fileedit-manifest'>",
+            c.manifest.replace(/</g,'&lt;'),
+            /* ^^^ replace() necessary or this breaks if the manifest
+               comment contains an unclosed HTML tags,
+               e.g. <script> */
             "</code></pre>"
-          ].join('');
+          ].join(''));
           delete c.manifest/*so we don't stash this with finfo*/;
         }
         const msg = [

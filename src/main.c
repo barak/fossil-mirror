@@ -676,8 +676,8 @@ int fossil_main(int argc, char **argv){
 #endif
 
   fossil_limit_memory(1);
-  if( sqlite3_libversion_number()<3033000 ){
-    fossil_panic("Unsuitable SQLite version %s, must be at least 3.33.0",
+  if( sqlite3_libversion_number()<3034000 ){
+    fossil_panic("Unsuitable SQLite version %s, must be at least 3.34.0",
                  sqlite3_libversion());
   }
   sqlite3_config(SQLITE_CONFIG_MULTITHREAD);
@@ -718,7 +718,7 @@ int fossil_main(int argc, char **argv){
       fossil_fatal("no such VFS: \"%s\"", g.zVfsName);
     }
   }
-  if( fossil_getenv("GATEWAY_INTERFACE")!=0 && !find_option("nocgi", 0, 0)){
+  if( !find_option("nocgi", 0, 0) && fossil_getenv("GATEWAY_INTERFACE")!=0){
     zCmdName = "cgi";
     g.isHTTP = 1;
   }else if( g.argc<2 && !fossilExeHasAppendedRepo() ){
@@ -1219,6 +1219,7 @@ void fossil_version_blob(
 #if defined(FOSSIL_ENABLE_JSON)
   blob_appendf(pOut, "JSON (API %s)\n", FOSSIL_JSON_API_VERSION);
 #endif
+  blob_append(pOut, "MARKDOWN\n", -1);
 #if defined(BROKEN_MINGW_CMDLINE)
   blob_append(pOut, "MBCS_COMMAND_LINE\n", -1);
 #else
@@ -1336,6 +1337,9 @@ void set_base_url(const char *zAltBase){
   if( zAltBase ){
     int i, n, c;
     g.zTop = g.zBaseURL = mprintf("%s", zAltBase);
+    i = (int)strlen(g.zBaseURL);
+    while( i>3 && g.zBaseURL[i-1]=='/' ){ i--; }
+    g.zBaseURL[i] = 0;
     if( strncmp(g.zTop, "http://", 7)==0 ){
       /* it is HTTP, replace prefix with HTTPS. */
       g.zHttpsURL = mprintf("https://%s", &g.zTop[7]);
@@ -1355,6 +1359,7 @@ void set_base_url(const char *zAltBase){
         }
       }
     }
+    if( n==2 ) g.zTop = "";
     if( g.zTop==g.zBaseURL ){
       fossil_fatal("argument to --baseurl should be 'http://host/path'"
                    " or 'https://host/path'");
@@ -1377,6 +1382,7 @@ void set_base_url(const char *zAltBase){
     }
   }
   if( db_is_writeable("repository") ){
+    db_unprotect(PROTECT_CONFIG);
     if( !db_exists("SELECT 1 FROM config WHERE name='baseurl:%q'", g.zBaseURL)){
       db_multi_exec("INSERT INTO config(name,value,mtime)"
                     "VALUES('baseurl:%q',1,now())", g.zBaseURL);
@@ -1386,6 +1392,7 @@ void set_base_url(const char *zAltBase){
            "VALUES('baseurl:%q',1,now())", g.zBaseURL
       );
     }
+    db_protect_pop();
   }
 }
 
@@ -1393,7 +1400,7 @@ void set_base_url(const char *zAltBase){
 ** Send an HTTP redirect back to the designated Index Page.
 */
 NORETURN void fossil_redirect_home(void){
-  cgi_redirectf("%s%s", g.zTop, db_get("index-page", "/index"));
+  cgi_redirectf("%R%s", db_get("index-page", "/index"));
 }
 
 /*
@@ -1757,7 +1764,7 @@ static void process_one_web_page(
     ** name from the beginning of PATH_INFO.
     */
     zNewScript = mprintf("%s%.*s", zOldScript, i, zPathInfo);
-    if( g.zTop ) g.zTop = mprintf("%s%.*s", g.zTop, i, zPathInfo);
+    if( g.zTop ) g.zTop = mprintf("%R%.*s", i, zPathInfo);
     if( g.zBaseURL ) g.zBaseURL = mprintf("%s%.*s", g.zBaseURL, i, zPathInfo);
     cgi_replace_parameter("PATH_INFO", &zPathInfo[i+1]);
     zPathInfo += i;
@@ -1797,11 +1804,12 @@ static void process_one_web_page(
     char *zNewScript;
     skin_use_draft(iSkin);
     zNewScript = mprintf("%T/draft%d", P("SCRIPT_NAME"), iSkin);
-    if( g.zTop ) g.zTop = mprintf("%s/draft%d", g.zTop, iSkin);
+    if( g.zTop ) g.zTop = mprintf("%R/draft%d", iSkin);
     if( g.zBaseURL ) g.zBaseURL = mprintf("%s/draft%d", g.zBaseURL, iSkin);
     zPathInfo += 7;
     cgi_replace_parameter("PATH_INFO", zPathInfo);
     cgi_replace_parameter("SCRIPT_NAME", zNewScript);
+    etag_cancel();
   }
 
   /* If the content type is application/x-fossil or 
@@ -2101,7 +2109,7 @@ static void redirect_web_page(int nRedirect, char **azRedirect){
 **                             processed in order.  If the REPO is "*", then
 **                             an unconditional redirect to URL is taken.
 **
-**     jsmode: VALUE           Specifies the delivery mode for JavaScript
+**    jsmode: VALUE            Specifies the delivery mode for JavaScript
 **                             files. See the help text for the --jsmode
 **                             flag of the http command.
 **
@@ -2639,6 +2647,7 @@ void cmd_test_http(void){
   g.cgiOutput = 1;
   g.fNoHttpCompress = 1;
   g.fullHttpReply = 1;
+  g.sslNotAvailable = 1;  /* Avoid attempts to redirect */
   zIpAddr = cgi_ssh_remote_addr(0);
   if( zIpAddr && zIpAddr[0] ){
     g.fSshClient |= CGI_SSH_CLIENT;

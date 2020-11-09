@@ -14,11 +14,13 @@ set doclist {
   alerts.md {Email Alerts And Notifications}
   antibot.wiki {Defense against Spiders and Bots}
   backoffice.md {The "Backoffice" mechanism of Fossil}
+  backup.md {Backing Up a Remote Fossil Repository}
   blame.wiki {The Annotate/Blame Algorithm Of Fossil}
-  blockchain.md {Fossil As Blockchain}
+  blockchain.md {Is Fossil A Blockchain?}
   branching.wiki {Branching, Forking, Merging, and Tagging}
   bugtheory.wiki {Bug Tracking In Fossil}
   build.wiki {Compiling and Installing Fossil}
+  cap-theorem.md {Fossil and the CAP Theorem}
   caps/ {Administering User Capabilities}
   caps/admin-v-setup.md {Differences Between Setup and Admin Users}
   caps/ref.html {User Capability Reference}
@@ -63,6 +65,7 @@ set doclist {
   history.md {The Purpose And History Of Fossil}
   index.wiki {Home Page}
   inout.wiki {Import And Export To And From Git}
+  interwiki.md {Interwiki Links}
   image-format-vs-repo-size.md {Image Format vs Fossil Repo Size}
   javascript.md {Use of JavaScript in Fossil}
   makefile.wiki {The Fossil Build Process}

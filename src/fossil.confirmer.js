@@ -120,8 +120,9 @@ TODO:
 after X time/ticks.
 
 - Internally we save/restore the initial text of non-INPUT elements
-using innerHTML. We should instead move their child nodes aside (into
-an internal out-of-DOM element) and restore them as needed.
+using a relatively expensive bit of DOMParser hoop-jumping. We
+"should" instead move their child nodes aside (into an internal
+out-of-DOM element) and restore them as needed.
 
 Terse Change history:
 
@@ -158,7 +159,14 @@ Terse Change history:
         const isInput = f.isInput(target);
         const updateText = function(msg){
           if(isInput) target.value = msg;
-          else target.innerHTML = msg;
+          else{
+            /* Jump through some hoops to avoid assigning to innerHTML... */
+            const newNode = new DOMParser().parseFromString(msg, 'text/html');
+            let childs = newNode.documentElement.querySelector('body');
+            childs = childs ? Array.prototype.slice.call(childs.childNodes, 0) : [];
+            target.innerText = '';
+            childs.forEach((e)=>target.appendChild(e));
+          }
         }
         const formatCountdown = (txt, number) => txt + " ["+number+"]";
         if(opt.pinSize && opt.confirmText){
@@ -166,11 +174,14 @@ Terse Change history:
              current width or its waiting-on-confirmation width
              to avoid layout reflow when it's activated. */
           const digits = (''+(opt.timeout/1000 || opt.ticks)).length;
-          const lblLong = formatCountdown(opt.confirmText, "00000000".substr(0,digits));
-          const w1 = parseFloat(window.getComputedStyle(target).width);
+          const lblLong = formatCountdown(opt.confirmText, "00000000".substr(0,digits+1));
+          const w1 = parseInt(target.getBoundingClientRect().width);
           updateText(lblLong);
-          const w2 = parseFloat(window.getComputedStyle(target).width);
-          target.style.minWidth = target.style.maxWidth = (w1>w2 ? w1 : w2)+"px";
+          const w2 = parseInt(target.getBoundingClientRect().width);
+          if(w1 || w2){
+            /* If target is not in visible part of the DOM, those values may be 0. */
+            target.style.minWidth = target.style.maxWidth = (w1>w2 ? w1 : w2)+"px";
+          }
         }
         updateText(this.opt.initialText);
         if(this.opt.ticks && !this.opt.ontick){

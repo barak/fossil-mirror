@@ -206,7 +206,7 @@ void test_hash_color_page(void){
   if( cnt ){
     @ <hr />
   }
-  @ <form method="post" action="%s(g.zTop)/hash-color-test">
+  @ <form method="post" action="%R/hash-color-test">
   @ <p>Enter candidate branch names below and see them displayed in their
   @ default background colors above.</p>
   for(i=0; i<10; i++){
@@ -486,7 +486,7 @@ void www_print_timeline(
     if( zType[0]=='c' && pGraph ){
       int nParent = 0;
       int nCherrypick = 0;
-      int aParent[GR_MAX_RAIL];
+      GraphRowId aParent[GR_MAX_RAIL];
       static Stmt qparent;
       db_static_prepare(&qparent,
         "SELECT pid FROM plink"
@@ -2077,7 +2077,7 @@ void page_timeline(void){
     /* If p= or d= is present, ignore all other parameters other than n= */
     char *zUuid;
     const char *zCiName;
-    int np, nd;
+    int np = 0, nd;
     const char *zBackTo = 0;
     int ridBackTo = 0;
 
@@ -2626,6 +2626,7 @@ void page_timeline(void){
   if( zOlderButton ){
     @ %z(chref("button","%z",zOlderButton))More&nbsp;&darr;</a>
   }
+  document_emit_js(/*handles pikchrs rendered above*/);
   style_footer();
 }
 
@@ -2860,9 +2861,10 @@ static int fossil_is_julianday(const char *zDate){
 **   -v|--verbose         Output the list of files changed by each commit
 **                        and the type of each change (edited, deleted,
 **                        etc.) after the check-in comment.
-**   -W|--width <num>     Width of lines (default is to auto-detect). Must be
-**                        >20 or 0 (= no limit, resulting in a single line per
-**                        entry).
+**   -W|--width N         Width of lines (default is to auto-detect). N must be
+**                        either greater than 20 or it ust be zero 0 to
+**                        indicate no limit, resulting in a single line per
+**                        entry.
 **   -R REPO_FILE         Specifies the repository db to use. Default is
 **                        the current checkout's repository.
 */

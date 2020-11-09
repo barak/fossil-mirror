@@ -1150,9 +1150,12 @@ NORETURN void fossil_panic(const char *zFormat, ...){
   exit(rc);
 }
 NORETURN void fossil_fatal(const char *zFormat, ...){
+  static int once = 0;
+  va_list ap;
   char *z;
   int rc = 1;
-  va_list ap;
+  if( once ) exit(1);
+  once = 1;
   mainInFatalError = 1;
   va_start(ap, zFormat);
   z = vmprintf(zFormat, ap);

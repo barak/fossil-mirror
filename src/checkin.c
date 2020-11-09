@@ -64,6 +64,9 @@ enum {
 ** all unmanaged files contained underneath those directories.  If there
 ** are no files or directories named on the command-line, then add all
 ** unmanaged files anywhere in the checkout.
+**
+** This routine never follows symlinks.  It always treats symlinks as
+** object unto themselves.
 */
 static void locate_unmanaged_files(
   int argc,           /* Number of command-line arguments to examine */
@@ -82,15 +85,15 @@ static void locate_unmanaged_files(
   nRoot = (int)strlen(g.zLocalRoot);
   if( argc==0 ){
     blob_init(&name, g.zLocalRoot, nRoot - 1);
-    vfile_scan(&name, blob_size(&name), scanFlags, pIgnore, 0, RepoFILE);
+    vfile_scan(&name, blob_size(&name), scanFlags, pIgnore, 0, SymFILE);
     blob_reset(&name);
   }else{
     for(i=0; i<argc; i++){
       file_canonical_name(argv[i], &name, 0);
       zName = blob_str(&name);
-      isDir = file_isdir(zName, RepoFILE);
+      isDir = file_isdir(zName, SymFILE);
       if( isDir==1 ){
-        vfile_scan(&name, nRoot-1, scanFlags, pIgnore, 0, RepoFILE);
+        vfile_scan(&name, nRoot-1, scanFlags, pIgnore, 0, SymFILE);
       }else if( isDir==0 ){
         fossil_warning("not found: %s", &zName[nRoot]);
       }else if( file_access(zName, R_OK) ){
@@ -415,7 +418,7 @@ static int determine_cwd_relative_option()
 **                      directory.
 **    --hash            Verify file status using hashing rather than
 **                      relying on file mtimes.
-**    --case-sensitive <BOOL>  Override case-sensitive setting.
+**    --case-sensitive BOOL  Override case-sensitive setting.
 **    --dotfiles        Include unmanaged files beginning with a dot.
 **    --ignore <CSG>    Ignore unmanaged files matching CSG glob patterns.
 **
@@ -677,6 +680,8 @@ static void ls_cmd_rev(
 **   -t                    Sort output in time order.
 **   -r VERSION            The specific check-in to list.
 **   -R|--repository FILE  Extract info from repository FILE.
+**   --hash                With -v, verify file status using hashing
+**                         rather than relying on file sizes and mtimes.
 **
 ** See also: [[changes]], [[extras]], [[status]]
 */
@@ -689,6 +694,7 @@ void ls_cmd(void){
   char *zOrderBy = "pathname";
   Blob where;
   int i;
+  int useHash = 0;
   const char *zName;
   const char *zRev;
 
@@ -699,6 +705,9 @@ void ls_cmd(void){
   showAge = find_option("age",0,0)!=0;
   zRev = find_option("r","r",1);
   timeOrder = find_option("t","t",0)!=0;
+  if( verboseFlag ){
+    useHash = find_option("hash",0,0)!=0;
+  }
 
   if( zRev!=0 ){
     db_find_and_open_repository(0, 0);
@@ -736,7 +745,7 @@ void ls_cmd(void){
        zName, filename_collation()
     );
   }
-  vfile_check_signature(vid, 0);
+  vfile_check_signature(vid, useHash ? CKSIG_HASH : 0);
   if( showAge ){
     db_prepare(&q,
        "SELECT pathname, deleted, rid, chnged, coalesce(origname!=pathname,0),"
@@ -858,9 +867,6 @@ void extras_cmd(void){
     zIgnoreFlag = db_get("ignore-glob", 0);
   }
   pIgnore = glob_create(zIgnoreFlag);
-#ifdef FOSSIL_LEGACY_ALLOW_SYMLINKS
-  /* Always consider symlinks. */
-  g.allowSymlinks = db_allow_symlinks_by_default();
 #endif
   locate_unmanaged_files(g.argc-2, g.argv+2, scanFlags, pIgnore);
   glob_free(pIgnore);
@@ -1019,9 +1025,6 @@ void clean_cmd(void){
   pKeep = glob_create(zKeepFlag);
   pClean = glob_create(zCleanFlag);
   nRoot = (int)strlen(g.zLocalRoot);
-#ifdef FOSSIL_LEGACY_ALLOW_SYMLINKS
-  /* Always consider symlinks. */
-  g.allowSymlinks = db_allow_symlinks_by_default();
 #endif
   if( !dirsOnlyFlag ){
     Stmt q;
@@ -1340,13 +1343,14 @@ static void prepare_commit_comment(
 */
 static char *prepare_commit_description_file(
   CheckinInfo *p,     /* Information about this commit */
-  int parent_rid      /* parent check-in */
+  int parent_rid,     /* parent check-in */
+  Blob *pComment,     /* Check-in comment */
+  int dryRunFlag      /* True for a dry-run only */
 ){
   Blob *pDesc;
   char *zTags;
   char *zFilename;
   Blob desc;
-  unsigned int r[2];
   blob_init(&desc, 0, 0);
   pDesc = &desc;
   blob_appendf(pDesc, "checkout %s\n", g.zLocalRoot);
@@ -1377,10 +1381,21 @@ static char *prepare_commit_description_file(
   if( p->integrateFlag ){
     blob_append(pDesc, "integrate\n", -1);
   }
-  sqlite3_randomness(sizeof(r), r);
-  zFilename = mprintf("%scommit-description-%08x%08x.txt",
-                      g.zLocalRoot, r[0], r[1]);
-  blob_write_to_file(pDesc, zFilename);
+  if( pComment && blob_size(pComment)>0 ){
+    blob_appendf(pDesc, "checkin-comment\n%s\n", blob_str(pComment));
+  }
+  if( dryRunFlag ){
+    zFilename = 0;
+    fossil_print("******* Commit Description *******\n%s"
+                 "***** End Commit Description *****\n",
+                 blob_str(pDesc));
+  }else{
+    unsigned int r[2];
+    sqlite3_randomness(sizeof(r), r);
+    zFilename = mprintf("%scommit-description-%08x%08x.txt",
+                        g.zLocalRoot, r[0], r[1]);
+    blob_write_to_file(pDesc, zFilename);
+  }
   blob_reset(pDesc);
   return zFilename;
 }
@@ -2418,16 +2433,6 @@ void commit_cmd(void){
     /* Always exit the loop on the second pass */
     if( bRecheck ) break;
 
-    /* Run before-commit hooks */
-    if( !noVerify ){
-      char *zAuxFile = prepare_commit_description_file(&sCiInfo,vid);
-      int rc = hook_run("before-commit",zAuxFile,bTrace);
-      file_delete(zAuxFile);
-      fossil_free(zAuxFile);
-      if( rc ){
-        fossil_fatal("Before-commit hook failed\n");
-      }
-    }
   
     /* Get the check-in comment.  This might involve prompting the
     ** user for the check-in comment, in which case we should resync
@@ -2486,6 +2491,21 @@ void commit_cmd(void){
     }
   }
 
+  if( !noVerify && hook_exists("before-commit") ){
+    /* Run before-commit hooks */
+    char *zAuxFile;
+    zAuxFile = prepare_commit_description_file(
+                     &sCiInfo, vid, &comment, dryRunFlag);
+    if( zAuxFile ){
+      int rc = hook_run("before-commit",zAuxFile,bTrace);
+      file_delete(zAuxFile);
+      fossil_free(zAuxFile);
+      if( rc ){
+        fossil_fatal("Before-commit hook failed\n");
+      }
+    }
+  }
+
   /*
   ** Step 1: Compute an aggregate MD5 checksum over the disk image
   ** of every file in vid.  The file names are part of the checksum.
@@ -2500,7 +2520,7 @@ void commit_cmd(void){
   */
   db_prepare(&q,
     "SELECT id, %Q || pathname, mrid, %s, %s, %s FROM vfile "
-    "WHERE chnged==1 AND NOT deleted AND is_selected(id)",
+    "WHERE chnged IN (1, 7, 9) AND NOT deleted AND is_selected(id)",
     g.zLocalRoot,
     glob_expr("pathname", db_get("crlf-glob",db_get("crnl-glob",""))),
     glob_expr("pathname", db_get("binary-glob","")),
@@ -2740,7 +2760,6 @@ void commit_cmd(void){
   db_multi_exec("PRAGMA repository.application_id=252006673;");
   db_multi_exec("PRAGMA localdb.application_id=252006674;");
   if( dryRunFlag ){
-    leaf_ambiguity_warning(nvid,nvid);
     db_end_transaction(1);
     exit(1);
   }

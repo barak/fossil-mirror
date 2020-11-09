@@ -190,53 +190,55 @@ static int findAttr(const char *z){
 #define MARKUP_COL                12
 #define MARKUP_COLGROUP           13
 #define MARKUP_DD                 14
-#define MARKUP_DFN                15
-#define MARKUP_DIV                16
-#define MARKUP_DL                 17
-#define MARKUP_DT                 18
-#define MARKUP_EM                 19
-#define MARKUP_FONT               20
-#define MARKUP_HTML5_FOOTER       21
-#define MARKUP_H1                 22
-#define MARKUP_H2                 23
-#define MARKUP_H3                 24
-#define MARKUP_H4                 25
-#define MARKUP_H5                 26
-#define MARKUP_H6                 27
-#define MARKUP_HTML5_HEADER       28
-#define MARKUP_HR                 29
-#define MARKUP_I                  30
-#define MARKUP_IMG                31
-#define MARKUP_KBD                32
-#define MARKUP_LI                 33
-#define MARKUP_HTML5_NAV          34
-#define MARKUP_NOBR               35
-#define MARKUP_NOWIKI             36
-#define MARKUP_OL                 37
-#define MARKUP_P                  38
-#define MARKUP_PRE                39
-#define MARKUP_S                  40
-#define MARKUP_SAMP               41
-#define MARKUP_HTML5_SECTION      42
-#define MARKUP_SMALL              43
-#define MARKUP_SPAN               44
-#define MARKUP_STRIKE             45
-#define MARKUP_STRONG             46
-#define MARKUP_SUB                47
-#define MARKUP_SUP                48
-#define MARKUP_TABLE              49
-#define MARKUP_TBODY              50
-#define MARKUP_TD                 51
-#define MARKUP_TFOOT              52
-#define MARKUP_TH                 53
-#define MARKUP_THEAD              54
-#define MARKUP_TITLE              55
-#define MARKUP_TR                 56
-#define MARKUP_TT                 57
-#define MARKUP_U                  58
-#define MARKUP_UL                 59
-#define MARKUP_VAR                60
-#define MARKUP_VERBATIM           61
+#define MARKUP_DEL                15
+#define MARKUP_DFN                16
+#define MARKUP_DIV                17
+#define MARKUP_DL                 18
+#define MARKUP_DT                 19
+#define MARKUP_EM                 20
+#define MARKUP_FONT               21
+#define MARKUP_HTML5_FOOTER       22
+#define MARKUP_H1                 23
+#define MARKUP_H2                 24
+#define MARKUP_H3                 25
+#define MARKUP_H4                 26
+#define MARKUP_H5                 27
+#define MARKUP_H6                 28
+#define MARKUP_HTML5_HEADER       29
+#define MARKUP_HR                 30
+#define MARKUP_I                  31
+#define MARKUP_IMG                32
+#define MARKUP_INS                33
+#define MARKUP_KBD                34
+#define MARKUP_LI                 35
+#define MARKUP_HTML5_NAV          36
+#define MARKUP_NOBR               37
+#define MARKUP_NOWIKI             38
+#define MARKUP_OL                 39
+#define MARKUP_P                  40
+#define MARKUP_PRE                41
+#define MARKUP_S                  42
+#define MARKUP_SAMP               43
+#define MARKUP_HTML5_SECTION      44
+#define MARKUP_SMALL              45
+#define MARKUP_SPAN               46
+#define MARKUP_STRIKE             47
+#define MARKUP_STRONG             48
+#define MARKUP_SUB                49
+#define MARKUP_SUP                50
+#define MARKUP_TABLE              51
+#define MARKUP_TBODY              52
+#define MARKUP_TD                 53
+#define MARKUP_TFOOT              54
+#define MARKUP_TH                 55
+#define MARKUP_THEAD              56
+#define MARKUP_TITLE              57
+#define MARKUP_TR                 58
+#define MARKUP_TT                 59
+#define MARKUP_U                  60
+#define MARKUP_UL                 61
+#define MARKUP_VAR                62
+#define MARKUP_VERBATIM           63
 
 /*
 ** The various markup is divided into the following types:
@@ -292,6 +294,7 @@ static const struct AllowedMarkup {
  { "colgroup",      MARKUP_COLGROUP,     MUTYPE_BLOCK,
                     AMSK_ALIGN|AMSK_CLASS|AMSK_COLSPAN|AMSK_WIDTH|AMSK_STYLE},
  { "dd",            MARKUP_DD,           MUTYPE_LI,            AMSK_STYLE },
+ { "del",           MARKUP_DEL,          MUTYPE_FONT,          AMSK_STYLE },
  { "dfn",           MARKUP_DFN,          MUTYPE_FONT,          AMSK_STYLE },
  { "div",           MARKUP_DIV,          MUTYPE_BLOCK,
                     AMSK_ID|AMSK_CLASS|AMSK_STYLE },
@@ -327,6 +330,7 @@ static const struct AllowedMarkup {
  { "img",           MARKUP_IMG,          MUTYPE_SINGLE,
                     AMSK_ALIGN|AMSK_ALT|AMSK_BORDER|AMSK_HEIGHT|
                     AMSK_HSPACE|AMSK_SRC|AMSK_VSPACE|AMSK_WIDTH|AMSK_STYLE  },
+ { "ins",           MARKUP_INS,          MUTYPE_FONT,          AMSK_STYLE },
  { "kbd",           MARKUP_KBD,          MUTYPE_FONT,          AMSK_STYLE },
  { "li",            MARKUP_LI,           MUTYPE_LI,
                     AMSK_TYPE|AMSK_VALUE|AMSK_STYLE  },
@@ -825,7 +829,10 @@ static int parseMarkup(ParsedMarkup *p, char *z){
         while( z[i] && z[i]!='\'' ){ i++; }
       }else{
         zValue = &z[i];
-        while( !fossil_isspace(z[i]) && z[i]!='>' ){ z++; }
+        while( !fossil_isspace(z[i]) && z[i]!='>' ){
+          if( z[i]=='\'' || z[i]=='"' ) attrOk = 0;
+          i++;
+        }
       }
       if( attrOk ){
         p->aAttr[p->nAttr].zValue = zValue;
@@ -862,7 +869,7 @@ static void renderMarkup(Blob *pOut, ParsedMarkup *p){
       if( p->aAttr[i].zValue ){
         const char *zVal = p->aAttr[i].zValue;
         if( p->aAttr[i].iACode==ATTR_SRC && zVal[0]=='/' ){
-          blob_appendf(pOut, "=\"%s%s\"", g.zTop, zVal);
+          blob_appendf(pOut, "=\"%R%s\"", zVal);
         }else{
           blob_appendf(pOut, "=\"%s\"", zVal);
         }
@@ -1228,6 +1235,8 @@ static const char *wiki_is_overridden(const char *zTarget){
 **    [wiki:WikiPageName]
 **
 **    [2010-02-27 07:13]
+**
+**    [InterMap:Link]  ->  Interwiki link
 */
 void wiki_resolve_hyperlink(
   Blob *pOut,             /* Write the HTML output here */
@@ -1242,6 +1251,7 @@ void wiki_resolve_hyperlink(
   const char *z;
   char *zExtra = 0;
   const char *zExtraNS = 0;
+  char *zRemote = 0;
 
   if( zTitle ){
     zExtra = mprintf(" title='%h'", zTitle);
@@ -1301,6 +1311,9 @@ void wiki_resolve_hyperlink(
     }else{
       zTerm = "";
     }
+  }else if( (zRemote = interwiki_url(zTarget))!=0 ){
+    blob_appendf(pOut, "<a href=\"%z\"%s>", zRemote, zExtra);
+    zTerm = "</a>";
   }else if( (z = validWikiPageName(mFlags, zTarget))!=0 ){
     /* The link is to a valid wiki page name */
     const char *zOverride = wiki_is_overridden(zTarget);
@@ -1349,6 +1362,58 @@ static int endVerbatim(Renderer *p, ParsedMarkup *pMarkup){
   if( pMarkup->nAttr!=1 ) return 0;
   z = pMarkup->aAttr[0].zValue;
   return fossil_strcmp(z, p->zVerbatimId)==0;
+}
+
+/*
+** z[] points to the text that immediately follows markup of the form:
+**
+**      <verbatim type='pikchr ...'>
+**
+** zClass is the argument to "type".  This routine will process the
+** Pikchr text through the next matching </verbatim> (or until end-of-file)
+** and append the resulting SVG output onto p.  It then returns the
+** number of bytes of text processed, including the closing </verbatim>.
+*/
+static int wiki_process_pikchr(Renderer *p, char *z, const char *zClass){
+  ParsedMarkup m;         /* Parsed closing tag */
+  int i = 0;              /* For looping over z[] in search of </verbatim> */
+  int iRet = 0;           /* Value  to return */
+  int atEnd = 0;          /* True if se have found the </verbatim> */
+  int nMarkup = 0;        /* Length of a markup we are checking */
+
+  /* Search for the closing </verbatim> tag */
+  while( z[i]!=0 ){
+    char *zEnd = strchr(z+i, '<');
+    if( zEnd==0 ){
+      i += (int)strlen(z+i);
+      iRet = i;
+      break;
+    }
+    nMarkup = html_tag_length(zEnd);
+    if( nMarkup<11 || fossil_strnicmp(zEnd, "</verbatim", 10)!=0 ){
+      i = (int)(zEnd - z) + 1;
+      continue;
+    }
+    (void)parseMarkup(&m, z+i);
+    atEnd = endVerbatim(p, &m);
+    unparseMarkup(&m);
+    if( atEnd ){
+      iRet = i + nMarkup;
+      break;
+    }
+    i++;
+  }
+
+  /* The Pikchr source text should be i character in length and iRet is
+  ** i plus the number of bytes in the </verbatim>.  Generate the reply.
+  */
+  assert( strncmp(zClass,"pikchr",6)==0 );
+  zClass += 6;
+  while( fossil_isspace(zClass[0]) ) zClass++;
+  blob_append(p->pOut, "<p>", 3);
+  pikchr_to_html(p->pOut, z, i, zClass, (int)strlen(zClass));
+  blob_append(p->pOut, "</p>\n", 5);
+  return iRet;
 }
 
 /*
@@ -1512,7 +1577,7 @@ static void wiki_render(Renderer *p, char *z){
         }
         z[i] = 0;
         if( zDisplay==0 ){
-          zDisplay = zTarget;
+          zDisplay = zTarget + interwiki_removable_prefix(zTarget);
         }else{
           while( fossil_isspace(*zDisplay) ) zDisplay++;
         }
@@ -1650,7 +1715,8 @@ static void wiki_render(Renderer *p, char *z){
         ** ignored.
         */
         if( markup.iCode==MARKUP_VERBATIM ){
-          int ii, vAttrDidAppend=0;
+          int ii; //, vAttrDidAppend=0;
+          const char *zClass = 0;
           p->zVerbatimId = 0;
           p->inVerbatim = 1;
           p->preVerbState = p->state;
@@ -1659,17 +1725,23 @@ static void wiki_render(Renderer *p, char *z){
             if( markup.aAttr[ii].iACode == ATTR_ID ){
               p->zVerbatimId = markup.aAttr[ii].zValue;
             }else if( markup.aAttr[ii].iACode==ATTR_TYPE ){
-              blob_appendf(p->pOut, "<pre name='code' class='%s'>",
-                markup.aAttr[ii].zValue);
-              vAttrDidAppend=1;
+              zClass = markup.aAttr[ii].zValue;
             }else if( markup.aAttr[ii].iACode==ATTR_LINKS
                    && !is_false(markup.aAttr[ii].zValue) ){
               p->state |= ALLOW_LINKS;
             }
           }
-          if( !vAttrDidAppend ) {
-            endAutoParagraph(p);
+          endAutoParagraph(p);
+          if( zClass==0 ){
             blob_append_string(p->pOut, "<pre class='verbatim'>");
+          }else if( strncmp(zClass,"pikchr",6)==0 &&
+                    (fossil_isspace(zClass[6]) || zClass[6]==0) ){
+            n += wiki_process_pikchr(p, z+n, zClass);
+            p->inVerbatim = 0;
+            p->state = p->preVerbState;
+          }else{
+            blob_appendf(p->pOut, "<pre name='code' class='%h'>",
+               zClass);
           }
           p->wantAutoParagraph = 0;
         }else
@@ -2511,6 +2583,35 @@ static void html_tagstack_pop(HtmlTagStack *p, Blob *pBlob, int eEnd){
 }
 
 /*
+** Return a nonce to indicate that safe_html() can allow code through
+** without censoring.
+**
+** When safe_html() is asked to sanitize some HTML, it will ignore
+** any text in between two consecutive instances of the nonce.  The
+** nonce itself is an HTML comment so it is harmless to keep the
+** nonce in the middle of the HTML stream.  A different nonce is
+** choosen each time Fossil is run, using a lot of randomness, so
+** an attacker will be unable to guess the nonce in advance.
+**
+** The original use-case for this mechanism is to allow Pikchr-generated
+** SVG in the middle of HTML generated from Markdown.  The Markdown
+** output will normally be processed by safe_html() to prevent accidental
+** or malicious introduction of harmful HTML (ex: <script>) in the
+** output stream.  The safe_html() only lets through HTML elements
+** that are on its allow-list and SVG is not on that list.  Hence, in order
+** to allow the Pikchr-generated SVG through, it must be surrounded by
+** the nonce.
+*/
+const char *safe_html_nonce(int bGenerate){
+  static char *zNonce = 0;
+  if( zNonce==0 && bGenerate ){
+    zNonce = db_text(0, "SELECT '<!--'||hex(randomblob(32))||'-->';");
+  }
+  return zNonce;
+}
+#define SAFE_NONCE_SIZE (4+64+3)
+
+/*
 ** Append a safe translation of HTML text to a Blob object.
 **
 ** Restriction: The input to this routine must be writable.
@@ -2525,6 +2626,8 @@ static void safe_html_append(Blob *pBlob, char *zHtml, int nHtml){
   int i, j, n;
   HtmlTagStack s;
   ParsedMarkup markup;
+  const char *zNonce;
+  char *z;
 
   if( nHtml<=0 ) return;
   cLast = zHtml[nHtml];
@@ -2536,13 +2639,23 @@ static void safe_html_append(Blob *pBlob, char *zHtml, int nHtml){
     if( zHtml[i]=='<' ){
       j = i;
     }else{
-      char *z = strchr(zHtml+i, '<');
+      z = strchr(zHtml+i, '<');
       if( z==0 ){
         blob_append(pBlob, zHtml+i, nHtml-i);
         break;
       }
       j = (int)(z - zHtml);
       blob_append(pBlob, zHtml+i, j-i);
+    }
+    if( zHtml[j+1]=='!'
+     && j+2*SAFE_NONCE_SIZE<nHtml
+     && (zNonce = safe_html_nonce(0))!=0
+     && strncmp(zHtml+j,zNonce,SAFE_NONCE_SIZE)==0
+     && (z = strstr(zHtml+j+SAFE_NONCE_SIZE,zNonce))!=0
+    ){
+      i = (int)(z - zHtml) + SAFE_NONCE_SIZE;
+      blob_append(pBlob, zHtml+j, i-j);
+      continue;
     }
     n = html_tag_length(zHtml+j);
     if( n==0 ){

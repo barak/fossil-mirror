@@ -372,6 +372,10 @@ static size_t tag_length(char *data, size_t size, enum mkd_autolink *autolink){
   if( data[0]!='<' ) return 0;
   i = (data[1]=='/') ? 2 : 1;
   if( (data[i]<'a' || data[i]>'z') &&  (data[i]<'A' || data[i]>'Z') ){
+    if( data[1]=='!' && size>=7 && data[2]=='-' && data[3]=='-' ){
+      for(i=6; i<size && (data[i]!='>'||data[i-1]!='-'|| data[i-2]!='-');i++){}
+      if( i<size ) return i;
+    }
     return 0;
   }
 
@@ -1921,7 +1925,7 @@ static size_t parse_table_row(
     if( align==0 && aligns && col<align_size ) align = aligns[col];
 
     /* render cells */
-    if( cells && end>beg ){
+    if( cells && end>=beg ){
       parse_table_cell(cells, rndr, data+beg, end-beg, align|flags);
     }
 

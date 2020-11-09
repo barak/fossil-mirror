@@ -142,6 +142,7 @@ static Blob blobOnLoad = BLOB_INITIALIZER;
 char *xhref(const char *zExtra, const char *zFormat, ...){
   char *zUrl;
   va_list ap;
+  if( !g.perm.Hyperlink ) return fossil_strdup("");
   va_start(ap, zFormat);
   zUrl = vmprintf(zFormat, ap);
   va_end(ap);
@@ -166,6 +167,7 @@ char *xhref(const char *zExtra, const char *zFormat, ...){
 char *chref(const char *zExtra, const char *zFormat, ...){
   char *zUrl;
   va_list ap;
+  if( !g.perm.Hyperlink ) return fossil_strdup("");
   va_start(ap, zFormat);
   zUrl = vmprintf(zFormat, ap);
   va_end(ap);
@@ -181,6 +183,7 @@ char *chref(const char *zExtra, const char *zFormat, ...){
 char *href(const char *zFormat, ...){
   char *zUrl;
   va_list ap;
+  if( !g.perm.Hyperlink ) return fossil_strdup("");
   va_start(ap, zFormat);
   zUrl = vmprintf(zFormat, ap);
   va_end(ap);
@@ -528,6 +531,7 @@ char *style_csp(int toHeader){
   Blob csp;
   char *zNonce;
   char *zCsp;
+  int i;
   if( zFormat[0]==0 ){
     zFormat = zBackupCSP;
   }
@@ -539,6 +543,9 @@ char *style_csp(int toHeader){
   }
   blob_append(&csp, zFormat, -1);
   zCsp = blob_str(&csp);
+  /* No whitespace other than actual space characters allowed in the CSP
+  ** string.  See https://fossil-scm.org/forum/forumpost/d29e3af43c */
+  for(i=0; zCsp[i]; i++){ if( fossil_isspace(zCsp[i]) ) zCsp[i] = ' '; }
   if( toHeader ){
     cgi_printf_header("Content-Security-Policy: %s\r\n", zCsp);
   }
@@ -550,7 +557,7 @@ char *style_csp(int toHeader){
 ** header template lacks a <body> tag, then all of the following is
 ** prepended.
 */
-static char zDfltHeader[] = 
+static const char zDfltHeader[] = 
 @ <html>
 @ <head>
 @ <base href="$baseurl/$current_page" />
@@ -563,6 +570,13 @@ static char zDfltHeader[] =
 @ </head>
 @ <body>
 ;
+
+/*
+** Returns the default page header.
+*/
+const char *get_default_header(){
+  return zDfltHeader;
+}
 
 /*
 ** Initialize all the default TH1 variables
@@ -699,18 +713,18 @@ void style_table_sorter(void){
 ** Generate code to load all required javascript files.
 */
 static void style_load_all_js_files(void){
-  if( needHrefJs ){
+  if( needHrefJs && g.perm.Hyperlink ){
     int nDelay = db_get_int("auto-hyperlink-delay",0);
     int bMouseover = db_get_boolean("auto-hyperlink-mouseover",0);
     @ <script id='href-data' type='application/json'>\
     @ {"delay":%d(nDelay),"mouseover":%d(bMouseover)}</script>
   }
-  @ <script nonce="%h(style_nonce())">
+  @ <script nonce="%h(style_nonce())">/* style.c:%d(__LINE__) */
   @ function debugMsg(msg){
   @ var n = document.getElementById("debugMsg");
   @ if(n){n.textContent=msg;}
   @ }
-  if( needHrefJs ){
+  if( needHrefJs && g.perm.Hyperlink ){
     @ /* href.js */
     cgi_append_content(builtin_text("href.js"),-1);
   }
@@ -1232,12 +1246,12 @@ static char * style_next_input_id(){
 **
 ** Resulting structure:
 **
-** <span class='input-with-label' title={{zTip}} id={{zWrapperId}}>
+** <div class='input-with-label' title={{zTip}} id={{zWrapperId}}>
 **   <input type='checkbox' name={{zFieldName}} value={{zValue}}
 **          id='A RANDOM VALUE'
 **          {{isChecked ? " checked : ""}}/>
 **   <label for='ID OF THE INPUT FIELD'>{{zLabel}}</label>
-** </span>
+** </div>
 **
 ** zLabel, and zValue are required. zFieldName, zWrapperId, and zTip
 ** are may be NULL or empty.
@@ -1251,7 +1265,7 @@ void style_labeled_checkbox(const char * zWrapperId,
                             const char * zValue, int isChecked,
                             const char * zTip){
   char * zLabelID = style_next_input_id();
-  CX("<span class='input-with-label'");
+  CX("<div class='input-with-label'");
   if(zTip && *zTip){
     CX(" title='%h'", zTip);
   }
@@ -1264,7 +1278,7 @@ void style_labeled_checkbox(const char * zWrapperId,
   }
   CX("value='%T'%s/>",
      zValue ? zValue : "", isChecked ? " checked" : "");
-  CX("<label for='%s'>%h</label></span>", zLabelID, zLabel);
+  CX("<label for='%s'>%h</label></div>", zLabelID, zLabel);
   fossil_free(zLabelID);
 }
 
@@ -1298,10 +1312,10 @@ void style_labeled_checkbox(const char * zWrapperId,
 **
 ** The structure of the emitted HTML is:
 **
-** <span class='input-with-label' title={{zToolTip}} id={{zWrapperId}}>
+** <div class='input-with-label' title={{zToolTip}} id={{zWrapperId}}>
 **   <label for='SELECT ELEMENT ID'>{{zLabel}}</label>
 **   <select id='RANDOM ID' name={{zFieldName}}>...</select>
-** </span>
+** </div>
 **
 ** Example:
 **
@@ -1320,7 +1334,7 @@ void style_select_list_int(const char * zWrapperId,
   va_list vargs;
 
   va_start(vargs,selectedVal);
-  CX("<span class='input-with-label'");
+  CX("<div class='input-with-label'");
   if(zToolTip && *zToolTip){
     CX(" title='%h'",zToolTip);
   }
@@ -1349,7 +1363,7 @@ void style_select_list_int(const char * zWrapperId,
     CX("</option>\n");
   }
   CX("</select>\n");
-  CX("</span>\n");
+  CX("</div>\n");
   va_end(vargs);
   fossil_free(zLabelID);
 }
@@ -1384,7 +1398,7 @@ void style_select_list_str(const char * zWrapperId,
   if(!zSelectedVal){
     zSelectedVal = __FILE__/*some string we'll never match*/;
   }
-  CX("<span class='input-with-label'");
+  CX("<div class='input-with-label'");
   if(zToolTip && *zToolTip){
     CX(" title='%h'",zToolTip);
   }
@@ -1413,152 +1427,41 @@ void style_select_list_str(const char * zWrapperId,
     CX("</option>\n");
   }
   CX("</select>\n");
-  CX("</span>\n");
+  CX("</div>\n");
   va_end(vargs);
   fossil_free(zLabelID);
 }
 
-
 /*
-** The first time this is called, it emits code to install and
-** bootstrap the window.fossil object, using the built-in file
-** fossil.bootstrap.js (not to be confused with bootstrap.js).
+** Generate a <script> with an appropriate nonce.
 **
-** Subsequent calls are no-ops.
-**
-** It emits 2 parts:
-**
-** 1) window.fossil core object, some of which depends on C-level
-** runtime data. That part of the script is always emitted inline. If
-** addScriptTag is true then it is wrapped in its own SCRIPT tag, else
-** it is assumed that the caller already opened a tag.
-**
-** 2) Emits the static fossil.bootstrap.js using builtin_request_js().
+** zOrigin and iLine are the source code filename and line number
+** that generated this request.
 */
-void style_emit_script_fossil_bootstrap(int addScriptTag){
-  static int once = 0;
-  if(0==once++){
-    char * zName;
-    /* Set up the generic/app-agnostic parts of window.fossil
-    ** which require C-level state... */
-    if(addScriptTag!=0){
-      style_emit_script_tag(0,0);
+void style_script_begin(const char *zOrigin, int iLine){
+  const char *z;
+  for(z=zOrigin; z[0]!=0; z++){
+    if( z[0]=='/' || z[0]=='\\' ){
+      zOrigin = z+1;
     }
-    CX("(function(){\n");
-    CX(/*MSIE NodeList.forEach polyfill, courtesy of Mozilla:
-    https://developer.mozilla.org/en-US/docs/Web/API/NodeList/forEach#Polyfill
-       */
-       "if(window.NodeList && !NodeList.prototype.forEach){"
-       "NodeList.prototype.forEach = Array.prototype.forEach;"
-       "}\n");
-    CX("if(!window.fossil) window.fossil={};\n"
-       "window.fossil.version = %!j;\n"
-    /* fossil.rootPath is the top-most CGI/server path,
-    ** including a trailing slash. */
-       "window.fossil.rootPath = %!j+'/';\n",
-       get_version(), g.zTop);
-    /* fossil.config = {...various config-level options...} */
-    CX("window.fossil.config = {");
-    zName = db_get("project-name", "");
-    CX("projectName: %!j,\n", zName);
-    fossil_free(zName);
-    zName = db_get("short-project-name", "");
-    CX("shortProjectName: %!j,\n", zName);
-    fossil_free(zName);
-    zName = db_get("project-code", "");
-    CX("projectCode: %!j,\n", zName);
-    fossil_free(zName);
-    CX("/* Length of UUID hashes for display purposes. */");
-    CX("hashDigits: %d, hashDigitsUrl: %d,\n",
-       hash_digits(0), hash_digits(1));
-    CX("editStateMarkers: {"
-       "/*Symbolic markers to denote certain edit states.*/"
-       "isNew:'[+]', isModified:'[*]', isDeleted:'[-]'},\n");
-    CX("confirmerButtonTicks: 3 "
-       "/*default fossil.confirmer tick count.*/\n");
-    CX("};\n"/* fossil.config */);
-#if 0
-    /* Is it safe to emit the CSRF token here? Some pages add it
-    ** as a hidden form field. */
-    if(g.zCsrfToken[0]!=0){
-      CX("window.fossil.csrfToken = %!j;\n",
-         g.zCsrfToken);
-    }
-#endif
-    /*
-    ** fossil.page holds info about the current page. This is also
-    ** where the current page "should" store any of its own
-    ** page-specific state, and it is reserved for that purpose.
-    */
-    CX("window.fossil.page = {"
-       "name:\"%T\""
-       "};\n", g.zPath);
-    CX("})();\n");
-    if(addScriptTag!=0){
-      style_emit_script_tag(1,0);
-    }
-    /* The remaining window.fossil bootstrap code is not dependent on
-    ** C-runtime state... */
-    builtin_request_js("fossil.bootstrap.js");
   }
+  CX("<script nonce='%s'>/* %s:%d */\n", style_nonce(), zOrigin, iLine);
+}
+
+/* Generate the closing </script> tag 
+*/
+void style_script_end(void){
+  CX("</script>\n");
 }
 
 /*
-** If passed 0 as its first argument, it emits a script opener tag
-** with this request's nonce. If passed non-0 it emits a script
-** closing tag. Mnemonic for remembering the order in which to pass 0
-** or 1 as the first argument to this function: 0 comes before 1.
-**
-** If passed 0 as its first argument and a non-NULL/non-empty zSrc,
-** then it instead emits:
-**
-** <script src='%R/{{zSrc}}'></script>
-**
-** zSrc is always assumed to be a repository-relative path without
-** a leading slash, and has %R/ prepended to it.
-**
-** Meaning that no follow-up call to pass a non-0 first argument
-** to close the tag. zSrc is ignored if the first argument is not
-** 0.
+** Emits a NOSCRIPT tag with an error message stating that JS is
+** required for the current page. This "should" be called near the top
+** of pages which *require* JS. The inner DIV has the CSS class
+** 'error' and can be styled via a (noscript > .error) CSS selector.
 */
-void style_emit_script_tag(int isCloser, const char * zSrc){
-  if(0==isCloser){
-    if(zSrc!=0 && zSrc[0]!=0){
-      CX("<script src='%R/%T'></script>\n", zSrc);
-    }else{
-      CX("<script nonce='%s'>", style_nonce());
-    }
-  }else{
-    CX("</script>\n");
-  }
-}
-
-/*
-** Convenience wrapper which calls builtin_request_js() for a series
-** of builtin scripts named fossil.NAME.js. The first time it is
-** called, it also calls style_emit_script_fossil_bootstrap() to
-** initialize the window.fossil JS API. The first argument is a
-** no-meaning dummy required by the va_start() interface. All
-** subsequent arguments must be strings of the NAME part of
-** fossil.NAME.js, followed by a NULL argument to terminate the list.
-**
-** e.g. pass it (0, "fetch", "dom", "tabs", 0) to load those 3
-** APIs. Do not forget the trailing 0!
-*/
-void style_emit_fossil_js_apis( int dummy, ... ) {
-  static int once = 0;
-  const char *zArg;
-  char * zName;
-  va_list vargs;
-
-  if(0==once++){
-    style_emit_script_fossil_bootstrap(1);
-  }
-  va_start(vargs,dummy);
-  while( (zArg = va_arg (vargs, const char *))!=0 ){
-    zName = mprintf("fossil.%s.js", zArg);
-    builtin_request_js(zName);
-    fossil_free(zName);
-  }
-  va_end(vargs);
+void style_emit_noscript_for_js_page(void){
+  CX("<noscript><div class='error'>"
+     "This page requires JavaScript (ES2015, a.k.a. ES6, or newer)."
+     "</div></noscript>");
 }

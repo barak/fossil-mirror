@@ -171,6 +171,7 @@ static int add_one_file(
   }else{
     char *zFullname = mprintf("%s%s", g.zLocalRoot, zPath);
     int isExe = file_isexe(zFullname, RepoFILE);
+    int isLink = file_islink(0);
     if( file_nondir_objects_on_path(g.zLocalRoot, zFullname) ){
       /* Do not add unsafe files to the vfile */
       doSkip = 1;
@@ -178,7 +179,7 @@ static int add_one_file(
       db_multi_exec(
         "INSERT INTO vfile(vid,deleted,rid,mrid,pathname,isexe,islink,mhash)"
         "VALUES(%d,0,0,0,%Q,%d,%d,NULL)",
-        vid, zPath, isExe, file_islink(0));
+        vid, zPath, isExe, isLink);
     }
     fossil_free(zFullname);
   }
@@ -195,7 +196,7 @@ static int add_one_file(
 ** Add all files in the sfile temp table.
 **
 ** Automatically exclude the repository file and any other files
-** with reserved names. Also exclude files that are beneath an 
+** with reserved names. Also exclude files that are beneath an
 ** existing symlink.
 */
 static int add_files_in_sfile(int vid){
@@ -218,7 +219,7 @@ static int add_files_in_sfile(int vid){
   }else{
     xCmp = fossil_stricmp;
   }
-  db_prepare(&loop, 
+  db_prepare(&loop,
      "SELECT pathname FROM sfile"
      " WHERE pathname NOT IN ("
        "SELECT sfile.pathname FROM vfile, sfile"
@@ -553,7 +554,7 @@ static void process_files_to_remove(
 **   --soft                  Skip removing files from the checkout.
 **                           This supersedes the --hard option.
 **   --hard                  Remove files from the checkout.
-**   --case-sensitive <BOOL> Override the case-sensitive setting.
+**   --case-sensitive BOOL   Override the case-sensitive setting.
 **   -n|--dry-run            If given, display instead of run actions.
 **   --reset                 Reset the DELETED state of a checkout, such
 **                           that all newly-rm'd (but not yet committed)
@@ -655,7 +656,7 @@ void capture_case_sensitive_option(void){
 ** If case-sensitivity is enabled in the windows kernel, the Cygwin port
 ** of fossil.exe can detect that, and modifies the default to 'on'.
 **
-** The --case-sensitive <BOOL> command-line option overrides any
+** The "--case-sensitive BOOL" command-line option overrides any
 ** setting.
 */
 int filenames_are_case_sensitive(void){
@@ -991,7 +992,7 @@ static void process_files_to_move(
 **   --soft                    Skip moving files within the checkout.
 **                             This supersedes the --hard option.
 **   --hard                    Move files within the checkout.
-**   --case-sensitive <BOOL>   Override the case-sensitive setting.
+**   --case-sensitive BOOL     Override the case-sensitive setting.
 **   -n|--dry-run              If given, display instead of run actions.
 **
 ** See also: [[changes]], [[status]]

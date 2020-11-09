@@ -139,9 +139,9 @@ static void collect_argv(Blob *pExtra, int iStart){
 ** are added back to the list of repositories by these commands.
 **
 ** Options:
-**   --showfile     Show the repository or checkout being operated upon.
-**   --dontstop     Continue with other repositories even after an error.
-**   --dry-run      If given, display instead of run actions.
+**   --dry-run         If given, display instead of run actions.
+**   --showfile        Show the repository or checkout being operated upon.
+**   --stop-on-error   Halt immediately if any subprocess fails.
 */
 void all_cmd(void){
   int n;
@@ -153,10 +153,12 @@ void all_cmd(void){
   int quiet = 0;
   int dryRunFlag = 0;
   int showFile = find_option("showfile",0,0)!=0;
-  int stopOnError = find_option("dontstop",0,0)==0;
+  int stopOnError;
   int nToDel = 0;
   int showLabel = 0;
 
+  (void)find_option("dontstop",0,0);   /* Legacy.  Now the default */
+  stopOnError = find_option("stop-on-error",0,0)!=0;
   dryRunFlag = find_option("dry-run","n",0)!=0;
   if( !dryRunFlag ){
     dryRunFlag = find_option("test",0,0)!=0; /* deprecated */
@@ -301,7 +303,9 @@ void all_cmd(void){
       if( dryRunFlag ){
         fossil_print("%s\n", blob_sql_text(&sql));
       }else{
+        db_unprotect(PROTECT_CONFIG);
         db_multi_exec("%s", blob_sql_text(&sql));
+        db_protect_pop();
       }
     }
     db_end_transaction(0);
@@ -336,7 +340,9 @@ void all_cmd(void){
       if( dryRunFlag ){
         fossil_print("%s\n", blob_sql_text(&sql));
       }else{
+        db_unprotect(PROTECT_CONFIG);
         db_multi_exec("%s", blob_sql_text(&sql));
+        db_protect_pop();
       }
     }
     db_end_transaction(0);
@@ -414,8 +420,12 @@ void all_cmd(void){
     }
     rc = dryRunFlag ? 0 : fossil_system(zSyscmd);
     free(zSyscmd);
-    if( stopOnError && rc ){
-      break;
+    if( rc ){
+      if( stopOnError ) break;
+      /* If there is an error, pause briefly, but do not stop.  The brief
+      ** pause is so that if the prior command failed with Ctrl-C then there
+      ** will be time to stop the whole thing with a second Ctrl-C. */
+      sqlite3_sleep(330);
     }
   }
   db_finalize(&q);
@@ -430,7 +440,9 @@ void all_cmd(void){
     if( dryRunFlag ){
       fossil_print("%s\n", zSql);
     }else{
+      db_unprotect(PROTECT_CONFIG);
       db_multi_exec("%s", zSql /*safe-for-%s*/ );
+      db_protect_pop();
     }
   }
 }

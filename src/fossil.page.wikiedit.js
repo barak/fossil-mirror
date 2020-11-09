@@ -4,7 +4,7 @@
      Client-side implementation of the /wikiedit app. Requires that
      the fossil JS bootstrapping is complete and that several fossil
      JS APIs have been installed: fossil.fetch, fossil.dom,
-     fossil.tabs, fossil.storage, fossil.confirmer.
+     fossil.tabs, fossil.storage, fossil.confirmer, fossil.popupwidget.
 
      Custom events which can be listened for via
      fossil.page.addEventListener():
@@ -555,11 +555,11 @@
                  sel)
       );
       D.attr(sel, 'size', 12);
-      D.option(D.disable(D.clearElement(sel)), "Loading...");
+      D.option(D.disable(D.clearElement(sel)), undefined, "Loading...");
 
       /** Set up filter checkboxes for the various types
           of wiki pages... */
-      const fsFilter = D.fieldset("Page types"),
+      const fsFilter = D.addClass(D.fieldset("Page types"),"page-types-list"),
             fsFilterBody = D.div(),
             filters = ['normal', 'branch/...', 'tag/...', 'checkin/...']
       ;
@@ -599,9 +599,14 @@
               cb = D.attr(D.input('checkbox'), 'id', cbId);
         cb.checked = false;
         D.addClass(parentElem,'hide-deleted');
-        D.attr(lbl, 'title',
-               'Fossil considers empty pages to be "deleted" in some contexts.');
-        D.append(fsFilterBody, D.append(D.span(), cb, lbl));
+        D.attr(lbl);
+        const deletedTip = F.helpButtonlets.create(
+          D.span(),
+          'Fossil considers empty pages to be "deleted" in some contexts.'
+        );
+        D.append(fsFilterBody, D.append(
+          D.span(), cb, lbl, deletedTip
+        ));
         cb.addEventListener(
           'change',
           function(ev){
@@ -666,7 +671,7 @@
           if(page.isEmpty) opt.dataset.isDeleted = true;
           else delete opt.dataset.isDeleted;
           self._refreshStashMarks(opt);
-        }else{
+        }else if('sandbox'!==page.type){
           F.error("BUG: internal mis-handling of page object: missing OPTION for page "+page.name);
         }
       });
@@ -684,19 +689,23 @@
         D.attr(D.div(),'id','wikiedit-stash-selector'),
         'input-with-label'
       );
-      const sel = this.e.select = D.select();
-      const btnClear = this.e.btnClear = D.button("Discard Edits");
+      const sel = this.e.select = D.select(),
+            btnClear = this.e.btnClear = D.button("Discard Edits"),
+            btnHelp = D.append(
+              D.addClass(D.div(), "help-buttonlet"),
+              'Locally-edited wiki pages. Timestamps are the last local edit time. ',
+              'Only the ',P.config.defaultMaxStashSize,' most recent pages ',
+              'are retained. Saving or reloading a file removes it from this list. ',
+              D.append(D.code(),F.storage.storageImplName()),
+              ' = ',F.storage.storageHelpDescription()
+            );
       D.append(wrapper, "Local edits (",
                D.append(D.code(),
                         F.storage.storageImplName()),
                "):",
-               sel, btnClear);
-      D.attr(wrapper, "title", [
-        'Locally-edited wiki pages. Timestamps are the last local edit time.',
-        'Only the',P.config.defaultMaxStashSize,'most recent pages',
-        'are retained. Saving or reloading a file removes it from this list.'
-      ].join(' '));
-      D.option(D.disable(sel), "(empty)");
+               btnHelp, sel, btnClear);
+      F.helpButtonlets.setup(btnHelp);
+      D.option(D.disable(sel), undefined, "(empty)");
       P.addEventListener('wiki-stash-updated',(e)=>this.updateList(e.detail));
       P.addEventListener('wiki-page-loaded',(e)=>this.updateList($stash, e.detail));
       sel.addEventListener('change',function(e){
@@ -751,7 +760,7 @@
       D.clearElement(this.e.select);
       if(0===ilist.length){
         D.addClass(this.e.btnClear, 'hidden');
-        D.option(D.disable(this.e.select),"No local edits");
+        D.option(D.disable(this.e.select),undefined,"No local edits");
         return;
       }
       D.enable(this.e.select);
@@ -762,7 +771,7 @@
            P.e.btnReload. Not yet sure how best to resolve that. */
         D.removeClass(this.e.btnClear, 'hidden');
       }
-      D.disable(D.option(this.e.select,0,"Select a local edit..."));
+      D.disable(D.option(this.e.select,undefined,"Select a local edit..."));
       const currentWinfo = theWinfo || P.winfo || {name:''};
       ilist.sort(f.compare).forEach(function(winfo,n){
         const key = stasher.indexKey(winfo),
@@ -837,13 +846,11 @@
       taEditor: E('#wikiedit-content-editor'),
       btnReload: E("#wikiedit-tab-content button.wikiedit-content-reload"),
       btnSave: E("button.wikiedit-save"),
-      btnSaveClose: D.attr(E("button.wikiedit-save-close"),
-                           'title',
-                           'Save changes and return to the wiki reader.'),
+      btnSaveClose: E("button.wikiedit-save-close"),
       selectMimetype: E('select[name=mimetype]'),
       selectFontSizeWrap: E('#select-font-size'),
 //      selectDiffWS:  E('select[name=diff_ws]'),
-      cbAutoPreview: E('#cb-preview-autoupdate > input[type=checkbox]'),
+      cbAutoPreview: E('#cb-preview-autorefresh'),
       previewTarget: E('#wikiedit-tab-preview-wrapper'),
       diffTarget: E('#wikiedit-tab-diff-wrapper'),
       editStatus: E('#wikiedit-edit-status'),
@@ -857,23 +864,21 @@
         //commit: E('#wikiedit-tab-commit')
       }
     };
-    P.tabs = new fossil.TabManager(D.clearElement(P.e.tabContainer));
-    P.tabs.e.container.insertBefore(
-      /* Move the status bar between the tab buttons and
-         tab panels. Seems to be the best fit in terms of
-         functionality and visibility. */
-      E('#fossil-status-bar'), P.tabs.e.tabs
-    );
-    P.tabs.e.container.insertBefore(P.e.editStatus, P.tabs.e.tabs);
+    P.tabs = new F.TabManager(D.clearElement(P.e.tabContainer));
+    /* Move the status bar between the tab buttons and
+       tab panels. Seems to be the best fit in terms of
+       functionality and visibility. */
+    P.tabs.addCustomWidget( E('#fossil-status-bar') ).addCustomWidget(P.e.editStatus);
+    let currentTab/*used for ctrl-enter switch between editor and preview*/;
     P.tabs.addEventListener(
       /* Set up some before-switch-to tab event tasks... */
       'before-switch-to', function(ev){
-        const theTab = ev.detail, btnSlot = theTab.querySelector('.save-button-slot');
+        const theTab = currentTab = ev.detail, btnSlot = theTab.querySelector('.save-button-slot');
         if(btnSlot){
           /* Several places make sense for a save button, so we'll
              move that button around to those tabs where it makes sense. */
-          btnSlot.parentNode.insertBefore( P.e.btnSave, btnSlot );
-          btnSlot.parentNode.insertBefore( P.e.btnSaveClose, btnSlot );
+          btnSlot.parentNode.insertBefore( P.e.btnSave.parentNode, btnSlot );
+          btnSlot.parentNode.insertBefore( P.e.btnSaveClose.parentNode, btnSlot );
           P.updateSaveButton();
         }
         if(theTab===P.e.tabs.preview){
@@ -904,6 +909,34 @@
         }
       }
     );
+    ////////////////////////////////////////////////////////////
+    // Trigger preview on Ctrl-Enter. This only works on the built-in
+    // editor widget, not a client-provided one.
+    P.e.taEditor.addEventListener('keydown',function(ev){
+      if(ev.ctrlKey && 13 === ev.keyCode){
+        ev.preventDefault();
+        ev.stopPropagation();
+        P.e.taEditor.blur(/*force change event, if needed*/);
+        P.tabs.switchToTab(P.e.tabs.preview);
+        if(!P.e.cbAutoPreview.checked){/* If NOT in auto-preview mode, trigger an update. */
+          P.preview();
+        }
+      }
+    }, false);
+    // If we're in the preview tab, have ctrl-enter switch back to the editor.
+    document.body.addEventListener('keydown',function(ev){
+      if(ev.ctrlKey && 13 === ev.keyCode){
+        if(currentTab === P.e.tabs.preview){
+          //ev.preventDefault();
+          //ev.stopPropagation();
+          P.tabs.switchToTab(P.e.tabs.content);
+          P.e.taEditor.focus(/*doesn't work for client-supplied editor widget!
+                              And it's slow as molasses for long docs, as focus()
+                              forces a document reflow. */);
+          //console.debug("BODY ctrl-enter");
+        }
+      }
+    }, true);
 
     F.connectPagePreviewers(
       P.e.tabs.preview.querySelector(
@@ -960,6 +993,7 @@
     };
 
     if(P.config.useConfirmerButtons.reload){
+      P.tabs.switchToTab(1/*DOM visibility workaround*/);
       F.confirmer(P.e.btnReload, {
         pinSize: true,
         confirmText: "Really reload, losing edits?",
@@ -970,6 +1004,7 @@
       P.e.btnReload.addEventListener('click', doReload, false);
     }
     if(P.config.useConfirmerButtons.save){
+      P.tabs.switchToTab(1/*DOM visibility workaround*/);
       F.confirmer(P.e.btnSave, {
         pinSize: true,
         confirmText: "Really save changes?",
@@ -987,12 +1022,7 @@
       P.e.btnSaveClose.addEventListener('click', ()=>doSave(true), false);
     }
 
-    P.e.taEditor.addEventListener(
-      'change', function(){
-        P._isDirty = true;
-        P.stashContentChange();
-      }, false
-    );
+    P.e.taEditor.addEventListener('change', ()=>P.notifyOfChange(), false);
     
     P.selectMimetype(false, true);
     P.e.selectMimetype.addEventListener(
@@ -1071,9 +1101,15 @@
       },
       false
     );
-    /* These init()s need to come after P's event handlers are registered */
+    /* These init()s need to come after P's event handlers are registered.
+       The tab-switching is a workaround for the pinSize option of the confirmer widgets:
+       it does not work if the confirmer button being initialized is in a hidden
+       part of the DOM :/. */
+    P.tabs.switchToTab(0);
     WikiList.init( P.e.tabs.pageList.firstElementChild );
+    P.tabs.switchToTab(1);
     P.stashWidget.init(P.e.tabs.content.lastElementChild);
+    P.tabs.switchToTab(0);
     //P.$wikiList = WikiList/*only for testing/debugging*/;
   }/*F.onPageLoad()*/);
 
@@ -1184,9 +1220,31 @@
   };
 
   /**
+     Alerts the editor app that a "change" has happened in the editor.
+     When connecting 3rd-party editor widgets to this app, it is
+     necessary to call this for any "change" events the widget emits.
+     Whether or not "change" means that there were "really" edits is
+     irrelevant, but this app will not allow saving unless it believes
+     at least one "change" has been made (by being signaled through
+     this method).
+
+     This function may perform an arbitrary amount of work, so it
+     should not be called for every keypress within the editor
+     widget. Calling it for "blur" events is generally sufficient, and
+     calling it for each Enter keypress is generally reasonable but
+     also computationally costly.
+  */
+  P.notifyOfChange = function(){
+    P._isDirty = true;
+    P.stashContentChange();
+  };
+
+  /**
      Removes the default editor widget (and any dependent elements)
      from the DOM, adds the given element in its place, removes this
-     method from this object, and returns this object.
+     method from this object, and returns this object. This is not
+     needed if the 3rd-party widget replaces or hides this app's
+     editor widget (e.g. TinyMCE).
   */
   P.replaceEditorElement = function(newEditor){
     P.e.taEditor.parentNode.insertBefore(newEditor, P.e.taEditor);
@@ -1286,16 +1344,25 @@
   */
   P.preview = function f(switchToTab){
     if(!affirmPageLoaded()) return this;
-    const target = this.e.previewTarget,
-          self = this;
-    const updateView = function(c){
-      D.clearElement(target);
-      if('string'===typeof c) target.innerHTML = c;
+    return this._postPreview(this.wikiContent(), function(c){
+      P._previewTo(c);
       if(switchToTab) self.tabs.switchToTab(self.e.tabs.preview);
-    };
-    return this._postPreview(this.wikiContent(), updateView);
+    });
   };
 
+  /**
+     Callback for use with F.connectPagePreviewers(). Gets passed
+     the preview content.
+  */
+  P._previewTo = function(c){
+    const target = this.e.previewTarget;
+    D.clearElement(target);
+    if('string'===typeof c) D.parseHtml(target,c);
+    if(F.pikchr){
+      F.pikchr.addSrcView(target.querySelectorAll('svg.pikchr'));
+    }
+  };
+  
   /**
      Callback for use with F.connectPagePreviewers()
   */
@@ -1324,7 +1391,7 @@
         });
       },
       onerror: (e)=>{
-        fossil.fetch.onerror(e);
+        F.fetch.onerror(e);
         callback("Error fetching preview: "+e);
       }
     });
@@ -1371,12 +1438,12 @@
     ).fetch('wikiajax/diff',{
       payload: fd,
       onload: function(c){
-        target.innerHTML = [
+        D.parseHtml(D.clearElement(target), [
           "<div>Diff <code>[",
           self.winfo.name,
           "]</code> &rarr; Local Edits</div>",
           c||'No changes.'
-        ].join('');
+        ].join(''));
         if(sbs) P.tweakSbsDiffs2();
         F.message('Updated diff.');
         self.tabs.switchToTab(self.e.tabs.diff);
@@ -1440,7 +1507,7 @@
       }else{
         $stash.updateWinfo(wi, P.wikiContent());
       }
-      F.message("Stashed change(s) to page ["+wi.name+"].");
+      F.message("Stashed changes to page ["+wi.name+"].");
       P.updatePageTitle();
       $stash.prune();
       this.previewNeedsUpdate = true;

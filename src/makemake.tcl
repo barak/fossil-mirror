@@ -85,6 +85,7 @@ set src {
   http_transport
   import
   info
+  interwiki
   json
   json_artifact
   json_branch
@@ -115,6 +116,8 @@ set src {
   name
   path
   piechart
+  pikchr
+  pikchrshow
   pivot
   popen
   pqueue
