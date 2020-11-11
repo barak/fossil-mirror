@@ -1,3 +1,14 @@
+fossil (1:2.13-2) unstable; urgency=medium
+
+  * Need SQLite 3.34 or later; there's an internal 3.34 prerelease in
+    src/ but SQLite 3.34 is not actually released yet. This means we
+    cannot use the system SQLite, must use the internal one. So, there is
+    now code in debian/rules to check the version of the system SQLite and
+    if it's not high enough compile against the internal one instead. Which
+    uses pkg-config, requiring a build dependency.
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Wed, 11 Nov 2020 09:16:58 +0000
+
 fossil (1:2.13-1) unstable; urgency=medium
 
   * New upstream version
