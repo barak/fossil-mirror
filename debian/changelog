@@ -1,3 +1,9 @@
+fossil (1:2.14-1) unstable; urgency=medium
+
+  * New upstream version
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Sun, 24 Jan 2021 16:04:46 +0000
+
 fossil (1:2.13-2) unstable; urgency=medium
 
   * Need SQLite 3.34 or later; there's an internal 3.34 prerelease in
