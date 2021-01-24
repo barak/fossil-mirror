@@ -1,5 +1,5 @@
-C update\sdebian/changelog\sand\sbump\sversion
-D 2021-01-24T16:06:41.467
+C bump\sversion\sand\slog
+D 2021-01-24T16:13:22.428
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .editorconfig 132c5a213aa3ce13dcc9c19f8a7ea306e3640bec4ae693378116cee339c34a1a
 F .fossil-settings/binary-glob de2f79514803c25633f3d21103fd37a5b6cd428761c166dc0e92a302da66d919
@@ -320,8 +320,8 @@ F compat/zlib/zutil.c 2f1fcc93488ac84acf984415b6ea0bd63c72aa49
 F compat/zlib/zutil.h f32dab3880d47eca1b71c308cf6542b32941b23c
 F configure 05e4b3ca2e1ff283d82e0c4ced9215edc47157c4b4ba6839fb7f895bf224dcd2 x
 F debian/README.Debian 2d1eb9c0f32e02f0db1df55e6580860b8c91da2dd13aecf52af4e5dd91b85ead
-F debian/changelog c9d931010223c4d651a4358c8a00c5d9682e2e632f17c6288a028d203360df07
-F debian/control 87f1bd80a40197436bb272151666d2703e2e834d7bc8b9e23fa44dd203bd5791
+F debian/changelog 024582dc8b0d1eaa0ebf431cadda9fb6083a257e0f740f2c761b9ae59361fa76
+F debian/control 3bfb6ff1896080b26c5ca4fe735e02db4097b0e69ebadb4ddf2c3ed816a2c514
 F debian/copyright 39f1cc441231142d81e631e6d0764eb5193f4aef6b441aaa23298f82dce120fc
 F debian/fossil.bash-completion e1e460f40668463a8e3e8df9a99de8f9301c9730
 F debian/fossil.docs 45a770a8534b1a439a32546145737975a9217b30
@@ -1005,8 +1005,8 @@ F www/webui.wiki 68303fce3cafe259d25923d1ed7e4a60d6b9f2bfe2e80f3013f00765227ad56
 F www/whyusefossil.wiki 9a6fcdc78ce0c76c3ee7474c0c7cc86d7529ce5f975fa1aa9c26a713d976c84f
 F www/wikitheory.wiki 91e6796caf7c8fbed00a58d3eea377d0f89f494f5637fd8af09dc41290e716f6
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P 420225adfc3dbef75bbc8ff020ad4a0180fcf7078590bf70c418ada592cd5eb1
-R 0882c744cb892272abe3789c13290fe0
+P 3521598be7a985badd020652d59be58c2826efd9d6c43789c26542a4293a5da6
+R 7be2d710faebe285b6cd97f89fd93d7a
 U barak
-Z 3aa4cd867aae684c270bce20b5b3ceb3
+Z ae8eb1b19907c48369d9ce3825875f42
 # Remove this line to create a well-formed Fossil manifest.
