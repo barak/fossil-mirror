@@ -645,6 +645,7 @@ void login_page(void){
          @ </span></p>
       ;
       record_login_attempt(zUsername, zIpAddr, 0);
+      cgi_set_status(401, "Unauthorized");
     }else{
       /* Non-anonymous login is successful.  Set a cookie of the form:
       **
@@ -657,6 +658,7 @@ void login_page(void){
       redirect_to_g();
     }
   }
+  style_set_current_feature("login");
   style_header("Login/Logout");
   style_adunit_config(ADUNIT_OFF);
   @ %s(zErrMsg)
@@ -777,6 +779,7 @@ void login_page(void){
       @ for user <b>%h(g.zLogin)</b></p>
     }
     if( g.perm.Password ){
+      char *zRPW = fossil_random_password(12);
       @ <hr>
       @ <p>Change Password for user <b>%h(g.zLogin)</b>:</p>
       form_begin(0, "%R/login");
@@ -786,7 +789,7 @@ void login_page(void){
       @ size="30"/></td></tr>
       @ <tr><td class="form_label" id="newpw">New Password:</td>
       @ <td><input aria-labelledby="newpw" type="password" name="n1" \
-      @ size="30" /></td></tr>
+      @ size="30" /> Suggestion: %z(zRPW)</td></tr>
       @ <tr><td class="form_label" id="reppw">Repeat New Password:</td>
       @ <td><input aria-labledby="reppw" type="password" name="n2" \
       @ size="30" /></td></tr>
@@ -796,7 +799,7 @@ void login_page(void){
       @ </form>
     }
   }
-  style_footer();
+  style_finish_page();
 }
 
 /*
@@ -1078,6 +1081,25 @@ void login_check_credentials(void){
     uid = login_basic_authentication(zIpAddr);
   }
 
+  /* Check for magic query parameters "resid" (for the username) and
+  ** "token" for the password.  Both values (if they exist) will be
+  ** obfuscated.
+  */
+  if( uid==0 ){
+    char *zUsr, *zPW;
+    if( (zUsr = unobscure(P("resid")))!=0
+     && (zPW = unobscure(P("token")))!=0
+    ){
+      char *zSha1Pw = sha1_shared_secret(zPW, zUsr, 0);
+      uid = db_int(0, "SELECT uid FROM user"
+                      " WHERE login=%Q"
+                      " AND (constant_time_cmp(pw,%Q)=0"
+                      "      OR constant_time_cmp(pw,%Q)=0)",
+                      zUsr, zSha1Pw, zPW);
+      fossil_free(zSha1Pw);
+    }
+  }
+
   /* If no user found yet, try to log in as "nobody" */
   if( uid==0 ){
     uid = db_int(0, "SELECT uid FROM user WHERE login='nobody'");
@@ -1230,7 +1252,7 @@ void login_set_capabilities(const char *zCap, unsigned flags){
                              p->TktFmt = p->Attach = p->ApndTkt =
                              p->ModWiki = p->ModTkt =
                              p->RdForum = p->WrForum = p->ModForum =
-                             p->WrTForum = p->AdminForum =
+                             p->WrTForum = p->AdminForum = p->Chat = 
                              p->EmailAlert = p->Announce = p->Debug = 1;
                              /* Fall thru into Read/Write */
       case 'i':   p->Read = p->Write = 1;                      break;
@@ -1267,6 +1289,7 @@ void login_set_capabilities(const char *zCap, unsigned flags){
 
       case '7':   p->EmailAlert = 1;                           break;
       case 'A':   p->Announce = 1;                             break;
+      case 'C':   p->Chat = 1;                                 break;
       case 'D':   p->Debug = 1;                                break;
 
       /* The "u" privilege recursively
@@ -1350,6 +1373,7 @@ int login_has_capability(const char *zCap, int nCap, u32 flgs){
       case '6':  rc = p->AdminForum;break;
       case '7':  rc = p->EmailAlert;break;
       case 'A':  rc = p->Announce;  break;
+      case 'C':  rc = p->Chat;      break;
       case 'D':  rc = p->Debug;     break;
       default:   rc = 0;            break;
     }
@@ -1425,12 +1449,16 @@ void login_needed(int anonOk){
   {
     const char *zUrl = PD("REQUEST_URI", "index");
     const char *zQS = P("QUERY_STRING");
+    char *zUrlNoQS;
+    int i;
     Blob redir;
     blob_init(&redir, 0, 0);
+    for(i=0; zUrl[i] && zUrl[i]!='?'; i++){}
+    zUrlNoQS = fossil_strndup(zUrl, i);
     if( fossil_wants_https(1) ){
-      blob_appendf(&redir, "%s/login?g=%T", g.zHttpsURL, zUrl);
+      blob_appendf(&redir, "%s/login?g=%T", g.zHttpsURL, zUrlNoQS);
     }else{
-      blob_appendf(&redir, "%R/login?g=%T", zUrl);
+      blob_appendf(&redir, "%R/login?g=%T", zUrlNoQS);
     }
     if( zQS && zQS[0] ){
       blob_appendf(&redir, "%%3f%T", zQS);
@@ -1546,7 +1574,7 @@ void register_page(void){
     style_header("Registration not possible");
     @ <p>This project does not allow user self-registration. Please contact the
     @ project administrator to obtain an account.</p>
-    style_footer();
+    style_finish_page();
     return;
   }
   zPerms = db_get("default-perms", "u");
@@ -1705,7 +1733,7 @@ void register_page(void){
       if( zGoto ){
         @ <p><a href='%h(zGoto)'>Continue</a>
       }
-      style_footer();
+      style_finish_page();
       return;
     }
     redirect_to_g();
@@ -1765,7 +1793,13 @@ void register_page(void){
   @ <tr>
   @   <td class="form_label" align="right" id="pswd">Password:</td>
   @   <td><input aria-labelledby="pswd" type="password" name="p" \
-  @ value="%h(zPasswd)" size="30"></td>
+  @ value="%h(zPasswd)" size="30"> \
+  if( zPasswd[0]==0 ){
+    char *zRPW = fossil_random_password(12);
+    @ Password suggestion: %z(zRPW)</td>
+  }else{
+    @ </td>
+  }
   @ <tr>
   if( iErrLine==4 ){
     @ <tr><td><td><span class='loginError'>&uarr; %h(zErr)</span></td></tr>
@@ -1797,7 +1831,7 @@ void register_page(void){
   @ Enter this 8-letter code in the "Captcha" box above.
   @ </td></tr></table></div>
   @ </form>
-  style_footer();
+  style_finish_page();
 
   free(zCaptcha);
 }

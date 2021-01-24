@@ -26,11 +26,16 @@ set doclist {
   caps/ref.html {User Capability Reference}
   cgi.wiki {CGI Script Configuration Options}
   changes.wiki {Fossil Changelog}
+  chat.md {Fossil Chat}
   checkin_names.wiki {Check-in And Version Names}
   checkin.wiki {Check-in Checklist}
   childprojects.wiki {Child Projects}
+  chroot.md {Server Chroot Jail}
+  ckout-workflows.md {Check-Out Workflows}
+  co-vs-up.md {Checkout vs Update}
   copyright-release.html {Contributor License Agreement}
   concepts.wiki {Fossil Core Concepts}
+  contact.md {Developer Contact Information}
   contribute.wiki {Contributing Code or Documentation To The Fossil Project}
   css-tricks.md {Fossil CSS Tips and Tricks}
   customgraph.md {Theming: Customizing the Timeline Graph}
@@ -54,7 +59,7 @@ set doclist {
   fossil_prompt.wiki {Fossilized Bash Prompt}
   fossil-v-git.wiki {Fossil Versus Git}
   globs.md {File Name Glob Patterns}
-  gitusers.md {Hints For Users With Git Experience}
+  gitusers.md {Git to Fossil Translation Guide}
   grep.md {Fossil grep vs POSIX grep}
   hacker-howto.wiki {Hacker How-To}
   hacker-howto.wiki {Fossil Developers Guide}
@@ -68,12 +73,14 @@ set doclist {
   interwiki.md {Interwiki Links}
   image-format-vs-repo-size.md {Image Format vs Fossil Repo Size}
   javascript.md {Use of JavaScript in Fossil}
+  loadmgmt.md {Managing Server Load}
   makefile.wiki {The Fossil Build Process}
   mirrorlimitations.md {Limitations On Git Mirrors}
   mirrortogithub.md {How To Mirror A Fossil Repository On GitHub}
   /md_rules {Markdown Formatting Rules}
   newrepo.wiki {How To Create A New Fossil Repository}
   password.wiki {Password Management And Authentication}
+  pikchr.md {The Pikchr Diagram Language}
   pop.wiki {Principles Of Operation}
   private.wiki {Creating, Syncing, and Deleting Private Branches}
   qandc.wiki {Questions And Criticisms}
@@ -99,9 +106,8 @@ set doclist {
                       Of Fossil}
   tech_overview.wiki {SQLite Databases Used By Fossil}
   th1.md {The TH1 Scripting Language}
-  tickets.wiki {The Fossil Ticket System}
   theory1.wiki {Thoughts On The Design Of The Fossil DVCS}
-  tls-nginx.md {Proxying Fossil via HTTPS with nginx}
+  tickets.wiki {The Fossil Ticket System}
   unvers.wiki {Unversioned Files}
   webpage-ex.md {Webpage Examples}
   webui.wiki {The Fossil Web Interface}
@@ -150,6 +156,7 @@ puts $out {
 <li> <a href='../COPYRIGHT-BSD2.txt'>License</a>
 <li> <a href='userlinks.wiki'>Miscellaneous Docs for Fossil Users</a>
 <li> <a href='hacker-howto.wiki'>Fossil Developer's Guide</a>
+<li> <a href='$ROOT/wiki?name=To+Do+List'>To Do List (Wiki)</a>
 <li> <a href='http://www.fossil-scm.org/schimpf-book/home'>Jim Schimpf's
 book</a>
 </ul>

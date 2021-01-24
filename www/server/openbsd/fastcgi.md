@@ -70,7 +70,7 @@ from within the chroot, so need to be constructed; `/var`, however, is
 mounted with the `nodev` option. Rather than removing this default
 setting, create a small memory filesystem and then mount it on to
 `/var/www/dev` with [`mount_mfs(8)`][mfs] so that the `random` and
-`null` device files can be created. In order to avoid neccessitating a
+`null` device files can be created. In order to avoid necessitating a
 startup script to recreate the device files at boot, create a template
 of the needed ``/dev`` tree to automatically populate the memory
 filesystem.
@@ -162,10 +162,22 @@ following contents.
     }
 ```
 
+[The default limit][dlim] for HTTP messages in OpenBSD’s `httpd` server
+is 1 MiB. Fossil chunks its sync protocol such that this is not
+normally a problem, but when sending [unversioned content][uv], it uses
+a single message for the entire file. Therefore, if you will be storing
+files larger than this limit as unversioned content, you need to raise
+the limit as we’ve done above with the “`connection max request body`”
+setting, raising the limit to 100 MiB.
+
+[dlim]: https://man.openbsd.org/httpd.conf.5#connection
+[uv]:   ../../unvers.wiki
+
 **NOTE:** If not already in possession of a HTTPS certificate, comment
 out the `https` server block and proceed to securing a free
 [Let's Encrypt Certificate](#letsencrypt); otherwise skip to
 [Start `httpd`](#starthttpd).
+
 
 ## <a name="letsencrypt"></a>Let's Encrypt Certificate
 

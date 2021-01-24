@@ -109,6 +109,7 @@ struct FossilUserPerms {
   char AdminForum;       /* 6: Grant capability 4 to other users */
   char EmailAlert;       /* 7: Sign up for email notifications */
   char Announce;         /* A: Send announcements */
+  char Chat;             /* C: read or write the chatroom */
   char Debug;            /* D: show extra Fossil debugging features */
   /* These last two are included to block infinite recursion */
   char XReader;          /* u: Inherit all privileges of "reader" */
@@ -322,6 +323,7 @@ struct Global {
     int timerId;               /* fetched from fossil_timer_start() */
   } json;
 #endif /* FOSSIL_ENABLE_JSON */
+  int diffCnt[3];         /* Counts for DIFF_NUMSTAT: files, ins, del */
 };
 
 /*
@@ -346,7 +348,7 @@ static void fossil_atexit(void) {
   */
   db_unsave_encryption_key();
 #endif
-#if defined(_WIN32) || defined(__BIONIC__)
+#if defined(_WIN32) || defined(__BIONIC__) && !defined(FOSSIL_HAVE_GETPASS)
   /*
   ** Free the secure getpass() buffer now.
   */
@@ -675,6 +677,7 @@ int fossil_main(int argc, char **argv){
   }
 #endif
 
+  fossil_printf_selfcheck();
   fossil_limit_memory(1);
   if( sqlite3_libversion_number()<3034000 ){
     fossil_panic("Unsuitable SQLite version %s, must be at least 3.34.0",
@@ -797,14 +800,15 @@ int fossil_main(int argc, char **argv){
        * does not begin with a "-" character.  If all arguments start with "-",
        * translate to "fossil help argv[1] argv[2]...". */
       int i, nNewArgc;
-      char **zNewArgv = fossil_malloc( sizeof(char*)*(g.argc+2) );
+      char **zNewArgv = fossil_malloc( sizeof(char*)*(g.argc+3) );
       zNewArgv[0] = g.argv[0];
       zNewArgv[1] = "help";
+      zNewArgv[2] = "-c";
       for(i=1; i<g.argc; i++){
         if( g.argv[i][0]!='-' ){
-          nNewArgc = 3;
-          zNewArgv[2] = g.argv[i];
-          zNewArgv[3] = 0;
+          nNewArgc = 4;
+          zNewArgv[3] = g.argv[i];
+          zNewArgv[4] = 0;
           break;
         }
       }
@@ -1310,7 +1314,7 @@ void test_version_page(void){
   @ <pre>
   @ %h(blob_str(&versionInfo))
   @ </pre>
-  style_footer();
+  style_finish_page();
 }
 
 
@@ -2656,31 +2660,6 @@ void cmd_test_http(void){
   }
 }
 
-#if !defined(_WIN32)
-#if !defined(__DARWIN__) && !defined(__APPLE__) && !defined(__HAIKU__)
-/*
-** Search for an executable on the PATH environment variable.
-** Return true (1) if found and false (0) if not found.
-*/
-static int binaryOnPath(const char *zBinary){
-  const char *zPath = fossil_getenv("PATH");
-  char *zFull;
-  int i;
-  int bExists;
-  while( zPath && zPath[0] ){
-    while( zPath[0]==':' ) zPath++;
-    for(i=0; zPath[i] && zPath[i]!=':'; i++){}
-    zFull = mprintf("%.*s/%s", i, zPath, zBinary);
-    bExists = file_access(zFull, X_OK);
-    fossil_free(zFull);
-    if( bExists==0 ) return 1;
-    zPath += i;
-  }
-  return 0;
-}
-#endif
-#endif
-
 /*
 ** Respond to a SIGALRM by writing a message to the error log (if there
 ** is one) and exiting.
@@ -2892,23 +2871,7 @@ void cmd_webserver(void){
 #if !defined(_WIN32)
   /* Unix implementation */
   if( isUiCmd ){
-#if !defined(__DARWIN__) && !defined(__APPLE__) && !defined(__HAIKU__)
-    zBrowser = db_get("web-browser", 0);
-    if( zBrowser==0 ){
-      static const char *const azBrowserProg[] =
-          { "xdg-open", "gnome-open", "firefox", "google-chrome" };
-      int i;
-      zBrowser = "echo";
-      for(i=0; i<count(azBrowserProg); i++){
-        if( binaryOnPath(azBrowserProg[i]) ){
-          zBrowser = azBrowserProg[i];
-          break;
-        }
-      }
-    }
-#else
-    zBrowser = db_get("web-browser", "open");
-#endif
+    zBrowser = fossil_web_browser();
     if( zIpAddr==0 ){
       zBrowserCmd = mprintf("%s \"http://localhost:%%d/%s\" &",
                             zBrowser, zInitPage);
@@ -2971,7 +2934,7 @@ void cmd_webserver(void){
 #else
   /* Win32 implementation */
   if( isUiCmd ){
-    zBrowser = db_get("web-browser", "start");
+    zBrowser = fossil_web_browser();
     if( zIpAddr==0 ){
       zBrowserCmd = mprintf("%s http://localhost:%%d/%s &",
                             zBrowser, zInitPage);
@@ -3049,6 +3012,7 @@ void test_warning_page(void){
     login_needed(0);
     return;
   }
+  style_set_current_feature("test");
   style_header("Warning Test Page");
   style_submenu_element("Error Log","%R/errorlog");
   if( iCase<1 || iCase>4 ){
@@ -3097,5 +3061,5 @@ void test_warning_page(void){
   }
   @ </ol>
   @ <p>End of test</p>
-  style_footer();
+  style_finish_page();
 }

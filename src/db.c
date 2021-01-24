@@ -1619,6 +1619,11 @@ LOCAL sqlite3 *db_open(const char *zDbName){
     db_err("[%s]: %s", zDbName, sqlite3_errmsg(db));
   }
   db_maybe_set_encryption_key(db, zDbName);
+  sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_FKEY, 0, &rc);
+  sqlite3_db_config(db, SQLITE_DBCONFIG_TRUSTED_SCHEMA, 0, &rc);
+  sqlite3_db_config(db, SQLITE_DBCONFIG_DQS_DDL, 0, &rc);
+  sqlite3_db_config(db, SQLITE_DBCONFIG_DQS_DML, 0, &rc);
+  sqlite3_db_config(db, SQLITE_DBCONFIG_DEFENSIVE, 1, &rc);
   sqlite3_busy_timeout(db, 15000);
   sqlite3_wal_autocheckpoint(db, 1);  /* Set to checkpoint frequently */
   sqlite3_create_function(db, "user", 0, SQLITE_UTF8, 0, db_sql_user, 0, 0);
@@ -1635,7 +1640,6 @@ LOCAL sqlite3 *db_open(const char *zDbName){
   db_add_aux_functions(db);
   re_add_sql_func(db);  /* The REGEXP operator */
   foci_register(db);    /* The "files_of_checkin" virtual table */
-  sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_FKEY, 0, &rc);
   sqlite3_set_authorizer(db, db_top_authorizer, db);
   return db;
 }
@@ -2765,7 +2769,7 @@ int db_sql_trace(unsigned m, void *notUsed, void *pP, void *pX){
   char *zSql;
   int n;
   const char *zArg = (const char*)pX;
-  char zEnd[40];
+  char zEnd[100];
   if( m & SQLITE_TRACE_CLOSE ){
     /* If we are tracking closes, that means we want to clean up static
     ** prepared statements. */
@@ -2778,7 +2782,10 @@ int db_sql_trace(unsigned m, void *notUsed, void *pP, void *pX){
   if( m & SQLITE_TRACE_PROFILE ){
     sqlite3_int64 nNano = *(sqlite3_int64*)pX;
     double rMillisec = 0.000001 * nNano;
-    sqlite3_snprintf(sizeof(zEnd),zEnd," /* %.3fms */\n", rMillisec);
+    int nRun = sqlite3_stmt_status(pStmt, SQLITE_STMTSTATUS_RUN, 0);
+    int nVmStep = sqlite3_stmt_status(pStmt, SQLITE_STMTSTATUS_VM_STEP, 1);
+    sqlite3_snprintf(sizeof(zEnd),zEnd," /* %.3fms, %r run, %d vm-steps */\n",
+        rMillisec, nRun, nVmStep);
   }else{
     zEnd[0] = '\n';
     zEnd[1] = 0;
@@ -3091,12 +3098,26 @@ char *db_get(const char *zName, const char *zDefault){
   char *z = 0;
   const Setting *pSetting = db_find_setting(zName, 0);
   if( g.repositoryOpen ){
-    z = db_text(0, "SELECT value FROM config WHERE name=%Q", zName);
+    static Stmt q1;
+    const char *zRes;
+    db_static_prepare(&q1, "SELECT value FROM config WHERE name=$n");
+    db_bind_text(&q1, "$n", zName);
+    if( db_step(&q1)==SQLITE_ROW && (zRes = db_column_text(&q1,0))!=0 ){
+      z = fossil_strdup(zRes);
+    }
+    db_reset(&q1);
   }
   if( z==0 && g.zConfigDbName ){
+    static Stmt q2;
+    const char *zRes;
     db_swap_connections();
-    z = db_text(0, "SELECT value FROM global_config WHERE name=%Q", zName);
+    db_static_prepare(&q2, "SELECT value FROM global_config WHERE name=$n");
     db_swap_connections();
+    db_bind_text(&q2, "$n", zName);
+    if( db_step(&q2)==SQLITE_ROW && (zRes = db_column_text(&q2,0))!=0 ){
+      z = fossil_strdup(zRes);
+    }
+    db_reset(&q2);
   }
   if( pSetting!=0 && pSetting->versionable ){
     /* This is a versionable setting, try and get the info from a
@@ -3176,20 +3197,27 @@ int db_get_int(const char *zName, int dflt){
   int v = dflt;
   int rc;
   if( g.repositoryOpen ){
-    Stmt q;
-    db_prepare(&q, "SELECT value FROM config WHERE name=%Q", zName);
+    static Stmt q;
+    db_static_prepare(&q, "SELECT value FROM config WHERE name=$n");
+    db_bind_text(&q, "$n", zName);
     rc = db_step(&q);
     if( rc==SQLITE_ROW ){
       v = db_column_int(&q, 0);
     }
-    db_finalize(&q);
+    db_reset(&q);
   }else{
     rc = SQLITE_DONE;
   }
   if( rc==SQLITE_DONE && g.zConfigDbName ){
+    static Stmt q2;
     db_swap_connections();
-    v = db_int(dflt, "SELECT value FROM global_config WHERE name=%Q", zName);
+    db_static_prepare(&q2, "SELECT value FROM global_config WHERE name=$n");
     db_swap_connections();
+    db_bind_text(&q2, "$n", zName);
+    if( db_step(&q2)==SQLITE_ROW ){
+      v = db_column_int(&q2, 0);
+    }
+    db_reset(&q2);
   }
   return v;
 }
@@ -3501,15 +3529,16 @@ void cmd_open(void){
   if( isUri ){
     char *zNewBase;   /* Base name of the cloned repository file */
     const char *zUri; /* URI to clone */
-    int i;            /* Loop counter */
     int rc;           /* Result code from fossil_system() */
     Blob cmd;         /* Clone command to be run */
     char *zCmd;       /* String version of the clone command */
 
     zUri = zRepo;
-    zNewBase = fossil_strdup(file_tail(zUri));
-    for(i=(int)strlen(zNewBase)-1; i>1 && zNewBase[i]!='.'; i--){}
-    if( zNewBase[i]=='.' ) zNewBase[i] = 0;
+    zNewBase = url_to_repo_basename(zUri);
+    if( zNewBase==0 ){
+      fossil_fatal("unable to deduce a repository name from the url \"%s\"",
+                   zUri);
+    }
     if( zRepoDir==0 ) zRepoDir = zPwd;
     zRepo = mprintf("%s/%s.fossil", zRepoDir, zNewBase);
     fossil_free(zNewBase);
@@ -3969,7 +3998,7 @@ struct Setting {
 ** Set this value to zero to disable the check-in lock mechanism.
 **
 ** This value should be set on the server to which users auto-sync
-** their work.  This setting has no affect on client repositories.  The
+** their work.  This setting has no effect on client repositories.  The
 ** check-in lock mechanism is only effective if all users are auto-syncing
 ** to the same server.
 **

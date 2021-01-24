@@ -78,6 +78,7 @@ void backlink_timeline_page(void){
     login_needed(g.anon.Read && g.anon.RdTkt && g.anon.RdWiki);
     return;
   }
+  style_set_current_feature("test");
   style_header("Backlink Timeline (Internal Testing Use)");
   db_multi_exec(
      "CREATE TEMP TABLE IF NOT EXISTS ok(rid INTEGER PRIMARY KEY);"
@@ -93,7 +94,7 @@ void backlink_timeline_page(void){
   www_print_timeline(&q, TIMELINE_DISJOINT|TIMELINE_GRAPH|TIMELINE_NOSCROLL,
                      0, 0, 0, 0, 0, 0);
   db_finalize(&q);
-  style_footer();
+  style_finish_page();
 }
 
 /*
@@ -109,6 +110,7 @@ void backlink_table_page(void){
     login_needed(g.anon.Admin);
     return;
   }
+  style_set_current_feature("test");
   style_header("Backlink Table (Internal Testing Use)");
   n = db_int(0, "SELECT count(*) FROM backlink");
   @ <p>%d(n) backlink table entries:</p>
@@ -132,7 +134,7 @@ void backlink_table_page(void){
     @ <tr><td><a href="%R/info/%h(zTarget)">%h(zTarget)</a>
     switch( srctype ){
       case BKLNK_COMMENT: {
-        @ <td><a href="%R/info?name=rid:%d(srcid)">comment-%d(srcid)</a>
+        @ <td><a href="%R/info?name=rid:%d(srcid)">checkin-%d(srcid)</a>
         break;
       }
       case BKLNK_TICKET: {
@@ -154,7 +156,7 @@ void backlink_table_page(void){
   @ </tbody>
   @ </table>
   db_finalize(&q);
-  style_footer();
+  style_finish_page();
 }
 
 /*

@@ -99,7 +99,7 @@ void view_list(void){
   blob_reset(&ril);
   if( g.thTrace ) Th_Trace("END_REPORTLIST<br />\n", -1);
 
-  style_footer();
+  style_finish_page();
 }
 
 /*
@@ -185,19 +185,23 @@ static int report_query_authorizer(
     }
     case SQLITE_READ: {
       static const char *const azAllowed[] = {
-         "ticket",
-         "ticketchng",
+         "backlink",
          "blob",
+         "event",
          "filename",
+         "json_each",
+         "json_tree",
          "mlink",
          "plink",
-         "event",
          "tag",
          "tagxref",
+         "ticket",
+         "ticketchng",
          "unversioned",
-         "backlink",
       };
-      int i;
+      int lwr = 0;
+      int upr = count(azAllowed) - 1;
+      int rc = 0;
       if( zArg1==0 ){
         /* Some legacy versions of SQLite will sometimes send spurious
         ** READ authorizations that have no table name.  These can be
@@ -205,13 +209,18 @@ static int report_query_authorizer(
         rc = SQLITE_IGNORE;
         break;
       }
-      if( fossil_strncmp(zArg1, "fx_", 3)==0 ){
-        break;
+      while( lwr<upr ){
+        int i = (lwr+upr)/2;
+        int rc = fossil_stricmp(zArg1, azAllowed[i]);
+        if( rc<0 ){
+          upr = i - 1;
+        }else if( rc>0 ){
+          lwr = i + 1;
+        }else{
+          break;
+        }
       }
-      for(i=0; i<count(azAllowed); i++){
-        if( fossil_stricmp(zArg1, azAllowed[i])==0 ) break;
-      }
-      if( i>=count(azAllowed) ){
+      if( rc ){
         *(char**)pError = mprintf("access to table \"%s\" is restricted",zArg1);
         rc = SQLITE_DENY;
       }else if( !g.perm.RdAddr && strncmp(zArg2, "private_", 8)==0 ){
@@ -318,10 +327,11 @@ void view_see_sql(void){
   rn = atoi(PD("rn","0"));
   db_prepare(&q, "SELECT title, sqlcode, owner, cols "
                    "FROM reportfmt WHERE rn=%d",rn);
+  style_set_current_feature("report");
   style_header("SQL For Report Format Number %d", rn);
   if( db_step(&q)!=SQLITE_ROW ){
     @ <p>Unknown report number: %d(rn)</p>
-    style_footer();
+    style_finish_page();
     db_finalize(&q);
     return;
   }
@@ -343,7 +353,7 @@ void view_see_sql(void){
   @ </td>
   @ </tr></table>
   report_format_hints();
-  style_footer();
+  style_finish_page();
   db_finalize(&q);
 }
 
@@ -374,6 +384,7 @@ void view_edit(void){
     login_needed(g.anon.TktFmt);
     return;
   }
+  style_set_current_feature("report");
   /*view_add_functions(0);*/
   rn = atoi(PD("rn","0"));
   zTitle = P("t");
@@ -403,7 +414,7 @@ void view_edit(void){
     @ <input type="submit" name="del2" value="Delete The Report">
     @ <input type="submit" name="can" value="Cancel">
     @ </form>
-    style_footer();
+    style_finish_page();
     return;
   }else if( P("can") ){
     /* user cancelled */
@@ -495,7 +506,7 @@ void view_edit(void){
     @ to change it.</p>
     @ </form>
     report_format_hints();
-    style_footer();
+    style_finish_page();
     return;
   }
   @ <input type="submit" value="Apply Changes" />
@@ -504,7 +515,7 @@ void view_edit(void){
   }
   @ </div></form>
   report_format_hints();
-  style_footer();
+  style_finish_page();
 }
 
 /*
@@ -1022,6 +1033,7 @@ void rptview_page(void){
     struct GenerateHTML sState = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
     db_multi_exec("PRAGMA empty_result_callbacks=ON");
+    style_set_current_feature("report");
     style_submenu_element("Raw", "rptview?tablist=1&%h", PD("QUERY_STRING",""));
     if( g.perm.Admin
        || (g.perm.TktFmt && g.zLogin && fossil_strcmp(g.zLogin,zOwner)==0) ){
@@ -1050,7 +1062,7 @@ void rptview_page(void){
       @ <p class="reportError">Error: %h(zErr2)</p>
     }
     style_table_sorter();
-    style_footer();
+    style_finish_page();
   }else{
     report_restrict_sql(&zErr1);
     db_exec_readonly(g.db, zSql, output_tab_separated, &count, &zErr2);

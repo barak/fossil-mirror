@@ -351,6 +351,8 @@ static void appendMixedFont(Blob *pOut, const char *z, int n){
 **      two spaces.
 **
 **   *  Indented text is show verbatim (<pre>...</pre>)
+**
+**   *  Lines that begin with "|" at the left margin are in <pre>...</pre>
 */
 static void help_to_html(const char *zHelp, Blob *pHtml){
   int i;
@@ -363,6 +365,7 @@ static void help_to_html(const char *zHelp, Blob *pHtml){
   int iLevel = 0;
   int isLI = 0;
   int isDT = 0;
+  int inPRE = 0;
   static const char *zEndDL = "</dl></blockquote>";
   static const char *zEndPRE = "</pre></blockquote>";
   static const char *zEndUL = "</ul>";
@@ -382,12 +385,28 @@ static void help_to_html(const char *zHelp, Blob *pHtml){
       }
       i++;
     }
-    if( i>2 && zHelp[0]=='>' && zHelp[1]==' ' ){
-      isDT = 1;
-      for(nIndent=1; nIndent<i && zHelp[nIndent]==' '; nIndent++){}
+    if( i>2 && (zHelp[0]=='>' || zHelp[0]=='|') && zHelp[1]==' ' ){
+      if( zHelp[0]=='>' ){
+        isDT = 1;
+        for(nIndent=1; nIndent<i && zHelp[nIndent]==' '; nIndent++){}
+      }else{
+        if( !inPRE ){
+          blob_append(pHtml, "<pre>\n", -1);
+          inPRE = 1;
+        }
+      }
     }else{
+      if( inPRE ){
+        blob_append(pHtml, "</pre>\n", -1);
+        inPRE = 0;
+      }
       isDT = 0;
       for(nIndent=0; nIndent<i && zHelp[nIndent]==' '; nIndent++){}
+    }
+    if( inPRE ){
+      blob_append(pHtml, zHelp+1, i);
+      zHelp += i + 1;
+      continue;
     }
     if( nIndent==i ){
       if( c==0 ) break;
@@ -493,7 +512,7 @@ static void help_to_text(const char *zHelp, Blob *pText){
       i = -1;
       continue;
     }
-    if( c=='\n' && strncmp(zHelp+i+1,"> ",2)==0 ){
+    if( c=='\n' && (zHelp[i+1]=='>' || zHelp[i+1]=='|') && zHelp[i+2]==' ' ){
       blob_append(pText, zHelp, i+1);
       blob_append(pText, " ", 1);
       zHelp += i+2;
@@ -749,6 +768,7 @@ void help_page(void){
     int rc;
     const CmdOrPage *pCmd = 0;
 
+  style_set_current_feature("tkt");
     style_header("Help: %s", zCmd);
 
     style_submenu_element("Command-List", "%R/help");
@@ -852,7 +872,7 @@ void help_page(void){
     @ </ul></div>
 
   }
-  style_footer();
+  style_finish_page();
 }
 
 /*
@@ -864,6 +884,7 @@ void test_all_help_page(void){
   int i;
   Blob buf;
   blob_init(&buf,0,0);
+  style_set_current_feature("test");
   style_header("All Help Text");
   @ <dl>
   for(i=0; i<MX_COMMAND; i++){
@@ -903,7 +924,7 @@ void test_all_help_page(void){
   }
   @ </dl>
   blob_reset(&buf);
-  style_footer();
+  style_finish_page();
 }
 
 static void multi_column_list(const char **azWord, int nWord){
@@ -1010,9 +1031,11 @@ static const char zOptions[] =
 ** These options can be used when TOPIC is present:
 **
 **    -h|--html         Format output as HTML rather than plain text
+**    -c|--commands     Restrict TOPIC search to commands
 */
 void help_cmd(void){
   int rc;
+  int mask = CMDFLAG_ANY;
   int isPage = 0;
   const char *z;
   const char *zCmdOrPage;
@@ -1058,10 +1081,13 @@ void help_cmd(void){
   isPage = ('/' == *g.argv[2]) ? 1 : 0;
   if(isPage){
     zCmdOrPage = "page";
+  }else if( find_option("commands","c",0)!=0 ){
+    mask = CMDFLAG_COMMAND;
+    zCmdOrPage = "command";
   }else{
     zCmdOrPage = "command or setting";
   }
-  rc = dispatch_name_search(g.argv[2], CMDFLAG_ANY|CMDFLAG_PREFIX, &pCmd);
+  rc = dispatch_name_search(g.argv[2], mask|CMDFLAG_PREFIX, &pCmd);
   if( rc ){
     int i, n;
     const char *az[5];
@@ -1071,15 +1097,16 @@ void help_cmd(void){
       fossil_print("ambiguous %s prefix: %s\n",
                  zCmdOrPage, g.argv[2]);
     }
-    fossil_print("Did you mean one of:\n");
+    fossil_print("Did you mean one of these TOPICs:\n");
     n = dispatch_approx_match(g.argv[2], 5, az);
     for(i=0; i<n; i++){
       fossil_print("  *  %s\n", az[i]);
     }
     fossil_print("Also consider using:\n");
-    fossil_print("   fossil help -a     ;# show all commands\n");
-    fossil_print("   fossil help -w     ;# show all web-pages\n");
-    fossil_print("   fossil help -s     ;# show all settings\n");
+    fossil_print("   fossil help TOPIC     ;# show help on TOPIC\n");
+    fossil_print("   fossil help -a        ;# show all commands\n");
+    fossil_print("   fossil help -w        ;# show all web-pages\n");
+    fossil_print("   fossil help -s        ;# show all settings\n");
     fossil_exit(1);
   }
   z = pCmd->zHelp;

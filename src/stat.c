@@ -219,6 +219,17 @@ void stat_page(void){
                   " WHERE +tagname GLOB 'wiki-*'");
     @ %,d(n)
     @ </td></tr>
+    if( db_table_exists("repository","chat") ){
+      sqlite3_int64 sz = 0;
+      char zSz[100];
+      n = db_int(0, "SELECT max(msgid) FROM chat");
+      m = db_int(0, "SELECT count(*) FROM chat WHERE mdel IS NOT TRUE");
+      sz = db_int64(0, "SELECT sum(coalesce(length(xmsg),0)+"
+                                  "coalesce(length(file),0)) FROM chat");
+      approxSizeName(sizeof(zSz), zSz, sz);
+      @ <tr><th>Number&nbsp;Of&nbsp;Chat&nbsp;Messages:</th>
+      @ <td>%,d(n) (%,d(m) still alive, %s(zSz) in size)</td></tr>
+    }
     n = db_int(0, "SELECT count(*) FROM tag  /*scan*/"
                   " WHERE +tagname GLOB 'tkt-*'");
     if( n>0 ){
@@ -290,7 +301,7 @@ void stat_page(void){
   }
 
   @ </table>
-  style_footer();
+  style_finish_page();
 }
 
 /*
@@ -337,7 +348,7 @@ void dbstat_cmd(void){
   fsize = file_size(g.zRepositoryName, ExtFILE);
   fossil_print( "%*s%,lld bytes\n", colWidth, "repository-size:", fsize);
   if( !brief ){
-    n = db_int(0, "SELECT count(*) FROM blob");
+    n = db_int(0, "SELECT count(*) FROM blob WHERE content IS NOT NULL");
     m = db_int(0, "SELECT count(*) FROM delta");
     fossil_print("%*s%,d (stored as %,d full text and %,d deltas)\n",
                  colWidth, "artifact-count:",
@@ -378,6 +389,15 @@ void dbstat_cmd(void){
     m = db_int(0, "SELECT COUNT(*) FROM event WHERE type='t'");
     fossil_print("%*s%,d (%,d changes)\n", colWidth, "tickets:", n, m);
     n = db_int(0, "SELECT COUNT(*) FROM event WHERE type='e'");
+    if( db_table_exists("repository","forumpost") ){
+      n = db_int(0, "SELECT count(*) FROM forumpost/*scan*/");
+      if( n>0 ){
+        int nThread = db_int(0, "SELECT count(*) FROM forumpost"
+                                " WHERE froot=fpid");
+        fossil_print("%*s%,d (on %,d threads)\n", colWidth, "forum-posts:",
+                     n, nThread);
+      }
+    }
     fossil_print("%*s%,d\n", colWidth, "events:", n);
     n = db_int(0, "SELECT COUNT(*) FROM event WHERE type='g'");
     fossil_print("%*s%,d\n", colWidth, "tag-changes:", n);
@@ -452,6 +472,7 @@ void urllist_page(void){
   login_check_credentials();
   if( !g.perm.Admin ){ login_needed(0); return; }
 
+  style_set_current_feature("stat");
   style_header("URLs and Checkouts");
   style_adunit_config(ADUNIT_RIGHT_OK);
   style_submenu_element("Stat", "stat");
@@ -509,7 +530,7 @@ void urllist_page(void){
     }
     @ </div>
   }
-  style_footer();
+  style_finish_page();
 }
 
 /*
@@ -524,6 +545,7 @@ void repo_schema_page(void){
   login_check_credentials();
   if( !g.perm.Admin ){ login_needed(0); return; }
 
+  style_set_current_feature("stat");
   style_header("Repository Schema");
   style_adunit_config(ADUNIT_RIGHT_OK);
   style_submenu_element("Stat", "stat");
@@ -567,7 +589,7 @@ void repo_schema_page(void){
       style_submenu_element("Stat1","repo_stat1");
     }
   }
-  style_footer();
+  style_finish_page();
 }
 
 /*
@@ -579,6 +601,7 @@ void repo_stat1_page(void){
   login_check_credentials();
   if( !g.perm.Admin ){ login_needed(0); return; }
 
+  style_set_current_feature("stat");
   style_header("Repository STAT1 Table");
   style_adunit_config(ADUNIT_RIGHT_OK);
   style_submenu_element("Stat", "stat");
@@ -599,7 +622,7 @@ void repo_stat1_page(void){
     @ </pre>
     db_finalize(&q);
   }
-  style_footer();
+  style_finish_page();
 }
 
 /*
@@ -614,6 +637,7 @@ void repo_tabsize_page(void){
 
   login_check_credentials();
   if( !g.perm.Read ){ login_needed(g.anon.Read); return; }
+  style_set_current_feature("stat");
   style_header("Repository Table Sizes");
   style_adunit_config(ADUNIT_RIGHT_OK);
   style_submenu_element("Stat", "stat");
@@ -671,7 +695,7 @@ void repo_tabsize_page(void){
     piechart_render(800,500,PIE_OTHER|PIE_PERCENT);
     @ </svg></center>
   }
-  style_footer();
+  style_finish_page();
 }
 
 /*
@@ -791,6 +815,7 @@ void artifact_stats_page(void){
   }
   load_control();
 
+  style_set_current_feature("stat");
   style_header("Artifact Statistics");
   style_submenu_element("Repository Stats", "stat");
   style_submenu_element("Artifact List", "bloblist");
@@ -812,7 +837,7 @@ void artifact_stats_page(void){
   db_finalize(&q);
   if( nTotal==0 ){
     @ No artifacts in this repository!
-    style_footer();
+    style_finish_page();
     return;
   }
   avgCmpr = (double)sumCmpr/nTotal;
@@ -957,5 +982,5 @@ void artifact_stats_page(void){
     db_finalize(&q);
   }
   style_table_sorter();
-  style_footer();
+  style_finish_page();
 }

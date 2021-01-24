@@ -581,13 +581,19 @@ void secaudit0_page(void){
     @ private and those are ignored.  But public phantoms cause unnecessary
     @ sync traffic and might represent malicious attempts to corrupt the
     @ repository structure.
+    @ </p><p>
+    @ To suppress unnecessary sync traffic caused by phantoms, add the RID
+    @ of each phantom to the "private" table.  Example:
+    @ <blockquote><pre>
+    @    INSERT INTO private SELECT rid FROM blob WHERE content IS NULL;
+    @ </pre></blockquote>
     @ </p>
     table_of_public_phantoms();
     @ </li>
   }
 
   @ </ol>
-  style_footer();
+  style_finish_page();
 }
 
 /*
@@ -629,7 +635,7 @@ void takeitprivate_page(void){
   @ <input type="submit" name="cancel" value="Cancel">
   @ </form>
 
-  style_footer();
+  style_finish_page();
 }
 
 /*
@@ -670,7 +676,7 @@ void errorlog_page(void){
     @ a command-line option "--errorlog <i>FILENAME</i>" to that
     @ command.
     @ </ol>
-    style_footer();
+    style_finish_page();
     return;
   }
   if( P("truncate1") && cgi_csrf_safe(1) ){
@@ -690,7 +696,7 @@ void errorlog_page(void){
     @ <input type="submit" name="truncate1" value="Confirm">
     @ <input type="submit" name="cancel" value="Cancel">
     @ </form>
-    style_footer();
+    style_finish_page();
     return;
   }
   @ <p>The server error log at "%h(g.zErrlog)" is %,lld(szFile) bytes in size.
@@ -699,7 +705,7 @@ void errorlog_page(void){
   in = fossil_fopen(g.zErrlog, "rb");
   if( in==0 ){
     @ <p class='generalError'>Unable to open that file for reading!</p>
-    style_footer();
+    style_finish_page();
     return;
   }
   if( szFile>MXSHOWLOG && P("all")==0 ){
@@ -716,5 +722,5 @@ void errorlog_page(void){
   }
   fclose(in);
   @ </pre>
-  style_footer();
+  style_finish_page();
 }

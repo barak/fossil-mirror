@@ -463,7 +463,7 @@ static void backoffice_error_check_one(int *pOnce){
 ** the main backoffice.
 **
 ** If a primary backoffice is running, but a on-deck backoffice is
-** needed, this routine becomes that on-desk backoffice.
+** needed, this routine becomes that on-deck backoffice.
 */
 static void backoffice_thread(void){
   Lease x;
@@ -665,7 +665,7 @@ void backoffice_work(void){
 ** on a collection of repositories.
 **
 ** If only a single repository is named and --poll is omitted, then the
-** backoffice work is done in-process.  But if there are multiple respositories
+** backoffice work is done in-process.  But if there are multiple repositories
 ** or if --poll is used, a separate sub-process is started for each poll of 
 ** each repository.
 **

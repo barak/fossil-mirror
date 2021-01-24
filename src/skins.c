@@ -87,10 +87,13 @@ static struct SkinDetail {
   const char *zName;      /* Name of the detail */
   const char *zValue;     /* Value of the detail */
 } aSkinDetail[] = {
-  { "timeline-arrowheads",        "1"  },
-  { "timeline-circle-nodes",      "0"  },
-  { "timeline-color-graph-lines", "0"  },
-  { "white-foreground",           "0"  },
+  { "pikchr-fontscale",           ""      },
+  { "pikchr-foreground",          ""      },
+  { "pikchr-scale",               ""      },
+  { "timeline-arrowheads",        "1"     },
+  { "timeline-circle-nodes",      "0"     },
+  { "timeline-color-graph-lines", "0"     },
+  { "white-foreground",           "0"     },
 };
 
 /*
@@ -386,6 +389,7 @@ static int skinRename(void){
   if( zOldName==0 ) return 0;
   if( zNewName==0 || zNewName[0]==0 || (ex = skinExists(zNewName))!=0 ){
     if( zNewName==0 ) zNewName = zOldName;
+    style_set_current_feature("skins");
     style_header("Rename A Skin");
     if( ex ){
       @ <p><span class="generalError">There is already another skin
@@ -403,7 +407,7 @@ static int skinRename(void){
     @ </table>
     login_insert_csrf_secret();
     @ </div></form>
-    style_footer();
+    style_finish_page();
     return 1;
   }
   db_unprotect(PROTECT_CONFIG);
@@ -428,6 +432,7 @@ static int skinSave(const char *zCurrent){
   }
   if( zNewName==0 || zNewName[0]==0 || (ex = skinExists(zNewName))!=0 ){
     if( zNewName==0 ) zNewName = "";
+    style_set_current_feature("skins");
     style_header("Save Current Skin");
     if( ex ){
       @ <p><span class="generalError">There is already another skin
@@ -443,7 +448,7 @@ static int skinSave(const char *zCurrent){
     @ </table>
     login_insert_csrf_secret();
     @ </div></form>
-    style_footer();
+    style_finish_page();
     return 1;
   }
   db_unprotect(PROTECT_CONFIG);
@@ -482,6 +487,8 @@ void setup_skin_admin(void){
     aBuiltinSkin[i].zSQL = getSkin(aBuiltinSkin[i].zLabel);
   }
 
+  style_set_current_feature("skins");
+
   if( cgi_csrf_safe(1) ){
     /* Process requests to delete a user-defined skin */
     if( P("del1") && (zName = skinVarName(P("sn"), 1))!=0 ){
@@ -494,7 +501,7 @@ void setup_skin_admin(void){
       @ <input type="submit" name="cancel" value="Cancel - Do Not Delete" />
       login_insert_csrf_secret();
       @ </div></form>
-      style_footer();
+      style_finish_page();
       db_end_transaction(1);
       return;
     }
@@ -647,7 +654,7 @@ void setup_skin_admin(void){
   db_finalize(&q);
 
   @ </table>
-  style_footer();
+  style_finish_page();
   db_end_transaction(0);
 }
 
@@ -795,6 +802,7 @@ void setup_skinedit(void){
   }
 
   db_begin_transaction();
+  style_set_current_feature("skins");
   style_header("%s", zTitle);
   for(j=0; j<count(aSkinAttr); j++){
     style_submenu_element(aSkinAttr[j].zSubmenu,
@@ -844,7 +852,7 @@ void setup_skinedit(void){
     blob_reset(&out);
   }
   @ </div></form>
-  style_footer();
+  style_finish_page();
   db_end_transaction(0);
 }
 
@@ -961,6 +969,7 @@ void setup_skin(void){
     skin_publish(iSkin);
   }
 
+  style_set_current_feature("skins");
   style_header("Customize Skin");
 
   @ <p>Customize the look of this Fossil repository by making changes
@@ -1122,5 +1131,5 @@ void setup_skin(void){
     @ for cleanup and recovery actions.
   }
   builtin_request_js("skin.js");
-  style_footer();
+  style_finish_page();
 }

@@ -289,7 +289,7 @@ void forumthread_cmd(void){
     fpid = db_int(0, "SELECT rid FROM blob WHERE rid=%d", atoi(zName));
   }
   if( fpid<=0 ){
-    fossil_fatal("Unknown or ambiguous forum id: \"%s\"", zName);
+    fossil_fatal("unknown or ambiguous forum id: \"%s\"", zName);
   }
   froot = db_int(0, "SELECT froot FROM forumpost WHERE fpid=%d", fpid);
   if( froot==0 ){
@@ -745,7 +745,7 @@ static void forum_display_thread(
 ** code (e.g. "forum.js").
 */
 static void forum_emit_js(void){
-  builtin_fossil_js_bundle_or("copybutton", "pikchr", 0);
+  builtin_fossil_js_bundle_or("copybutton", "pikchr", NULL);
   builtin_request_js("fossil.page.forumpost.js");
 }
 
@@ -764,7 +764,7 @@ static void forum_emit_js(void){
 **                 desktop and chronological for mobile.  This is the
 **                 default if the "t" query parameter is omitted.
 **   t=c           Show posts in the order they were written.
-**   t=h           Show posts usin hierarchical indenting.
+**   t=h           Show posts using hierarchical indenting.
 **   t=s           Show only the post specified by "name=X".
 **   t=r           Alias for "t=c&unf&hist".
 **   t=y           Alias for "t=s&unf&hist".
@@ -815,11 +815,16 @@ void forumthread_page(void){
   }
   fpid = symbolic_name_to_rid(zName, "f");
   if( fpid<=0 ){
-    webpage_error("Unknown or ambiguous forum id: \"%s\"", zName);
+    if( fpid==0 ){
+      webpage_notfound_error("Unknown forum id: \"%s\"", zName);
+    }else{
+      ambiguous_page();
+    }
+    return;
   }
   froot = db_int(0, "SELECT froot FROM forumpost WHERE fpid=%d", fpid);
   if( froot==0 ){
-    webpage_error("Not a forum post: \"%s\"", zName);
+    webpage_notfound_error("Not a forum post: \"%s\"", zName);
   }
   if( fossil_strcmp(g.zPath,"forumthread")==0 ) fpid = 0;
 
@@ -859,6 +864,7 @@ void forumthread_page(void){
     "   AND forumpost.fpid=%d;",
     fpid
   );
+  style_set_current_feature("forum");
   style_header("%s%s", zThreadTitle, *zThreadTitle ? "" : "Forum");
   fossil_free(zThreadTitle);
   if( mode!=FD_CHRONO ){
@@ -880,7 +886,7 @@ void forumthread_page(void){
   forum_emit_js();
 
   /* Emit the page style. */
-  style_footer();
+  style_finish_page();
 }
 
 /*
@@ -1051,6 +1057,7 @@ void forum_page_init(void){
     }
     return;
   }
+  style_set_current_feature("forum");
   style_header("%h As Anonymous?", isEdit ? "Reply" : "Post");
   @ <p>You are not logged in.
   @ <p><table border="0" cellpadding="10">
@@ -1076,7 +1083,7 @@ void forum_page_init(void){
   @ <td>Log into an existing account
   @ </table>
   forum_emit_js();
-  style_footer();
+  style_finish_page();
   fossil_free(zGoto);
 }
 
@@ -1112,6 +1119,7 @@ void forumnew_page(void){
     @ <h1>Preview:</h1>
     forum_render(zTitle, zMimetype, zContent, "forumEdit", 1);
   }
+  style_set_current_feature("forum");
   style_header("New Forum Thread");
   @ <form action="%R/forume1" method="POST">
   @ <h1>New Thread:</h1>
@@ -1137,7 +1145,7 @@ void forumnew_page(void){
   }
   @ </form>
   forum_emit_js();
-  style_footer();
+  style_finish_page();
 }
 
 /*
@@ -1211,6 +1219,7 @@ void forumedit_page(void){
       return;
     }
   }
+  style_set_current_feature("forum");
   isDelete = P("nullout")!=0;
   if( P("submit")
    && isCsrfSafe
@@ -1317,7 +1326,7 @@ void forumedit_page(void){
   }
   @ </form>
   forum_emit_js();
-  style_footer();
+  style_finish_page();
 }
 
 /*
@@ -1343,6 +1352,7 @@ void forum_main_page(void){
     login_needed(g.anon.RdForum);
     return;
   }
+  style_set_current_feature("forum");
   style_header("Forum");
   if( g.perm.WrForum ){
     style_submenu_element("New Thread","%R/forumnew");
@@ -1359,7 +1369,7 @@ void forum_main_page(void){
   if( (srchFlags & SRCH_FORUM)!=0 ){
     if( search_screen(SRCH_FORUM, 0) ){
       style_submenu_element("Recent Threads","%R/forum");
-      style_footer();
+      style_finish_page();
       return;
     }
   }
@@ -1452,5 +1462,5 @@ void forum_main_page(void){
   }else{
     @ <h1>No forum posts found</h1>
   }
-  style_footer();
+  style_finish_page();
 }
