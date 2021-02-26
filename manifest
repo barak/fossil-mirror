@@ -1,5 +1,5 @@
-C bump\sversion\sand\slog
-D 2021-01-24T16:13:22.428
+C exercise\sdh13\sexecute_after\n\n
+D 2021-02-26T09:12:12.985
 F .dockerignore 29c5476ae4fb609219ea3f11d60c4b133a037b68
 F .editorconfig 132c5a213aa3ce13dcc9c19f8a7ea306e3640bec4ae693378116cee339c34a1a
 F .fossil-settings/binary-glob de2f79514803c25633f3d21103fd37a5b6cd428761c166dc0e92a302da66d919
@@ -326,7 +326,7 @@ F debian/copyright 39f1cc441231142d81e631e6d0764eb5193f4aef6b441aaa23298f82dce12
 F debian/fossil.bash-completion e1e460f40668463a8e3e8df9a99de8f9301c9730
 F debian/fossil.docs 45a770a8534b1a439a32546145737975a9217b30
 F debian/fossil.manpages 8ca3a843375393ec37484e4dbae3d4dfe5b4ddcf
-F debian/rules ca564a5ba72d53e23c97ad144180196ef437b3da252450d50e625efd38c73333 x
+F debian/rules c3754727a6600fced6c6050be0c36b6ea706f1277d618fcc9b97028216b1507d x
 F debian/source/format 1064dc0ce263680c076a1005f35ec906a5cf5a32
 F debian/source/local-options 58a65fc3dfe4bbb8692c99e80334fba1e913f072
 F debian/source/patch-header 84c8aca673f2fc094c29a10bd519fca36a57e9f6
@@ -1005,8 +1005,8 @@ F www/webui.wiki 68303fce3cafe259d25923d1ed7e4a60d6b9f2bfe2e80f3013f00765227ad56
 F www/whyusefossil.wiki 9a6fcdc78ce0c76c3ee7474c0c7cc86d7529ce5f975fa1aa9c26a713d976c84f
 F www/wikitheory.wiki 91e6796caf7c8fbed00a58d3eea377d0f89f494f5637fd8af09dc41290e716f6
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P 3521598be7a985badd020652d59be58c2826efd9d6c43789c26542a4293a5da6
-R 7be2d710faebe285b6cd97f89fd93d7a
+P 342625170e36d316cb80641dc1c0a28bf52b3df87fc993ef0191893e3a0ca078
+R 32cfb3be632018d8eafa57f4318a09f8
 U barak
-Z ae8eb1b19907c48369d9ce3825875f42
+Z 8c7f9a564c174c846c86bb33788fdda1
 # Remove this line to create a well-formed Fossil manifest.
