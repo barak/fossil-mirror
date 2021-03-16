@@ -385,7 +385,7 @@ void tag_add_artifact(
 **           --propagate                 Propagating tag.
 **           --date-override DATETIME    Set date and time added.
 **           --user-override USER        Name USER when adding the tag.
-**           --dryrun|-n                 Display the tag text, but do not
+**           -n|--dryrun                 Display the tag text, but do not
 **                                       actually insert it into the database.
 **
 **         The --date-override and --user-override options support
@@ -396,13 +396,13 @@ void tag_add_artifact(
 **
 **         Remove the tag TAGNAME from CHECK-IN, and also remove
 **         the propagation of the tag to any descendants.  Use the
-**         the --dryrun or -n options to see what would have happened.
+**         the -n|--dryrun option to see what would have happened.
 **
 **         Options:
 **           --raw                       Raw tag name.
 **           --date-override DATETIME    Set date and time deleted.
 **           --user-override USER        Name USER when deleting the tag.
-**           --dryrun|-n                 Display the control artifact, but do
+**           -n|--dryrun                 Display the control artifact, but do
 **                                       not insert it into the database.
 **
 ** > fossil tag find ?OPTIONS? TAGNAME
@@ -646,7 +646,7 @@ tag_cmd_usage:
 **    --test           Make database entries but do not add the tag artifact.
 **                     So the reparent operation will be undone by the next
 **                     "fossil rebuild" command.
-**    --dryrun | -n    Print the tag that would have been created but do not
+**    -n|--dryrun      Print the tag that would have been created but do not
 **                     actually change the database in any way.
 **    --date-override DATETIME  Set the change time on the control artifact
 **    --user-override USER      Set the user name on the control artifact
@@ -757,7 +757,6 @@ void tagtimeline_page(void){
   style_submenu_element("List", "taglist");
   login_anonymous_available();
   timeline_ss_submenu();
-  cookie_render();
   @ <h2>Check-ins with non-propagating tags:</h2>
   blob_append(&sql, timeline_query_for_www(), -1);
   blob_append_sql(&sql,

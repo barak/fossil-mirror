@@ -52,8 +52,8 @@ cson_value * json_page_branch(){
 **
 ** CLI mode options:
 **
-**  --range X | -r X, where X is one of (open,closed,all)
-**    (only the first letter is significant, default=open).
+**  -r|--range X, where X is one of (open,closed,all)
+**    (only the first letter is significant, default=open)
 **  -a (same as --range a)
 **  -c (same as --range c)
 **
@@ -130,7 +130,7 @@ static cson_value * json_branch_list(){
   }
 
 
-  branch_prepare_list_query(&q, branchListFlags);
+  branch_prepare_list_query(&q, branchListFlags, 0);
   cson_object_set(pay,"branches",listV);
   while((SQLITE_ROW==db_step(&q))){
     cson_value * v = cson_sqlite3_column_to_value(q.pStmt,0);

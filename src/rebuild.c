@@ -158,13 +158,16 @@ void rebuild_schema_update_2_0(void){
     int i;
     for(i=10; z[i]; i++){
       if( z[i]=='=' && strncmp(&z[i-6],"(uuid)==40",10)==0 ){
+        int rc = 0;
         z[i] = '>';
+        sqlite3_db_config(g.db, SQLITE_DBCONFIG_DEFENSIVE, 0, &rc);
         db_multi_exec(
            "PRAGMA writable_schema=ON;"
            "UPDATE repository.sqlite_schema SET sql=%Q WHERE name LIKE 'blob';"
            "PRAGMA writable_schema=OFF;",
            z
         );
+        sqlite3_db_config(g.db, SQLITE_DBCONFIG_DEFENSIVE, 1, &rc);
         break;
       }
     }
@@ -888,9 +891,9 @@ void test_clusters_cmd(void){
 ** is used.
 **
 ** Options:
-**   --force     do not prompt for confirmation
-**   --private   only private branches are removed from the repository
-**   --verily    scrub real thoroughly (see above)
+**   --force     Do not prompt for confirmation
+**   --private   Only private branches are removed from the repository
+**   --verily    Scrub real thoroughly (see above)
 */
 void scrub_cmd(void){
   int bVerily = find_option("verily",0,0)!=0;
@@ -1113,7 +1116,7 @@ void recon_restore_hash_policy(){
 **
 ** Options:
 **   -L|--prefixlength N     Set the length of the names of the DESTINATION
-**                           subdirectories to N.
+**                           subdirectories to N
 */
 void test_hash_from_path_cmd(void) {
   char *zDest;
@@ -1283,7 +1286,7 @@ void reconstruct_cmd(void) {
 ** can be set to 0,1,..,9 characters.
 **
 ** Options:
-**   -R|--repository REPOSITORY  Deconstruct given REPOSITORY.
+**   -R|--repository REPO        Deconstruct given REPOSITORY.
 **   -K|--keep-rid1              Save the filename of the artifact with RID=1 to
 **                               the file .rid1 in the DESTINATION directory.
 **   -L|--prefixlength N         Set the length of the names of the DESTINATION

@@ -679,7 +679,7 @@ static void ls_cmd_rev(
 **   -v|--verbose          Provide extra information about each file.
 **   -t                    Sort output in time order.
 **   -r VERSION            The specific check-in to list.
-**   -R|--repository FILE  Extract info from repository FILE.
+**   -R|--repository REPO  Extract info from repository REPO.
 **   --hash                With -v, verify file status using hashing
 **                         rather than relying on file sizes and mtimes.
 **
@@ -833,13 +833,13 @@ void ls_cmd(void){
 ** unless overridden by the --abs-paths or --rel-paths options.
 **
 ** Options:
-**    --abs-paths             Display absolute pathnames.
+**    --abs-paths             Display absolute pathnames
 **    --case-sensitive BOOL   Override case-sensitive setting
 **    --dotfiles              Include files beginning with a dot (".")
 **    --header                Identify the repository if there are extras
 **    --ignore CSG            Ignore files matching patterns from the argument
 **    --rel-paths             Display pathnames relative to the current working
-**                            directory.
+**                            directory
 **
 ** See also: [[changes]], [[clean]], [[status]]
 */
@@ -930,7 +930,7 @@ void extras_cmd(void){
 **    --disable-undo         WARNING: This option disables use of the undo
 **                           mechanism for this clean operation and should be
 **                           used with extreme caution.
-**    --dotfiles             Include files beginning with a dot (".").
+**    --dotfiles             Include files beginning with a dot (".")
 **    --emptydirs            Remove any empty directories that are not
 **                           explicitly exempted via the empty-dirs setting
 **                           or another applicable setting or command line
@@ -938,7 +938,7 @@ void extras_cmd(void){
 **                           prior to checking for any empty directories;
 **                           therefore, directories that contain only files
 **                           that were removed will be removed as well.
-**    -f|--force             Remove files without prompting.
+**    -f|--force             Remove files without prompting
 **    -i|--prompt            Prompt before removing each file.  This option
 **                           implies the --disable-undo option.
 **    -x|--verily            WARNING: Removes everything that is not a managed
@@ -953,15 +953,15 @@ void extras_cmd(void){
 **                           deletions of any files matching this pattern list
 **                           cannot be undone.
 **    --ignore CSG           Ignore files matching patterns from the
-**                           comma separated list of glob patterns.
+**                           comma separated list of glob patterns
 **    --keep <CSG>           Keep files matching this comma separated
-**                           list of glob patterns.
+**                           list of glob patterns
 **    -n|--dry-run           Delete nothing, but display what would have been
-**                           deleted.
-**    --no-prompt            This option disables prompting the user for input
-**                           and assumes an answer of 'No' for every question.
-**    --temp                 Remove only Fossil-generated temporary files.
-**    -v|--verbose           Show all files as they are removed.
+**                           deleted
+**    --no-prompt            Do not prompt the user for input and assume an
+**                           answer of 'No' for every question
+**    --temp                 Remove only Fossil-generated temporary files
+**    -v|--verbose           Show all files as they are removed
 **
 ** See also: [[addremove]], [[extras]], [[status]]
 */
@@ -1211,13 +1211,20 @@ void prompt_for_user_comment(Blob *pComment, Blob *pPrompt){
 #endif
   if( blob_size(pPrompt)>0 ) blob_write_to_file(pPrompt, zFile);
   if( zEditor ){
+    char *z, *zEnd;
     zCmd = mprintf("%s %$", zEditor, zFile);
     fossil_print("%s\n", zCmd);
     if( fossil_system(zCmd) ){
       fossil_fatal("editor aborted: \"%s\"", zCmd);
     }
-
     blob_read_from_file(&reply, zFile, ExtFILE);
+    z = blob_str(&reply);
+    zEnd = strstr(z, "##########");
+    if( zEnd ){
+      /* Truncate the reply at any sequence of 10 or more # characters.
+      ** The diff for the -v option occurs after such a sequence. */
+      blob_resize(&reply, (int)(zEnd - z));
+    }
   }else{
     char zIn[300];
     blob_zero(&reply);
@@ -1272,7 +1279,8 @@ static void prepare_commit_comment(
   Blob *pComment,
   char *zInit,
   CheckinInfo *p,
-  int parent_rid
+  int parent_rid,
+  int dryRunFlag
 ){
   Blob prompt;
 #if defined(_WIN32) || defined(__CYGWIN__)
@@ -1291,6 +1299,10 @@ static void prepare_commit_comment(
         " Lines beginning with # are ignored.\n"
     "#\n", -1
   );
+  if( dryRunFlag ){
+    blob_appendf(&prompt, "# DRY-RUN:  This is a test commit.  No changes "
+                          "will be made to the repository\n#\n");
+  }
   blob_appendf(&prompt, "# user: %s\n",
                p->zUserOvrd ? p->zUserOvrd : login_name());
   if( p->zBranch && p->zBranch[0] ){
@@ -1326,6 +1338,40 @@ static void prepare_commit_comment(
       "# All merged-in branches will be closed due to the --integrate flag\n"
       "#\n", -1
     );
+  }
+  if( p->verboseFlag ){
+    blob_appendf(&prompt,
+        "#\n%.78c\n"
+        "# The following diff is excluded from the commit message:\n#\n",
+        '#'
+    );
+    if( g.aCommitFile ){
+      FileDirList *diffFiles;
+      int i;
+      diffFiles = fossil_malloc_zero((g.argc-1) * sizeof(*diffFiles));
+      for( i=0; g.aCommitFile[i]!=0; ++i ){
+        diffFiles[i].zName  = db_text(0,
+         "SELECT pathname FROM vfile WHERE id=%d", g.aCommitFile[i]);
+        if( fossil_strcmp(diffFiles[i].zName, "." )==0 ){
+          diffFiles[0].zName[0] = '.';
+          diffFiles[0].zName[1] = 0;
+          break;
+        }
+        diffFiles[i].nName = strlen(diffFiles[i].zName);
+        diffFiles[i].nUsed = 0;
+      }
+      diff_against_disk(0, 0, diff_get_binary_glob(),
+                        db_get_boolean("diff-binary", 1),
+                        DIFF_VERBOSE, diffFiles, &prompt);
+      for( i=0; diffFiles[i].zName; ++i ){
+        fossil_free(diffFiles[i].zName);
+      }
+      fossil_free(diffFiles);
+    }else{
+      diff_against_disk(0, 0, diff_get_binary_glob(),
+                        db_get_boolean("diff-binary", 1),
+                        DIFF_VERBOSE, 0, &prompt);
+    }
   }
   prompt_for_user_comment(pComment, &prompt);
   blob_reset(&prompt);
@@ -1545,6 +1591,7 @@ struct CheckinInfo {
   int verifyDate;             /* Verify that child is younger */
   int closeFlag;              /* Close the branch being committed */
   int integrateFlag;          /* Close merged-in branches */
+  int verboseFlag;            /* Show diff in editor for check-in comment */
   Blob *pCksum;               /* Repository checksum.  May be 0 */
   const char *zDateOvrd;      /* Date override.  If 0 then use 'now' */
   const char *zUserOvrd;      /* User override.  If 0 then use login_name() */
@@ -1694,7 +1741,7 @@ static void create_manifest(
       if( (!g.markPrivate && content_is_private(mid)) || (mid == vid) ){
         continue;
       }
-      zMergeUuid = db_text(0, "SELECT uuid FROM blob WHERE rid=%d", mid);
+      zMergeUuid = rid_to_uuid(mid);
       if( zMergeUuid ){
         blob_appendf(pOut, " %s", zMergeUuid);
         if( p->verifyDate ) checkin_verify_younger(mid, zMergeUuid, zDate);
@@ -2092,6 +2139,7 @@ static int tagCmp(const void *a, const void *b){
 **    -M|--message-file FILE     read the commit comment from given file
 **    --mimetype MIMETYPE        mimetype of check-in comment
 **    -n|--dry-run               If given, display instead of run actions
+**    -v|--verbose               Show a diff in the commit message prompt
 **    --no-prompt                This option disables prompting the user for
 **                               input and assumes an answer of 'No' for every
 **                               question.
@@ -2196,6 +2244,7 @@ void commit_cmd(void){
   sCiInfo.closeFlag = find_option("close",0,0)!=0;
   sCiInfo.integrateFlag = find_option("integrate",0,0)!=0;
   sCiInfo.zMimetype = find_option("mimetype",0,1);
+  sCiInfo.verboseFlag = find_option("verbose", "v", 0)!=0;
   while( (zTag = find_option("tag",0,1))!=0 ){
     if( zTag[0]==0 ) continue;
     sCiInfo.azTag = fossil_realloc((void*)sCiInfo.azTag,
@@ -2443,17 +2492,15 @@ void commit_cmd(void){
       blob_zero(&comment);
       blob_read_from_file(&comment, zComFile, ExtFILE);
       blob_to_utf8_no_bom(&comment, 1);
-    }else if( dryRunFlag ){
-      blob_zero(&comment);
     }else if( !noPrompt ){
       char *zInit = db_text(0,"SELECT value FROM vvar WHERE name='ci-comment'");
-      prepare_commit_comment(&comment, zInit, &sCiInfo, vid);
+      prepare_commit_comment(&comment, zInit, &sCiInfo, vid, dryRunFlag);
       if( zInit && zInit[0] && fossil_strcmp(zInit, blob_str(&comment))==0 ){
         prompt_user("unchanged check-in comment.  continue (y/N)? ", &ans);
         cReply = blob_str(&ans)[0];
         blob_reset(&ans);
         if( cReply!='y' && cReply!='Y' ){
-          fossil_exit(1);
+          fossil_fatal("Commit aborted.");
         }
       }
       free(zInit);
@@ -2466,10 +2513,12 @@ void commit_cmd(void){
         ** is still not against a closed branch and still won't fork. */
         int syncFlags = SYNC_PULL|SYNC_CKIN_LOCK;
         if( autosync_loop(syncFlags, db_get_int("autosync-tries", 1), 1) ){
-          fossil_exit(1);
+          fossil_fatal("Auto-pull failed. Commit aborted.");
         }
         bRecheck = 1;
       }
+    }else{
+      blob_zero(&comment);
     }
   }while( bRecheck );
 
@@ -2480,11 +2529,10 @@ void commit_cmd(void){
         cReply = blob_str(&ans)[0];
         blob_reset(&ans);
       }else{
-        fossil_print("Abandoning commit due to empty check-in comment\n");
         cReply = 'N';
       }
       if( cReply!='y' && cReply!='Y' ){
-        fossil_exit(1);
+        fossil_fatal("Abandoning commit due to empty check-in comment\n");
       }
     }
   }
@@ -2633,11 +2681,10 @@ void commit_cmd(void){
       cReply = blob_str(&ans)[0];
       blob_reset(&ans);
     }else{
-      fossil_print("Abandoning commit due to manifest signing failure\n");
       cReply = 'N';
     }
     if( cReply!='y' && cReply!='Y' ){
-      fossil_exit(1);
+      fossil_fatal("Abandoning commit due to manifest signing failure\n");
     }
   }
 
@@ -2759,7 +2806,7 @@ void commit_cmd(void){
   db_multi_exec("PRAGMA localdb.application_id=252006674;");
   if( dryRunFlag ){
     db_end_transaction(1);
-    exit(1);
+    return;
   }
   db_end_transaction(0);
 

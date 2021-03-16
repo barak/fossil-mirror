@@ -125,10 +125,12 @@ summarize the commands available in TH1:
   *  error ?STRING?
   *  expr EXPR
   *  for INIT-SCRIPT TEST-EXPR NEXT-SCRIPT BODY-SCRIPT
+  *  foreach VARIABLE-LIST VALUE-LIST BODY-SCRIPT
   *  if EXPR SCRIPT (elseif EXPR SCRIPT)* ?else SCRIPT?
   *  info commands
   *  info exists VARNAME
   *  info vars
+  *  lappend VARIABLE TERM ...
   *  lindex LIST INDEX
   *  list ARG ...
   *  llength LIST
@@ -142,6 +144,7 @@ summarize the commands available in TH1:
   *  string index STRING INDEX
   *  string is CLASS STRING
   *  string last NEEDLE HAYSTACK ?START-INDEX?
+  *  string match PATTERN STRING
   *  string length STRING
   *  string range STRING FIRST LAST
   *  string repeat STRING COUNT
@@ -169,6 +172,8 @@ features of Fossil.  The following is a summary of the extended commands:
   *  [anoncap](#anoncap)
   *  [anycap](#anycap)
   *  [artifact](#artifact)
+  *  [builtin_request_js](#bireqjs)
+  *  [capexpr](#capexpr)
   *  [captureTh1](#captureTh1)
   *  [cgiHeaderLine](#cgiHeaderLine)
   *  [checkout](#checkout)
@@ -234,6 +239,8 @@ in order to successfully make use of these commands.
 <a id="anoncap"></a>TH1 anoncap Command
 -----------------------------------------
 
+Deprecated: prefer [capexpr](#capexpr) instead.
+
   *  anoncap STRING...
 
 Returns true if the anonymous user has all of the capabilities listed
@@ -241,6 +248,8 @@ in STRING.
 
 <a id="anycap"></a>TH1 anycap Command
 ---------------------------------------
+
+Deprecated: prefer [capexpr](#capexpr) instead.
 
   *  anycap STRING
 
@@ -255,6 +264,58 @@ listed in STRING.
 Attempts to locate the specified artifact and return its contents.  An
 error is generated if the repository is not open or the artifact cannot
 be found.
+
+
+<a id="bireqjs"></a>TH1 builtin_request_js Command
+--------------------------------------------------
+
+  *  builtin_request_js NAME
+
+NAME must be the name of one of the 
+[built-in javascript source files](/dir?ci=trunk&type=flat&name=src&re=js$).
+This command causes that javascript file to be appended to the delivered
+document.
+
+
+
+<a id="capexpr"></a>TH1 capexpr Command
+-----------------------------------------------------
+
+Added in Fossil 2.15.
+
+  *  capexpr CAPABILITY-EXPR
+
+The capability expression is a list. Each term of the list is a
+cluster of capability letters. The overall expression is true if any
+one term is true. A single term is true if all letters within that
+term are true. Or, if the term begins with "!", then the term is true
+if none of the terms or true. Or, if the term begins with "@" then
+the term is true if all of the capability letters in that term are
+available to the "anonymous" user. Or, if the term is "*" then it is
+always true.
+
+Examples:
+
+```
+  capexpr {j o r}               True if any one of j, o, or r are available
+  capexpr {oh}                  True if both o and h are available
+  capexpr {@2 @3 4 5 6}         2 or 3 available for anonymous or one of
+                                  4, 5 or 6 is available for the user
+  capexpr L                     True if the user is logged in
+  capexpr !L                    True if the user is not logged in
+```
+
+The `L` pseudo-capability is intended only to be used on its own or with
+the `!` prefix for implementing login/logout menus via the `mainmenu`
+site configuration option:
+
+```
+Login     /login        !L  {}
+Logout    /logout        L  {}
+```
+
+i.e. if the user is logged in, show the "Logout" link, else show the
+"Login" link.
 
 <a id="captureTh1"></a>TH1 captureTh1 Command
 -----------------------------------------------------
@@ -426,6 +487,8 @@ in the future.
 
 <a id="hascap"></a>TH1 hascap Command
 ---------------------------------------
+
+Deprecated: prefer [capexpr](#capexpr) instead.
 
   *  hascap STRING...
 

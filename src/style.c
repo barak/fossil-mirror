@@ -368,47 +368,75 @@ void style_set_current_page(const char *zFormat, ...){
 }
 
 /*
-** Create a TH1 variable containing the URL for the specified config
-** resource. The resulting variable name will be of the form
-** $[zVarPrefix]_url.
+** Create a TH1 variable containing the URL for the stylesheet.
+**
+** The name of the new variable will be "stylesheet_url".
+**
+** The value will be a URL for accessing the appropriate stylesheet.
+** This URL will include query parameters such as "id=" and "once&skin="
+** to cause the correct stylesheet to be loaded after a skin change
+** or after a change to the stylesheet.
 */
-static void url_var(
-  const char *zVarPrefix,
-  const char *zConfigName,
-  const char *zPageName
-){
-  char *zVarName = mprintf("%s_url", zVarPrefix);
-  char *zUrl = 0;              /* stylesheet URL */
-  int hasBuiltin = 0;          /* true for built-in page-specific CSS */
+static void stylesheet_url_var(void){
+  char *zBuiltin;              /* Auxiliary page-specific CSS page */
+  Blob url;                    /* The URL */
 
-  if(0==strcmp("css",zConfigName)){
-    /* Account for page-specific CSS, appending a /{{g.zPath}} to the
-    ** url only if we have a corresponding built-in page-specific CSS
-    ** file. Do not append it to all pages because we would
-    ** effectively cache-bust all pages which do not have
-    ** page-specific CSS. */
-    char * zBuiltin = mprintf("style.%s.css", g.zPath);
-    hasBuiltin = builtin_file(zBuiltin,0)!=0;
-    fossil_free(zBuiltin);
+  /* Initialize the URL to its baseline */
+  url = empty_blob;
+  blob_appendf(&url, "%R/style.css");
+
+  /* If page-specific CSS exists for the current page, then append
+  ** the pathname for the page-specific CSS.  The default CSS is
+  **
+  **     /style.css
+  **
+  ** But for the "/wikiedit" page (to name but one example), we
+  ** append a path as follows:
+  **
+  **     /style.css/wikiedit
+  **
+  ** The /style.css page (implemented below) will detect this extra "wikiedit"
+  ** path information and include the page-specific CSS along with the
+  ** default CSS when it delivers the page.
+  */
+  zBuiltin = mprintf("style.%s.css", g.zPath);
+  if( builtin_file(zBuiltin,0)!=0 ){
+    blob_appendf(&url, "/%s", g.zPath);
   }
-  zUrl = mprintf("%R/%s%s%s?id=%x", zPageName,
-                 hasBuiltin ? "/" : "", hasBuiltin ? g.zPath : "",
-                 skin_id(zConfigName));
-  Th_Store(zVarName, zUrl);
-  fossil_free(zUrl);
-  fossil_free(zVarName);
+  fossil_free(zBuiltin);
+
+  /* Add query parameters that will change whenever the skin changes
+  ** or after any updates to the CSS files
+  */
+  blob_appendf(&url, "?id=%x", skin_id("css"));
+  if( P("once")!=0 && P("skin")!=0 ){
+    blob_appendf(&url, "&skin=%s&once", skin_in_use());
+  }
+
+  /* Generate the CSS URL variable */  
+  Th_Store("stylesheet_url", blob_str(&url));
+  blob_reset(&url);
 }
 
 /*
-** Create a TH1 variable containing the URL for the specified config image.
+** Create a TH1 variable containing the URL for the specified image.
 ** The resulting variable name will be of the form $[zImageName]_image_url.
+** The value will be a URL that includes an id= query parameter that
+** changes if the underlying resource changes or if a different skin
+** is selected.
 */
 static void image_url_var(const char *zImageName){
-  char *zVarPrefix = mprintf("%s_image", zImageName);
-  char *zConfigName = mprintf("%s-image", zImageName);
-  url_var(zVarPrefix, zConfigName, zImageName);
-  free(zVarPrefix);
-  free(zConfigName);
+  char *zVarName;   /* Name of the new TH1 variable */
+  char *zResource;  /* Name of CONFIG entry holding content */
+  char *zUrl;       /* The URL */
+
+  zResource = mprintf("%s-image", zImageName);
+  zUrl = mprintf("%R/%s?id=%x", zImageName, skin_id(zResource));
+  free(zResource);
+  zVarName = mprintf("%s_image_url", zImageName);  
+  Th_Store(zVarName, zUrl);
+  free(zVarName);
+  free(zUrl);
 }
 
 /*
@@ -521,6 +549,7 @@ char *style_nonce(void){
 **     default-src 'self' data:;
 **     script-src 'self' 'nonce-$nonce';
 **     style-src 'self' 'unsafe-inline';
+**     img-src * data:;
 **
 ** The text '$nonce' is replaced by style_nonce() if and whereever it
 ** occurs in the input string.
@@ -532,7 +561,8 @@ char *style_csp(int toHeader){
   static const char zBackupCSP[] = 
    "default-src 'self' data:; "
    "script-src 'self' 'nonce-$nonce'; "
-   "style-src 'self' 'unsafe-inline'";
+   "style-src 'self' 'unsafe-inline'; "
+   "img-src * data:";
   const char *zFormat;
   Blob csp;
   char *zNonce;
@@ -599,6 +629,31 @@ const char *get_default_header(){
 }
 
 /*
+** The default TCL list that defines the main menu.
+*/
+static const char zDfltMainMenu[] = 
+@ Home      /home        *              {}
+@ Timeline  /timeline    {o r j}        {}
+@ Files     /dir?ci=tip  oh             desktoponly
+@ Branches  /brlist      o              wideonly
+@ Tags      /taglist     o              wideonly
+@ Forum     /forum       {@2 3 4 5 6}   wideonly
+@ Chat      /chat        C              wideonly
+@ Tickets   /ticket      r              wideonly
+@ Wiki      /wiki        j              wideonly
+@ Admin     /setup       {a s}          desktoponly
+@ Logout    /logout      L              wideonly
+@ Login     /login       !L             wideonly
+;
+
+/*
+** Return the default menu
+*/
+const char *style_default_mainmenu(void){
+  return zDfltMainMenu;
+}
+
+/*
 ** Given a URL path, extract the first element as a "feature" name,
 ** used as the <body class="FEATURE"> value by default, though
 ** later-running code may override this, typically to group multiple
@@ -632,6 +687,26 @@ void style_set_current_feature(const char* zFeature){
 }
 
 /*
+** Returns the current mainmenu value from either the --mainmenu flag
+** (handled by the server/ui/cgi commands), the "mainmenu" config
+** setting, or style_default_mainmenu(), in that order, returning the
+** first of those which is defined.
+*/
+const char*style_get_mainmenu(){
+  static const char *zMenu = 0;
+  if(!zMenu){
+    if(g.zMainMenuFile){
+      Blob b = empty_blob;
+      blob_read_from_file(&b, g.zMainMenuFile, ExtFILE);
+      zMenu = blob_str(&b);
+    }else{
+      zMenu = db_get("mainmenu", style_default_mainmenu());
+    }
+  }
+  return zMenu;
+}
+
+/*
 ** Initialize all the default TH1 variables
 */
 static void style_init_th1_vars(const char *zTitle){
@@ -661,7 +736,8 @@ static void style_init_th1_vars(const char *zTitle){
   Th_Store("manifest_version", MANIFEST_VERSION);
   Th_Store("manifest_date", MANIFEST_DATE);
   Th_Store("compiler_name", COMPILER_NAME);
-  url_var("stylesheet", "css", "style.css");
+  Th_Store("mainmenu", style_get_mainmenu());
+  stylesheet_url_var();
   image_url_var("logo");
   image_url_var("background");
   if( !login_is_nobody() ){
@@ -967,6 +1043,10 @@ void style_finish_page(){
     @ </body>
     @ </html>
   }
+  /* Update the user display prefs cookie if it was modified during
+  ** this request.
+  */
+  cookie_render();
 }
 
 /*
@@ -1053,9 +1133,10 @@ void page_script_js(void){
 }
 
 /*
-** If one of the "name" or "page" URL parameters (in that order)
-** is set then this function looks for page/page group-specific
-** CSS and (if found) appends it to pOut, else it is a no-op.
+** Check for "name" or "page" query parameters on an /style.css
+** page request.  If present, then page-specific CSS is requested,
+** so add that CSS to pOut.  If the "name" and "page" query parameters
+** are omitted, then pOut is unchnaged.
 */
 static void page_style_css_append_page_style(Blob *pOut){
   const char *zPage = PD("name",P("page"));
@@ -1071,15 +1152,10 @@ static void page_style_css_append_page_style(Blob *pOut){
   if(nFile>0){
     blob_appendf(pOut,
       "\n/***********************************************************\n"
-      "** Start of page-specific CSS for page %s...\n"
+      "** Page-specific CSS for \"%s\"\n"
       "***********************************************************/\n",
       zPage);
     blob_append(pOut, zBuiltin, nFile);
-    blob_appendf(pOut,
-      "\n/***********************************************************\n"
-      "** End of page-specific CSS for page %s.\n"
-      "***********************************************************/\n",
-      zPage);
     fossil_free(zFile);
     return;
   }
@@ -1093,12 +1169,35 @@ static void page_style_css_append_page_style(Blob *pOut){
 /*
 ** WEBPAGE: style.css
 **
-** Return the style sheet.
+** Return the style sheet.   The style sheet is assemblied from
+** multiple sources, in order:
+**
+**    (1)   The built-in "default.css" style sheet containing basic defaults.
+**
+**    (2)   The page-specific style sheet taken from the built-in
+**          called "PAGENAME.css" where PAGENAME is the value of the name=
+**          or page= query parameters.  If neither name= nor page= exist,
+**          then this section is a no-op.
+**
+**    (3)   The skin-specific "css.txt" file, if there one.
+**
+** All of (1), (2), and (3) above (or as many as exist) are concatenated.
+** The result is then run through TH1 with the following variables set:
+**
+**    *   $basename
+**    *   $secureurl
+**    *   $home
+**    *   $logo
+**    *   $background
+**
+** The output from TH1 becomes the style sheet.  Fossil always reports
+** that the style sheet is cacheable.  
 */
 void page_style_css(void){
   Blob css = empty_blob;
   int i;
   const char * zDefaults;
+  const char *zSkin;
 
   cgi_set_content_type("text/css");
   etag_check(0, 0);
@@ -1107,11 +1206,13 @@ void page_style_css(void){
   blob_append(&css, zDefaults, i);
   /* Page-specific CSS, if any... */
   page_style_css_append_page_style(&css);
-  blob_append(&css,
+  zSkin = skin_in_use();
+  if( zSkin==0 ) zSkin = "this repository";
+  blob_appendf(&css,
      "\n/***********************************************************\n"
-     "** All CSS which follows is supplied by the repository \"skin\".\n"
+     "** Skin-specific CSS for %s\n"
      "***********************************************************/\n",
-     -1);
+     zSkin);
   blob_append(&css,skin_get("css"),-1);
   /* Process through TH1 in order to give an opportunity to substitute
   ** variables such as $baseurl.

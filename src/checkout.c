@@ -284,7 +284,7 @@ void get_checkin_taglist(int rid, Blob *pOut){
 **    --force-missing   Force checkout even if content is missing
 **    --setmtime        Set timestamps of all files to match their SCM-side
 **                      times (the timestamp of the last checkin which modified
-**                      them).
+**                      them)
 **
 ** See also: [[update]]
 */
@@ -399,7 +399,7 @@ static void unlink_local_database(int manifestOnly){
 ** current check-out or if there is non-empty stash.
 **
 ** Options:
-**   --force|-f  necessary to close a check out with uncommitted changes
+**   -f|--force  necessary to close a check out with uncommitted changes
 **
 ** See also: [[open]]
 */
