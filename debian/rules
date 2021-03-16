@@ -7,14 +7,9 @@ include /usr/share/dpkg/architecture.mk
 %:
 	dh $@ --with bash-completion
 
-## If system (i.e., external) sqlite has a high
-## enough version, then disable internal sqlite.
+## If system (external) sqlite has high enough version, disable internal sqlite.
 
-## Here's how to find the minimal required version:
-# $ egrep -i 'sqlite.*at least' src/main.c
-#     fossil_panic("Unsuitable SQLite version %s, must be at least 3.34.0",
-
-SQLITE_MIN_VERSION=3.34
+SQLITE_MIN_VERSION=$(shell ./configure --print-minimum-sqlite-version | tail -1)
 FOSSIL_CONF_SQLITE_OPTIONS:=$(shell pkg-config sqlite3 --atleast-version=$(SQLITE_MIN_VERSION) && echo --disable-internal-sqlite)
 
 ## This is an alternative method for checking sqlite version. Seems

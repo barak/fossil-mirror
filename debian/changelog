@@ -1,3 +1,12 @@
+fossil (1:2.15~rc1-1) unstable; urgency=medium
+
+  * New upstream version
+    - fixes problem updating schemas on older repositories (closes: #985124)
+    - does not run host tool on cross build (closes: #961772)
+  * Use new ./configure --print-minimum-sqlite-version option
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Tue, 16 Mar 2021 21:13:47 +0000
+
 fossil (1:2.14-1) unstable; urgency=medium
 
   * New upstream version
