@@ -1,3 +1,10 @@
+fossil (1:2.15~rc2-1) unstable; urgency=medium
+
+  * Tell uscan how to mangle upstream RC releases
+  * New upstream version
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Mon, 22 Mar 2021 11:35:37 +0000
+
 fossil (1:2.15~rc1-1) unstable; urgency=medium
 
   * New upstream version
