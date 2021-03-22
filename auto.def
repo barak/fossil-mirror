@@ -31,7 +31,9 @@ options {
     json=0               => {Build with fossil JSON API enabled}
 }
 
-# Update the minimum required SQLite version number here.
+# Update the minimum required SQLite version number here, and also
+# in src/main.c near the sqlite3_libversion_number() call.  Take care
+# that both places agree!
 define MINIMUM_SQLITE_VERSION "3.35.0"
 
 # This is useful for people wanting Fossil to use an external SQLite library
@@ -235,6 +237,9 @@ if {[opt-bool fossil-debug]} {
 if {[opt-bool no-opt]} {
     define CFLAGS {-g -O0 -Wall}
     msg-result "Builting without compiler optimization"
+    if {[opt-bool fossil-debug]} {
+        define-append CFLAGS -DFOSSIL_DEBUG
+    }
 }
 
 if {[opt-bool with-mman]} {

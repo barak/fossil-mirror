@@ -351,7 +351,7 @@ static void fossil_atexit(void) {
   */
   db_unsave_encryption_key();
 #endif
-#if defined(_WIN32) || defined(__BIONIC__) && !defined(FOSSIL_HAVE_GETPASS)
+#if defined(_WIN32) || (defined(__BIONIC__) && !defined(FOSSIL_HAVE_GETPASS))
   /*
   ** Free the secure getpass() buffer now.
   */
@@ -390,6 +390,13 @@ static void fossil_atexit(void) {
     if( g.interp ){
       Th_DeleteInterp(g.interp); g.interp = 0;
     }
+#if defined(TH_MEMDEBUG)
+    if( Th_GetOutstandingMalloc()!=0 ){
+      fossil_print("Th_GetOutstandingMalloc() => %d\n",
+                   Th_GetOutstandingMalloc());
+    }
+    assert( Th_GetOutstandingMalloc()==0 );
+#endif
   }
 }
 
@@ -681,10 +688,15 @@ int fossil_main(int argc, char **argv){
 
   fossil_printf_selfcheck();
   fossil_limit_memory(1);
+
+  /* When updating the minimum SQLite version, change the number here,
+  ** and also MINIMUM_SQLITE_VERSION value set in ../auto.def.  Take
+  ** care that both places agree! */
   if( sqlite3_libversion_number()<3035000 ){
     fossil_panic("Unsuitable SQLite version %s, must be at least 3.35.0",
                  sqlite3_libversion());
   }
+
   sqlite3_config(SQLITE_CONFIG_MULTITHREAD);
   sqlite3_config(SQLITE_CONFIG_LOG, fossil_sqlite_log, 0);
   memset(&g, 0, sizeof(g));
