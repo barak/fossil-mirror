@@ -1,4 +1,10 @@
 version=4
 
+# Upstream has release candidate versions like
+#    2.15-rc2-20210320
+# which needs to be normalized to
+#    2.15~rc2
+
+opts="uversionmangle=s/-rc([\d]*)-[\d]*$/~rc\\1/" \
 https://www.fossil-scm.org/@PACKAGE@/uvlist \
  .*/@PACKAGE@-src-@ANY_VERSION@@ARCHIVE_EXT@
