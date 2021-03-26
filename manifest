@@ -1,5 +1,5 @@
-C log\schanges\n\n
-D 2021-03-22T11:36:27.744
+C enable\stesting
+D 2021-03-26T22:01:26.537
 F .dockerignore cd9c1b2de67ec60db244641291e2b5d8288e1d25fca4bf5a322592a98e3680d5
 F .editorconfig 132c5a213aa3ce13dcc9c19f8a7ea306e3640bec4ae693378116cee339c34a1a
 F .fossil-settings/binary-glob de2f79514803c25633f3d21103fd37a5b6cd428761c166dc0e92a302da66d919
@@ -320,13 +320,13 @@ F compat/zlib/zutil.c 2f1fcc93488ac84acf984415b6ea0bd63c72aa49
 F compat/zlib/zutil.h f32dab3880d47eca1b71c308cf6542b32941b23c
 F configure 05e4b3ca2e1ff283d82e0c4ced9215edc47157c4b4ba6839fb7f895bf224dcd2 x
 F debian/README.Debian 2d1eb9c0f32e02f0db1df55e6580860b8c91da2dd13aecf52af4e5dd91b85ead
-F debian/changelog 4c9b410ade43a056a88902e601b54aa4d7c334fe10bee68d81e0f5c83f3b950a
+F debian/changelog f449af4d7c0e64c05930d3236cc549426557551557e855d47df74b180532f2f4
 F debian/control 3bfb6ff1896080b26c5ca4fe735e02db4097b0e69ebadb4ddf2c3ed816a2c514
 F debian/copyright 39f1cc441231142d81e631e6d0764eb5193f4aef6b441aaa23298f82dce120fc
 F debian/fossil.bash-completion e1e460f40668463a8e3e8df9a99de8f9301c9730
 F debian/fossil.docs 45a770a8534b1a439a32546145737975a9217b30
 F debian/fossil.manpages 8ca3a843375393ec37484e4dbae3d4dfe5b4ddcf
-F debian/rules 416a3977940c64341cbc6734bd246fe8949eaf2717c661acba15e95246b79075 x
+F debian/rules a514c718065b4547bf8784375a48331bfa4797cc9c7501c7d350593bde13756d x
 F debian/source/format 1064dc0ce263680c076a1005f35ec906a5cf5a32
 F debian/source/local-options 58a65fc3dfe4bbb8692c99e80334fba1e913f072
 F debian/source/patch-header 84c8aca673f2fc094c29a10bd519fca36a57e9f6
@@ -998,8 +998,8 @@ F www/webui.wiki 68303fce3cafe259d25923d1ed7e4a60d6b9f2bfe2e80f3013f00765227ad56
 F www/whyusefossil.wiki 9a6fcdc78ce0c76c3ee7474c0c7cc86d7529ce5f975fa1aa9c26a713d976c84f
 F www/wikitheory.wiki 91e6796caf7c8fbed00a58d3eea377d0f89f494f5637fd8af09dc41290e716f6
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P 7c902cdf6a32c8a0601d0b8784ed723c31b6bc96602f94279121c0d7640bbd4b
-R b85b6f2652a7ad79bfb32a707ccd8988
+P ea8a9e680726ffbdecf709a8b828edd4a86056a57189a5b298d046acd9bd01b5
+R d4b9cda27421c14b37da9ba1b0761902
 U barak
-Z 0686816db22284158b84687a86516da6
+Z 6b1c016009a1862a7c197dfe1370b556
 # Remove this line to create a well-formed Fossil manifest.

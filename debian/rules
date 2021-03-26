@@ -28,17 +28,6 @@ override_dh_auto_configure:
 			     --with-tcl-stubs \
 			     --with-tcl-private-stubs
 
-# From src/main.mk:
-#
-# WARNING. DANGER. Running the test suite modifies the repository the
-# build is done from, i.e. the checkout belongs to. Do not sync/push
-# the repository after running the tests.
-
-override_dh_auto_test:
-	@echo skipping test due to scary warning in src/main.mk
-
-# Currently, test fails for json.  Needs to be investigated.
-
 execute_after_dh_installdocs:
 	mv debian/fossil/usr/share/doc/fossil/changes.wiki \
 	   debian/fossil/usr/share/doc/fossil/changelog
