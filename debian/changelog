@@ -1,3 +1,9 @@
+fossil (1:2.15-3) unstable; urgency=medium
+
+  * Add autopkgtest support scripts
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Tue, 06 Apr 2021 19:11:39 +0100
+
 fossil (1:2.15-2) unstable; urgency=medium
 
   * Oops do not clean manifest as it is used in build
