@@ -1,2 +1,3 @@
 Tests: upstream-tests
 Depends: @, tcl
+Restrictions: allow-stderr
