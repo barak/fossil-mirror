@@ -15,7 +15,6 @@ Build-Depends: debhelper-compat (= 13),
                tcl-dev,
                zlib1g-dev | libz-dev
 Rules-Requires-Root: no
-Testsuite: autopkgtest
 Vcs-Fossil: https://people.debian.org/~bap/fossil.fsl
 Homepage: https://fossil-scm.org
 

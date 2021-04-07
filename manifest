@@ -1,10 +1,11 @@
 B 08d2d372f1c7ba6ea060c6c33a1255b03139f5f4bd13bbcba9f1fd8b8e059d0f
-C use\sTest-command:\sfor\sone-liner
-D 2021-04-07T08:10:10.935
+C lintian\sunnecessary-testsuite-autopkgtest-field
+D 2021-04-07T08:13:28.612
+F debian/control 3bfb6ff1896080b26c5ca4fe735e02db4097b0e69ebadb4ddf2c3ed816a2c514
 F debian/tests/control 70e1a35bc70ffe690fcab7997da62bf0329852caf34756c54c71c5b12a5690a2
 F debian/tests/upstream-tests
-P 08d2d372f1c7ba6ea060c6c33a1255b03139f5f4bd13bbcba9f1fd8b8e059d0f
-R 6e20bbd2a8fffcaabc5fd0e1f7c88b5c
+P 9f24db767aac00cf9771ecc28a5975b704b423e8a8fccaf60730349a23b4f9a5
+R 8b032faf26be4c24f14d1553b03ad692
 U barak
-Z a261f90643991e82da9ce9eee563fb64
+Z 33b171a18a98475414b61062e07e4d80
 # Remove this line to create a well-formed Fossil manifest.
