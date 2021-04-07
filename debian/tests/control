@@ -1,3 +1,11 @@
-Tests: upstream-tests
+# flags that can be passed to test/tester.tcl (see src/main.mk)
+#
+#  -halt     Stop testing after the first failed test
+#  -keep     Keep the temporary workspace for debugging
+#  -prot     Write a detailed log of the tests to the file ./prot
+#  -verbose  Include even more details in the output
+#  -quiet    Hide most output from the terminal
+#  -strict   Treat known bugs as failures
+Test-command: tclsh test/tester.tcl /usr/bin/fossil
 Depends: @, tcl
 Restrictions: allow-stderr
