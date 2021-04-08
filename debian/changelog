@@ -1,3 +1,10 @@
+fossil (1:2.15.1-1) unstable; urgency=medium
+
+  * Secure stray URL in debian/README.Debian
+  * New upstream version
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Thu, 08 Apr 2021 11:05:34 +0100
+
 fossil (1:2.15-3) unstable; urgency=medium
 
   * Add autopkgtest support scripts
