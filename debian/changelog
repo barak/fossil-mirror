@@ -1,3 +1,11 @@
+fossil (1:2.15.2-1) unstable; urgency=high
+
+  * New upstream version, announcement (expurgated) says:
+    It has been found that *** in Fossil 2.15.1 and earlier was ... failing
+    to ***. ... corrected in ... version 2.15.2 .... Upgrading ... recommended.
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Tue, 15 Jun 2021 10:55:20 +0100
+
 fossil (1:2.15.1-1) unstable; urgency=medium
 
   * Secure stray URL in debian/README.Debian
