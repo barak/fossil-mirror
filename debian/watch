@@ -17,3 +17,6 @@ version=4
 opts="uversionmangle=s/-rc([\d]*)-[\d]*$/~rc\\1/" \
 https://www.fossil-scm.org/@PACKAGE@/uvlist \
  .*/@PACKAGE@-src.*-([\d]+\.[\d]+.*)@ARCHIVE_EXT@
+
+# This gets the latest version, with the undesired files excluded.
+# https://fossil-scm.org/home/tarball?ex=autosetup/jimsh0.c,compat/zlib/contrib/dotzlib/DotZLib.chm

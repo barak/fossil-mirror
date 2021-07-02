@@ -1,5 +1,5 @@
-C update\sdebian/changelog\n\n
-D 2021-06-15T10:03:05.969
+C mention\starball\sserver\scommand\sin\sdebian/watch
+D 2021-07-02T15:24:21.942
 F .dockerignore cd9c1b2de67ec60db244641291e2b5d8288e1d25fca4bf5a322592a98e3680d5
 F .editorconfig 132c5a213aa3ce13dcc9c19f8a7ea306e3640bec4ae693378116cee339c34a1a
 F .fossil-settings/binary-glob de2f79514803c25633f3d21103fd37a5b6cd428761c166dc0e92a302da66d919
@@ -332,7 +332,7 @@ F debian/source/format 1064dc0ce263680c076a1005f35ec906a5cf5a32
 F debian/source/local-options 58a65fc3dfe4bbb8692c99e80334fba1e913f072
 F debian/source/patch-header 84c8aca673f2fc094c29a10bd519fca36a57e9f6
 F debian/tests/control 70e1a35bc70ffe690fcab7997da62bf0329852caf34756c54c71c5b12a5690a2
-F debian/watch 83cc89684071c2a88b6a28c91feabb733f62482685ea7fbd0802868350853f81
+F debian/watch f6433a9f7e13fda73c129131525011f03ac77a1c6ab46228a73ca0a422397625
 F fossil.1 0a8ac12103d4f92ace306278f72fc8d7e593567ed0e095ed120ee082dd076ba5
 F setup/fossil.iss b3a33fb693933cd55cb36761ef3f6634a3daab6b8697a9cd316e64de11dec7f3
 F setup/fossil.nsi 806b01761d5d42543d1c90b95b927c0ea8b251bf
@@ -1001,8 +1001,8 @@ F www/webui.wiki 68303fce3cafe259d25923d1ed7e4a60d6b9f2bfe2e80f3013f00765227ad56
 F www/whyusefossil.wiki 9a6fcdc78ce0c76c3ee7474c0c7cc86d7529ce5f975fa1aa9c26a713d976c84f
 F www/wikitheory.wiki 91e6796caf7c8fbed00a58d3eea377d0f89f494f5637fd8af09dc41290e716f6
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P 121d14cfa77055288f337eaf5222dd6954ab190db8869c30904310ae5682e1d9
-R b840c6692f236b365659b84834d18d4e
+P 818f40f62f0b3d0b923c84308bac33558c2b6d6a7fe1f351f14a43be7ed16032
+R ef523f516c191a1e34e6eea00a2a390b
 U barak
-Z 2400ee9465627dfbcf3c639edc0cdde0
+Z 92e70af84c49ca73480cb5972dedb1c3
 # Remove this line to create a well-formed Fossil manifest.
