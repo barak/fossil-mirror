@@ -458,12 +458,12 @@ void db_protect_pop(void){
 }
 
 /*
-** Verify that the desired database write pertections are in place.
+** Verify that the desired database write protections are in place.
 ** Throw a fatal error if not.
 */
 void db_assert_protected(unsigned flags){
   if( (flags & db.protectMask)!=flags ){
-    fossil_panic("missing database write protection bits: %02x",
+    fossil_fatal("missing database write protection bits: %02x",
                  flags & ~db.protectMask);
   }
 }
@@ -866,19 +866,51 @@ void db_test_db_exec_cmd(void){
 
 /*
 ** COMMAND: test-db-prepare
-** Usage: %fossil test-db-prepare ?OPTIONS? SQL
+** Usage: %fossil test-db-prepare ?OPTIONS? SQL-STATEMENT
+**
+** Options:
+**
+**   --auth-report   Enable the ticket report query authorizer.
+**   --auth-ticket   Enable the ticket schema query authorizer.
 **
 ** Invoke db_prepare() on the SQL input.  Report any errors encountered.
 ** This command is used to verify error detection logic in the db_prepare()
 ** utility routine.
 */
 void db_test_db_prepare(void){
+  const int fAuthReport = find_option("auth-report",0,0)!=0;
+  const int fAuthSchema = find_option("auth-ticket",0,0)!=0;
+  char * zReportErr = 0; /* auth-report error string. */
+  int nSchemaErr = 0;    /* Number of auth-ticket errors. */
   Stmt err;
+
+  if(fAuthReport + fAuthSchema > 1){
+    fossil_fatal("Only one of --auth-report or --auth-ticket "
+                 "may be used.");
+  }
   db_find_and_open_repository(0,0);
   verify_all_options();
   if( g.argc!=3 ) usage("?OPTIONS? SQL");
+  if(fAuthReport){
+    report_restrict_sql(&zReportErr);
+  }else if(fAuthSchema){
+    ticket_restrict_sql(&nSchemaErr);
+  }
   db_prepare(&err, "%s", g.argv[2]/*safe-for-%s*/);
   db_finalize(&err);
+  if(fAuthReport){
+    report_unrestrict_sql();
+    if(zReportErr){
+      fossil_warning("Report authorizer error: %s\n", zReportErr);
+      fossil_free(zReportErr);
+    }
+  }else if(fAuthSchema){
+    ticket_unrestrict_sql();
+    if(nSchemaErr){
+      fossil_warning("Ticket schema authorizer error count: %d\n",
+                     nSchemaErr);
+    }
+  }
 }
 
 /*
@@ -1378,6 +1410,9 @@ void db_add_aux_functions(sqlite3 *db){
                           db_obscure, 0, 0);
   sqlite3_create_function(db, "protected_setting", 1, SQLITE_UTF8, 0,
                           db_protected_setting_func, 0, 0);
+  sqlite3_create_function(db, "win_reserved", 1, SQLITE_UTF8, 0,
+                          db_win_reserved_func,0,0
+  );
 }
 
 #if USE_SEE
@@ -1710,11 +1745,12 @@ int db_database_slot(const char *zLabel){
   Stmt q;
   if( g.db==0 ) return iSlot;
   rc = db_prepare_ignore_error(&q, "PRAGMA database_list");
-  if( rc!=SQLITE_OK ) return iSlot;
-  while( db_step(&q)==SQLITE_ROW ){
-    if( fossil_strcmp(db_column_text(&q,1),zLabel)==0 ){
-      iSlot = db_column_int(&q, 0);
-      break;
+  if( rc==SQLITE_OK ){
+    while( db_step(&q)==SQLITE_ROW ){
+      if( fossil_strcmp(db_column_text(&q,1),zLabel)==0 ){
+        iSlot = db_column_int(&q, 0);
+        break;
+      }
     }
   }
   db_finalize(&q);
@@ -1833,7 +1869,7 @@ static char *db_configdb_name(int isOptional){
   */
   if( zHome==0 ){
     if( isOptional ) return 0;
-    fossil_panic("cannot locate home directory - please set one of the "
+    fossil_fatal("cannot locate home directory - please set one of the "
                  "FOSSIL_HOME, XDG_CONFIG_HOME, or HOME environment "
                  "variables");
   }
@@ -1883,13 +1919,13 @@ int db_open_config(int useAttach, int isOptional){
     fossil_free(zHome);
     if( rc ){
       if( isOptional ) return 0;
-      fossil_panic("home directory \"%s\" must be writeable", zHome);
+      fossil_fatal("home directory \"%s\" must be writeable", zHome);
     }
     db_init_database(zDbName, zConfigSchema, (char*)0);
   }
   if( file_access(zDbName, W_OK) ){
     if( isOptional ) return 0;
-    fossil_panic("configuration file %s must be writeable", zDbName);
+    fossil_fatal("configuration file %s must be writeable", zDbName);
   }
   if( useAttach ){
     db_open_or_attach(zDbName, "configdb");
@@ -2880,6 +2916,22 @@ LOCAL void file_is_selected(
 }
 
 /*
+** Implementation of the "win_reserved(X)" SQL function, a wrapper
+** for file_is_win_reserved(X) which returns true if X is
+** a Windows-reserved filename.
+*/
+LOCAL void db_win_reserved_func(
+  sqlite3_context *context,
+  int argc,
+  sqlite3_value **argv
+){
+  const char * zName = (const char *)sqlite3_value_text(argv[0]);
+  if( zName!=0 ){
+    sqlite3_result_int(context, file_is_win_reserved(zName)!=0);
+  }
+}
+
+/*
 ** Convert the input string into a artifact hash.  Make a notation in the
 ** CONCEALED table so that the hash can be undo using the db_reveal()
 ** function at some later time.
@@ -3471,6 +3523,7 @@ void cmd_open(void){
   const char *zRepoDir = 0;      /* --repodir value */
   char *zPwd;                    /* Initial working directory */
   int isUri = 0;                 /* True if REPOSITORY is a URI */
+  int nLocal;                    /* Number of preexisting files in cwd */
 
   url_proxy_options();
   emptyFlag = find_option("empty",0,0)!=0;
@@ -3517,7 +3570,11 @@ void cmd_open(void){
       fossil_fatal("unable to make %s the working directory", zWorkDir);
     }
   }
-  if( keepFlag==0 && bForce==0 && file_directory_size(".", 0, 1)>0 ){
+  if( keepFlag==0
+   && bForce==0
+   && (nLocal = file_directory_size(".", 0, 1))>0
+   && (nLocal>1 || isUri || !file_in_cwd(zRepo))
+  ){
     fossil_fatal("directory %s is not empty\n"
                  "use the -f or --force option to override", file_getcwd(0,0));
   }
@@ -3544,10 +3601,10 @@ void cmd_open(void){
     zRepo = mprintf("%s/%s.fossil", zRepoDir, zNewBase);
     fossil_free(zNewBase);
     blob_init(&cmd, 0, 0);
-    blob_append_escaped_arg(&cmd, g.nameOfExe);
+    blob_append_escaped_arg(&cmd, g.nameOfExe, 1);
     blob_append(&cmd, " clone", -1);
-    blob_append_escaped_arg(&cmd, zUri);
-    blob_append_escaped_arg(&cmd, zRepo);
+    blob_append_escaped_arg(&cmd, zUri, 1);
+    blob_append_escaped_arg(&cmd, zRepo, 1);
     zCmd = blob_str(&cmd);
     fossil_print("%s\n", zCmd);
     if( zWorkDir ) file_chdir(zPwd, 0);

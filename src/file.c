@@ -388,10 +388,10 @@ int file_nondir_objects_on_path(const char *zRoot, const char *zFile){
 int file_unsafe_in_tree_path(const char *zFile){
   int n;
   if( !file_is_absolute_path(zFile) ){
-    fossil_panic("%s is not an absolute pathname",zFile);
+    fossil_fatal("%s is not an absolute pathname",zFile);
   }
   if( fossil_strnicmp(g.zLocalRoot, zFile, (int)strlen(g.zLocalRoot)) ){
-    fossil_panic("%s is not a prefix of %s", g.zLocalRoot, zFile);
+    fossil_fatal("%s is not a prefix of %s", g.zLocalRoot, zFile);
   }
   n = file_nondir_objects_on_path(g.zLocalRoot, zFile);
   if( n ){
@@ -913,6 +913,45 @@ void file_rmdir_sql_function(
 }
 
 /*
+** Check the input argument to see if it looks like it has an prefix that
+** indicates a remote file.  If so, return the tail of the specification,
+** which is the name of the file on the remote system.
+**
+** If the input argument does not have a prefix that makes it look like
+** a remote file reference, then return NULL.
+**
+** Remote files look like:  "HOST:PATH" or "USER@HOST:PATH".  Host must
+** be a valid hostname, meaning it must follow these rules:
+**
+**   *  Only characters [-.a-zA-Z0-9].  No spaces or other punctuation
+**   *  Does not begin or end with -
+**
+** The USER section, it it exists, must not contain the '@' character.
+*/
+const char *file_skip_userhost(const char *zIn){
+  const char *zTail;
+  int n, i;
+  if( zIn[0]==':' ) return 0;
+  zTail = strchr(zIn, ':');
+  if( zTail==0 ) return 0;
+  if( zTail - zIn > 10000 ) return 0;
+  n = (int)(zTail - zIn);
+  if( zIn[n-1]=='-' || zIn[n-1]=='.' ) return 0;
+  for(i=n-1; i>0 && zIn[i-1]!='@'; i--){
+    if( !fossil_isalnum(zIn[i]) && zIn[i]!='-' && zIn[i]!='.' ) return 0;
+  }
+  if( zIn[i]=='-' || zIn[i]=='.' || i==1 ) return 0;
+  if( i>1 ){
+    i -= 2;
+    while( i>=0 ){
+      if( zIn[i]=='@' ) return 0;
+      i--;
+    }
+  }
+  return zTail+1;
+}
+
+/*
 ** Return true if the filename given is a valid filename for
 ** a file in a repository.  Valid filenames follow all of the
 ** following rules:
@@ -1115,13 +1154,25 @@ int file_simplify_name(char *z, int n, int slash){
 **
 ** Usage: %fossil test-simplify-name FILENAME...
 **
-** Print the simplified versions of each FILENAME.
+** Print the simplified versions of each FILENAME.  This is used to test
+** the file_simplify_name() routine.
+**
+** If FILENAME is of the form "HOST:PATH" or "USER@HOST:PATH", then remove
+** and print the remote host prefix first.  This is used to test the
+** file_skip_userhost() interface.
 */
 void cmd_test_simplify_name(void){
   int i;
   char *z;
+  const char *zTail;
   for(i=2; i<g.argc; i++){
-    z = mprintf("%s", g.argv[i]);
+    zTail = file_skip_userhost(g.argv[i]);
+    if( zTail ){
+      fossil_print("... ON REMOTE: %.*s\n", (int)(zTail-g.argv[i]), g.argv[i]);
+      z = mprintf("%s", zTail);
+    }else{
+      z = mprintf("%s", g.argv[i]);
+    }
     fossil_print("[%s] -> ", z);
     file_simplify_name(z, -1, 0);
     fossil_print("[%s]\n", z);
@@ -1150,9 +1201,9 @@ char *file_getcwd(char *zBuf, int nBuf){
 #else
   if( getcwd(zBuf, nBuf-1)==0 ){
     if( errno==ERANGE ){
-      fossil_panic("pwd too big: max %d", nBuf-1);
+      fossil_fatal("pwd too big: max %d", nBuf-1);
     }else{
-      fossil_panic("cannot find current working directory; %s",
+      fossil_fatal("cannot find current working directory; %s",
                    strerror(errno));
     }
   }
@@ -1249,6 +1300,50 @@ char *file_canonical_name_dup(const char *zOrigName){
 */
 char *file_fullexename(const char *zCmd){
 #ifdef _WIN32
+  char *zPath;
+  char *z = 0;
+  const char *zExe = "";
+  if( sqlite3_strlike("%.exe",zCmd,0)!=0 ) zExe = ".exe";
+  if( file_is_absolute_path(zCmd) ){
+    return mprintf("%s%s", zCmd, zExe);
+  }
+  if( strchr(zCmd,'\\')!=0 && strchr(zCmd,'/')!=0 ){
+    int i;
+    Blob out = BLOB_INITIALIZER;
+    file_canonical_name(zCmd, &out, 0);
+    blob_append(&out, zExe, -1);
+    z = fossil_strdup(blob_str(&out));
+    blob_reset(&out);
+    for(i=0; z[i]; i++){ if( z[i]=='/' ) z[i] = '\\'; }
+    return z;
+  }
+  z = mprintf(".\\%s%s", zCmd, zExe);
+  if( file_isfile(z, ExtFILE) ){
+    int i;
+    Blob out = BLOB_INITIALIZER;
+    file_canonical_name(zCmd, &out, 0);
+    blob_append(&out, zExe, -1);
+    z = fossil_strdup(blob_str(&out));
+    blob_reset(&out);
+    for(i=0; z[i]; i++){ if( z[i]=='/' ) z[i] = '\\'; }
+    return z;
+  }
+  fossil_free(z);
+  zPath = fossil_getenv("PATH");
+  while( zPath && zPath[0] ){
+    int n;
+    char *zColon;
+    zColon = strchr(zPath, ';');
+    n = zColon ? (int)(zColon-zPath) : (int)strlen(zPath);
+    while( n>0 && zPath[n-1]=='\\' ){ n--; }
+    z = mprintf("%.*s\\%s%s", n, zPath, zCmd, zExe);
+    if( file_isfile(z, ExtFILE) ){
+      return z;
+    }
+    fossil_free(z);
+    if( zColon==0 ) break;
+    zPath = zColon+1;
+  }
   return fossil_strdup(zCmd);
 #else
   char *zPath;
@@ -1368,6 +1463,7 @@ static void emitFileStat(
   fossil_print("  file_is_repository     = %d\n", file_is_repository(zPath));
   fossil_print("  file_is_reserved_name  = %d\n",
                                              file_is_reserved_name(zFull,-1));
+  fossil_print("  file_in_cwd            = %d\n", file_in_cwd(zPath));
   blob_reset(&x);
   if( reset ) resetStat();
 }
@@ -1699,6 +1795,39 @@ void cmd_test_tree_name(void){
 }
 
 /*
+** zFile is the name of a file.  Return true if that file is in the
+** current working directory (the "pwd" or file_getcwd() directory).
+** Return false if the file is someplace else.
+*/
+int file_in_cwd(const char *zFile){
+  char *zFull = file_canonical_name_dup(zFile);
+  char *zCwd = file_getcwd(0,0);
+  size_t nCwd = strlen(zCwd);
+  size_t nFull = strlen(zFull);
+  int rc = 1;
+  int (*xCmp)(const char*,const char*,int);
+
+  if( filenames_are_case_sensitive() ){
+    xCmp = fossil_strncmp;
+  }else{
+    xCmp = fossil_strnicmp;
+  }
+
+  if( nFull>nCwd+1
+   && xCmp(zFull,zCwd,nCwd)==0
+   && zFull[nCwd]=='/'
+   && strchr(zFull+nCwd+1, '/')==0
+  ){
+    rc = 1;
+  }else{
+    rc = 0;
+  }
+  fossil_free(zFull);
+  fossil_free(zCwd);
+  return rc;
+}
+
+/*
 ** Parse a URI into scheme, host, port, and path.
 */
 void file_parse_uri(
@@ -1748,6 +1877,8 @@ void file_parse_uri(
 ** If zTag is not NULL, then try to create the temp-file using zTag
 ** as a differentiator.  If that fails, or if zTag is NULL, then use
 ** a bunch of random characters as the tag.
+**
+** Dangerous characters in zBasis are changed.
 */
 void file_tempname(Blob *pBuf, const char *zBasis, const char *zTag){
 #if defined(_WIN32)
@@ -1757,7 +1888,6 @@ void file_tempname(Blob *pBuf, const char *zBasis, const char *zTag){
      0, /* TMP */
      ".",
   };
-  char *z;
 #else
   static const char *azDirs[] = {
      0, /* TMPDIR */
@@ -1778,6 +1908,7 @@ void file_tempname(Blob *pBuf, const char *zBasis, const char *zTag){
   char zRand[16];
   int nBasis;
   const char *zSuffix;
+  char *z;
 
 #if defined(_WIN32)
   wchar_t zTmpPath[MAX_PATH];
@@ -1825,7 +1956,7 @@ void file_tempname(Blob *pBuf, const char *zBasis, const char *zTag){
   }
   do{
     blob_zero(pBuf);
-    if( cnt++>20 ) fossil_panic("cannot generate a temporary filename");
+    if( cnt++>20 ) fossil_fatal("cannot generate a temporary filename");
     if( zTag==0 ){
       sqlite3_randomness(15, zRand);
       for(i=0; i<15; i++){
@@ -1836,6 +1967,9 @@ void file_tempname(Blob *pBuf, const char *zBasis, const char *zTag){
     }
     blob_appendf(pBuf, "%s/%.*s~%s%s", zDir, nBasis, zBasis, zTag, zSuffix);
     zTag = 0;
+    for(z=blob_str(pBuf); z!=0 && (z=strpbrk(z,"'\"`;|$&"))!=0; z++){
+      z[0] = '_';
+    }
   }while( file_size(blob_str(pBuf), ExtFILE)>=0 );
 
 #if defined(_WIN32)
@@ -2132,8 +2266,8 @@ const char *file_cleanup_fullpath(const char *z){
 }
 
 /*
-** Count the number of objects (files and subdirectores) in a given
-** directory.  Return the count.  Return -1 of the object is not a
+** Count the number of objects (files and subdirectories) in a given
+** directory.  Return the count.  Return -1 if the object is not a
 ** directory.
 */
 int file_directory_size(const char *zDir, const char *zGlob, int omitDotFiles){
@@ -2587,4 +2721,25 @@ void test_is_reserved_name_cmd(void){
     const int check = file_is_reserved_name(g.argv[i], -1);
     fossil_print("%d %s\n", check, g.argv[i]);
   }
+}
+
+
+/*
+** Returns 1 if the given directory contains a file named .fslckout, 2
+** if it contains a file named _FOSSIL_, else returns 0.
+*/
+int dir_has_ckout_db(const char *zDir){
+  int rc = 0;
+  char * zCkoutDb = mprintf("%//.fslckout", zDir);
+  if(file_isfile(zCkoutDb, ExtFILE)){
+    rc = 1;
+  }else{
+    fossil_free(zCkoutDb);
+    zCkoutDb = mprintf("%//_FOSSIL_", zDir);
+    if(file_isfile(zCkoutDb, ExtFILE)){
+      rc = 2;
+    }
+  }
+  fossil_free(zCkoutDb);
+  return rc;
 }

@@ -85,6 +85,7 @@ set doclist {
   mirrortogithub.md {How To Mirror A Fossil Repository On GitHub}
   /md_rules {Markdown Formatting Rules}
   newrepo.wiki {How To Create A New Fossil Repository}
+  patchcmd.md {The "fossil patch" Command}
   password.wiki {Password Management And Authentication}
   pikchr.md {The Pikchr Diagram Language}
   pop.wiki {Principles Of Operation}
@@ -117,6 +118,7 @@ set doclist {
   unvers.wiki {Unversioned Files}
   webpage-ex.md {Webpage Examples}
   webui.wiki {The Fossil Web Interface}
+  whyallinone.md {Why Bundle Forum, Wiki, and other Web Software With Your DVCS?}
   whyusefossil.wiki {Why You Should Use Fossil}
   whyusefossil.wiki {Benefits Of Version Control}
   wikitheory.wiki {Wiki In Fossil}

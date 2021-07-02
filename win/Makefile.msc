@@ -458,6 +458,7 @@ SRC   = "$(OX)\add_.c" \
         "$(OX)\merge3_.c" \
         "$(OX)\moderate_.c" \
         "$(OX)\name_.c" \
+        "$(OX)\patch_.c" \
         "$(OX)\path_.c" \
         "$(OX)\piechart_.c" \
         "$(OX)\pikchr_.c" \
@@ -579,9 +580,11 @@ EXTRA_FILES   = "$(SRCDIR)\..\skins\ardoise\css.txt" \
         "$(SRCDIR)\fossil.fetch.js" \
         "$(SRCDIR)\fossil.info-diff.js" \
         "$(SRCDIR)\fossil.numbered-lines.js" \
+        "$(SRCDIR)\fossil.page.brlist.js" \
         "$(SRCDIR)\fossil.page.fileedit.js" \
         "$(SRCDIR)\fossil.page.forumpost.js" \
         "$(SRCDIR)\fossil.page.pikchrshow.js" \
+        "$(SRCDIR)\fossil.page.whistory.js" \
         "$(SRCDIR)\fossil.page.wikiedit.js" \
         "$(SRCDIR)\fossil.pikchr.js" \
         "$(SRCDIR)\fossil.popupwidget.js" \
@@ -712,6 +715,7 @@ OBJ   = "$(OX)\add$O" \
         "$(OX)\merge3$O" \
         "$(OX)\moderate$O" \
         "$(OX)\name$O" \
+        "$(OX)\patch$O" \
         "$(OX)\path$O" \
         "$(OX)\piechart$O" \
         "$(OX)\pikchr$O" \
@@ -942,6 +946,7 @@ APPTARGETS = $(APPTARGETS) openssl
 	echo "$(OX)\merge3.obj" >> $@
 	echo "$(OX)\moderate.obj" >> $@
 	echo "$(OX)\name.obj" >> $@
+	echo "$(OX)\patch.obj" >> $@
 	echo "$(OX)\path.obj" >> $@
 	echo "$(OX)\piechart.obj" >> $@
 	echo "$(OX)\pikchr.obj" >> $@
@@ -1183,9 +1188,11 @@ realclean: clean
 	echo "$(SRCDIR)\fossil.fetch.js" >> $@
 	echo "$(SRCDIR)\fossil.info-diff.js" >> $@
 	echo "$(SRCDIR)\fossil.numbered-lines.js" >> $@
+	echo "$(SRCDIR)\fossil.page.brlist.js" >> $@
 	echo "$(SRCDIR)\fossil.page.fileedit.js" >> $@
 	echo "$(SRCDIR)\fossil.page.forumpost.js" >> $@
 	echo "$(SRCDIR)\fossil.page.pikchrshow.js" >> $@
+	echo "$(SRCDIR)\fossil.page.whistory.js" >> $@
 	echo "$(SRCDIR)\fossil.page.wikiedit.js" >> $@
 	echo "$(SRCDIR)\fossil.pikchr.js" >> $@
 	echo "$(SRCDIR)\fossil.popupwidget.js" >> $@
@@ -1765,6 +1772,12 @@ realclean: clean
 "$(OX)\name_.c" : "$(SRCDIR)\name.c"
 	"$(OBJDIR)\translate$E" $** > $@
 
+"$(OX)\patch$O" : "$(OX)\patch_.c" "$(OX)\patch.h"
+	$(TCC) /Fo$@ /Fd$(@D)\ -c "$(OX)\patch_.c"
+
+"$(OX)\patch_.c" : "$(SRCDIR)\patch.c"
+	"$(OBJDIR)\translate$E" $** > $@
+
 "$(OX)\path$O" : "$(OX)\path_.c" "$(OX)\path.h"
 	$(TCC) /Fo$@ /Fd$(@D)\ -c "$(OX)\path_.c"
 
@@ -2201,6 +2214,7 @@ realclean: clean
 			"$(OX)\merge3_.c":"$(OX)\merge3.h" \
 			"$(OX)\moderate_.c":"$(OX)\moderate.h" \
 			"$(OX)\name_.c":"$(OX)\name.h" \
+			"$(OX)\patch_.c":"$(OX)\patch.h" \
 			"$(OX)\path_.c":"$(OX)\path.h" \
 			"$(OX)\piechart_.c":"$(OX)\piechart.h" \
 			"$(OX)\pikchr_.c":"$(OX)\pikchr.h" \

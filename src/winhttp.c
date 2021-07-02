@@ -290,7 +290,7 @@ static NORETURN void winhttp_fatal(
   const char *zService,
   const char *zErr
 ){
-  fossil_panic("unable to %s service '%s': %s", zOp, zService, zErr);
+  fossil_fatal("unable to %s service '%s': %s", zOp, zService, zErr);
 }
 
 /*
@@ -542,15 +542,15 @@ void win32_http_server(
   }
   if( zBaseUrl ){
     blob_appendf(&options, " --baseurl ");
-    blob_append_escaped_arg(&options, zBaseUrl);
+    blob_append_escaped_arg(&options, zBaseUrl, 0);
   }
   if( zNotFound ){
     blob_appendf(&options, " --notfound ");
-    blob_append_escaped_arg(&options, zNotFound);
+    blob_append_escaped_arg(&options, zNotFound, 1);
   }
   if( g.zCkoutAlias ){
     blob_appendf(&options, " --ckout-alias ");
-    blob_append_escaped_arg(&options, g.zCkoutAlias);
+    blob_append_escaped_arg(&options, g.zCkoutAlias, 0);
   }
   if( zFileGlob ){
     blob_appendf(&options, " --files-urlenc %T", zFileGlob);
@@ -566,7 +566,7 @@ void win32_http_server(
   }
   if( g.zExtRoot && g.zExtRoot[0] ){
     blob_appendf(&options, " --extroot");
-    blob_append_escaped_arg(&options, g.zExtRoot);
+    blob_append_escaped_arg(&options, g.zExtRoot, 1);
   }
   zSkin = skin_in_use();
   if( zSkin ){
@@ -574,7 +574,7 @@ void win32_http_server(
   }
   if( g.zMainMenuFile ){
     blob_appendf(&options, " --mainmenu ");
-    blob_append_escaped_arg(&options, g.zMainMenuFile);
+    blob_append_escaped_arg(&options, g.zMainMenuFile, 1);
   }
 #if USE_SEE
   zSavedKey = db_get_saved_encryption_key();
@@ -606,10 +606,11 @@ void win32_http_server(
     break;
   }
   if( iPort>mxPort ){
+    /* These exits are merely fatal because firewall settings can cause them. */
     if( mnPort==mxPort ){
-      fossil_panic("unable to open listening socket on port %d", mnPort);
+      fossil_fatal("unable to open listening socket on port %d", mnPort);
     }else{
-      fossil_panic("unable to open listening socket on any"
+      fossil_fatal("unable to open listening socket on any"
                    " port in the range %d..%d", mnPort, mxPort);
     }
   }
@@ -910,7 +911,7 @@ int win32_http_service(
     if( GetLastError()==ERROR_FAILED_SERVICE_CONTROLLER_CONNECT ){
       return 1;
     }else{
-      fossil_panic("error from StartServiceCtrlDispatcher()");
+      fossil_fatal("error from StartServiceCtrlDispatcher()");
     }
   }
   return 0;

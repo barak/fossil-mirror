@@ -306,11 +306,6 @@ not just those done over `http[s]://` URLs:
     bypassed in this case is that [`test-http` gives full capabilities
     to its users][sxcap].
 
-    The SSH client command defaults to “`ssh -e none -T`” on most
-    platforms except Windows where it defaults to “`plink -ssh -T`”.
-    You can override this with [the `ssh-command`
-    setting](/help?name=ssh-command).
-
 *   For `file://` URLs — as opposed to plain local file paths —
     the “sending” Fossil instance writes its side of
     the HTTP conversation out to a temporary file in the same directory
@@ -323,7 +318,7 @@ Checks for capabilities like [**Read**][o] and [**Write**][i] within the
 HTTP conversation between two Fossil instances only have a useful effect
 when done over an `http[s]://` URL.
 
-[sxcap]: https://fossil-scm.org/home/file?ci=8813ae91a699ac73&name=src%2Fmain.c&ln=2632-2637
+[sxcap]: /file?ci=8813ae91a699ac73&name=src/main.c&ln=2632-2637
 
 
 ## <a name="pubpg"></a>Public Pages

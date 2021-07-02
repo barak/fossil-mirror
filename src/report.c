@@ -163,6 +163,9 @@ char *remove_blank_lines(const char *zOrig){
 ** SQL statements entered by users do not try to do anything untoward.
 ** If anything suspicious is tried, set *(char**)pError to an error
 ** message obtained from malloc.
+**
+** Use the "fossil test-db-prepare --auth-report SQL" command to perform
+** manual testing of this authorizer.
 */
 static int report_query_authorizer(
   void *pError,
@@ -242,7 +245,8 @@ static int report_query_authorizer(
 }
 
 /*
-** Activate the query authorizer
+** Activate the ticket report query authorizer. Must be followed by an
+** eventual call to report_unrestrict_sql().
 */
 void report_restrict_sql(char **pzErr){
   db_set_authorizer(report_query_authorizer,(void*)pzErr,"Ticket-Report");
@@ -350,7 +354,7 @@ void view_see_sql(void){
   @ <td colspan="3">%h(zOwner)</td></tr>
   @ <tr><td valign="top" align="right">SQL:</td><td></td>
   @ <td valign="top"><pre>
-  @ %h(zSQL)
+  @ <code class="language-sql">%h(zSQL)</code>
   @ </pre></td>
   @ <td width=15></td><td valign="top">
   output_color_key(zClrKey, 0, "border=0 cellspacing=0 cellpadding=3");
@@ -535,7 +539,7 @@ static void report_format_hints(void){
   }
   @ <hr /><h3>TICKET Schema</h3>
   @ <blockquote><pre>
-  @ %h(zSchema)
+  @ <code class="language-sql">%h(zSchema)</code>
   @ </pre></blockquote>
   @ <h3>Notes</h3>
   @ <ul>
@@ -1035,10 +1039,18 @@ void rptview_page(void){
   count = 0;
   if( !tabs ){
     struct GenerateHTML sState = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    const char *zQS = PD("QUERY_STRING","");
 
     db_multi_exec("PRAGMA empty_result_callbacks=ON");
     style_set_current_feature("report");
-    style_submenu_element("Raw", "rptview?tablist=1&rn=%d&%h", rn, PD("QUERY_STRING","") );
+    /* style_finish_page() should provide escaping via %h formatting */
+    if( zQS[0] ){
+      style_submenu_element("Raw","%R/%s?tablist=1&%s",g.zPath,zQS);
+      style_submenu_element("Reports","%R/reportlist?%s",zQS);
+    } else {
+      style_submenu_element("Raw","%R/%s?tablist=1",g.zPath);
+      style_submenu_element("Reports","%R/reportlist");
+    }
     if( g.perm.Admin
        || (g.perm.TktFmt && g.zLogin && fossil_strcmp(g.zLogin,zOwner)==0) ){
       style_submenu_element("Edit", "rptedit?rn=%d", rn);

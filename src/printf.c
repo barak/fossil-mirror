@@ -104,7 +104,9 @@ int length_of_S_display(void){
 #define etJSONSTR    25 /* String encoded as a JSON string literal: %j
                            Use %!j to include double-quotes around it. */
 #define etSHELLESC   26 /* Escape a filename for use in a shell command: %$
-                           See blob_append_escaped_arg() for details */
+                           See blob_append_escaped_arg() for details
+                           "%$"  -> adds "./" prefix if necessary.
+                           "%!$" -> omits the "./" prefix. */
 
 
 /*
@@ -840,7 +842,7 @@ int vxprintf(
       }
       case etSHELLESC: {
         char *zArg = va_arg(ap, char*);
-        blob_append_escaped_arg(pBlob, zArg);
+        blob_append_escaped_arg(pBlob, zArg, !flag_altform2);
         length = width = 0;
         break;
       }
@@ -1134,19 +1136,25 @@ static int fossil_print_error(int rc, const char *z){
 
 /*
 ** Print an error message, rollback all databases, and quit.  These
-** routines never return.
+** routines never return and produce a non-zero process exit status.
 **
-** The only different between fossil_fatal() and fossil_panic() is that
+** The main difference between fossil_fatal() and fossil_panic() is that
 ** fossil_panic() makes an entry in the error log whereas fossil_fatal()
-** does not.  If there is not error log, then both routines work the
-** same.  Hence, the routines are interchangable for commands and only
-** make a difference with processing web pages.
+** does not. On POSIX platforms, if there is not an error log, then both
+** routines work similarly with respect to user-visible effects.  Hence,
+** the routines are interchangable for commands and only act differently
+** when processing web pages. On the Windows platform, fossil_panic()
+** also displays a pop-up stating that an error has occured and allowing
+** just-in-time debugging to commence. On all platforms, fossil_panic()
+** ends execution with a SIGABRT signal, bypassing atexit processing.
+** This signal can also produce a core dump on POSIX platforms.
 **
 ** Use fossil_fatal() for malformed inputs that should be reported back
 ** to the user, but which do not represent a configuration problem or bug.
 **
 ** Use fossil_panic() for any kind of error that should be brought to the
-** attention of the system administrator.
+** attention of the system administrator or Fossil developers. It should
+** be avoided for ordinary usage, parameter, OOM and I/O errors.
 */
 NORETURN void fossil_panic(const char *zFormat, ...){
   va_list ap;
