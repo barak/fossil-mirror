@@ -1,22 +1,7 @@
 version=4
 
-# Upstream has release candidate versions like
-#    2.15-rc2-20210320
-# which needs to be normalized to
-#    2.15~rc2
-
-# Used to use this, but it got no hits ...
-#  .*/@PACKAGE@-src-@ANY_VERSION@@ARCHIVE_EXT@
-# So added the missing "-snapshot" with this,
-#  .*/@PACKAGE@-src-snapshot-@ANY_VERSION@@ARCHIVE_EXT@
-# But then it hits the correct "version" snapshot, but also a "date" snapshot,
-#  https://fossil-scm.org/home/uv/fossil-src-snapshot-2.15.2.tar.gz
-#  https://fossil-scm.org/home/uv/fossil-src-snapshot-20210615.tar.gz
-# So, need to constrain the version to contain a '.'
-
-opts="uversionmangle=s/-rc([\d]*)-[\d]*$/~rc\\1/" \
-https://www.fossil-scm.org/@PACKAGE@/uvlist \
- .*/@PACKAGE@-src.*-([\d]+\.[\d]+.*)@ARCHIVE_EXT@
-
 # This gets the latest version, with the undesired files excluded.
 # https://fossil-scm.org/home/tarball?ex=autosetup/jimsh0.c,compat/zlib/contrib/dotzlib/DotZLib.chm
+
+https://fossil-scm.org/home/uv/latest-release.md \
+ .*/@PACKAGE@-src-@ANY_VERSION@@ARCHIVE_EXT@

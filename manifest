@@ -1,9 +1,10 @@
 B 345800b8ff13ebfe1b9c82ce877fedf34b582d172cfd0c09ce95fe80510435b0
-C log\schanges\n\n
-D 2021-07-05T09:34:10.761
+C point\sdebian/watch\sto\sspecial\supstream\spage\sthat\sworks\n\n
+D 2021-07-06T13:07:11.456
 F debian/changelog 4a301f4627c80fa80d33c12ba39cb17cebc5a24f5c2407e8659757ed07d8f07d
-P 345800b8ff13ebfe1b9c82ce877fedf34b582d172cfd0c09ce95fe80510435b0
-R 20a6def9cc6ca03cd873776d22c5e032
+F debian/watch 05a59eaa16f3b84bcf0cd105c0265d738f6020ab7ddb0562f41820d66f014a20
+P 0b35eb5f612cae7e9a7bf00d7946a71affd6a04001498ef737ac7349c91ca514
+R 96d5bd161851434c10331a830292fed3
 U barak
-Z e99444677a04ada2fe0719abb1bdabac
+Z 35a29128622d3d51cf0f2eeca3822583
 # Remove this line to create a well-formed Fossil manifest.
