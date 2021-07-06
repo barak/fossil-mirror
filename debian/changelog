@@ -1,3 +1,9 @@
+fossil (1:2.16-3) unstable; urgency=medium
+
+  * Point debian/watch at upstream-provided URL that works
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Tue, 06 Jul 2021 14:07:44 +0100
+
 fossil (1:2.16-2) unstable; urgency=medium
 
   * Non-experimental release
