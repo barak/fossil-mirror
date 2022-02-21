@@ -964,7 +964,7 @@ void setup_settings(void){
 **       repository root.
 **
 **   *   The third term is an argument to the TH1 "capexpr" command.
-**       If capexpr evalutes to true, then the entry is shown.  If not,
+**       If capexpr evaluates to true, then the entry is shown.  If not,
 **       the entry is omitted.  "*" is always true.  "{}" is never true.
 **
 **   *   The fourth term is a list of extra class names to apply to the
@@ -995,7 +995,7 @@ void setup_settings(void){
 **       repository root.
 **
 **   *   The third term is an argument to the TH1 "capexpr" command.
-**       If capexpr evalutes to true, then the entry is shown.  If not,
+**       If capexpr evaluates to true, then the entry is shown.  If not,
 **       the entry is omitted.  "*" is always true.
 **
 ** The default value is blank, meaning no added entries.
@@ -1084,7 +1084,7 @@ void setup_config(void){
   @      entry.  Hyperlinks that start with "/" are relative to the
   @      repository root.
   @ <li> The third term is an argument to the TH1 "capexpr" command.
-  @      If capexpr evalutes to true, then the entry is shown.  If not,
+  @      If capexpr evaluates to true, then the entry is shown.  If not,
   @      the entry is omitted.  "*" is always true.  "{}" is never true.
   @ <li> The fourth term is a list of extra class names to apply to the new
   @      menu entry.  Some skins use classes "desktoponly" and "wideonly"
@@ -1122,7 +1122,7 @@ void setup_config(void){
   @      entry.  Hyperlinks that start with "/" are relative to the
   @      repository root.
   @ <li> The third term is an argument to the TH1 "capexpr" command.
-  @      If capexpr evalutes to true, then the entry is shown.  If not,
+  @      If capexpr evaluates to true, then the entry is shown.  If not,
   @      the entry is omitted.  "*" is always true.
   @ </ol>
   @
