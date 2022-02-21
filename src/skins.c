@@ -145,6 +145,7 @@ char *skin_use_alternative(const char *zName, int rank){
   int i;
   Blob err = BLOB_INITIALIZER;
   if(rank > currentRank) return 0;
+  currentRank = rank;
   if( zName && 1==rank && strchr(zName, '/')!=0 ){
     zAltSkinDir = fossil_strdup(zName);
     return 0;
@@ -791,7 +792,6 @@ void setup_skinedit(void){
   const char *zContent;       /* Content after editing */
   const char *zDflt;          /* Default content */
   char *zDraft;               /* Which draft:  "draft%d" */
-  char *zKey;                 /* CONFIG table key name: "draft%d-%s" */
   char *zTitle;               /* Title of this page */
   const char *zFile;          /* One of "css", "footer", "header", "details" */
   int iSkin;                  /* draft number.  1..9 */
@@ -829,11 +829,10 @@ void setup_skinedit(void){
   if( ii<0 || ii>count(aSkinAttr) ) ii = 0;
   zFile = aSkinAttr[ii].zFile;
   zDraft = mprintf("draft%d", iSkin);
-  zKey = mprintf("draft%d-%s", iSkin, zFile);
   zTitle = mprintf("%s for Draft%d", aSkinAttr[ii].zTitle, iSkin);
   zBasis = PD("basis","current");
   zDflt = skin_file_content(zBasis, zFile);
-  zOrig = db_get(zKey, zDflt);
+  zOrig = db_get_mprintf(zDflt, "draft%d-%s",iSkin,zFile);
   zContent = PD(zFile,zOrig);
   if( P("revert")!=0 && cgi_csrf_safe(0) ){
     zContent = zDflt;
@@ -853,7 +852,7 @@ void setup_skinedit(void){
   @ <input type='hidden' name='sk' value='%d(iSkin)'>
   @ <h2>Edit %s(zTitle):</h2>
   if( P("submit") && cgi_csrf_safe(0) && strcmp(zOrig,zContent)!=0 ){
-    db_set(zKey, zContent, 0);
+    db_set_mprintf(zContent, 0, "draft%d-%s",iSkin,zFile);
   }
   @ <textarea name="%s(zFile)" rows="10" cols="80">\
   @ %h(zContent)</textarea>
@@ -870,18 +869,21 @@ void setup_skinedit(void){
   @ <input type="submit" name="diff" value="Unified Diff" />
   @ <input type="submit" name="sbsdiff" value="Side-by-Side Diff" />
   if( P("diff")!=0 || P("sbsdiff")!=0 ){
-    u64 diffFlags = construct_diff_flags(1) | DIFF_STRIP_EOLCR;
     Blob from, to, out;
-    if( P("sbsdiff")!=0 ) diffFlags |= DIFF_SIDEBYSIDE;
+    DiffConfig DCfg;
+    construct_diff_flags(1, &DCfg);
+    DCfg.diffFlags |= DIFF_STRIP_EOLCR;
+    if( P("sbsdiff")!=0 ) DCfg.diffFlags |= DIFF_SIDEBYSIDE;
     blob_init(&to, zContent, -1);
     blob_init(&from, skin_file_content(zBasis, zFile), -1);
     blob_zero(&out);
-    if( diffFlags & DIFF_SIDEBYSIDE ){
-      text_diff(&from, &to, &out, 0, diffFlags | DIFF_HTML | DIFF_NOTTOOBIG);
+    DCfg.diffFlags |= DIFF_HTML | DIFF_NOTTOOBIG; 
+    if( DCfg.diffFlags & DIFF_SIDEBYSIDE ){
+      text_diff(&from, &to, &out, &DCfg);
       @ %s(blob_str(&out))
     }else{
-      text_diff(&from, &to, &out, 0,
-             diffFlags | DIFF_LINENO | DIFF_HTML | DIFF_NOTTOOBIG);
+      DCfg.diffFlags |= DIFF_LINENO;
+      text_diff(&from, &to, &out, &DCfg);
       @ <pre class="udiff">
       @ %s(blob_str(&out))
       @ </pre>
@@ -944,7 +946,7 @@ static void skin_publish(int iSkin){
   /* Publish draft iSkin */
   for(i=0; i<count(azSkinFile); i++){
     char *zNew = db_get_mprintf("", "draft%d-%s", iSkin, azSkinFile[i]);
-    db_set(azSkinFile[i], zNew, 0);
+    db_set(azSkinFile[i]/*works-like:"x"*/, zNew, 0);
   }
 }
 

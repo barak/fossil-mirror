@@ -64,7 +64,10 @@ void unversioned_schema(void){
 */
 const char *unversioned_content_hash(int debugFlag){
   const char *zHash = debugFlag ? 0 : db_get("uv-hash", 0);
-  if( zHash==0 ){
+  if( zHash ) return zHash;
+  if( !db_table_exists("repository","unversioned") ){
+    return "da39a3ee5e6b4b0d3255bfef95601890afd80709";
+  }else{
     Stmt q;
     db_prepare(&q,
       "SELECT printf('%%s %%s %%s\n',name,datetime(mtime,'unixepoch'),hash)"
@@ -656,7 +659,7 @@ void uvlist_json_page(void){
 
   login_check_credentials();
   if( !g.perm.Read ){ login_needed(g.anon.Read); return; }
-  cgi_set_content_type("text/json");
+  cgi_set_content_type("application/json");
   etag_check(ETAG_DATA,0);
   if( !db_table_exists("repository","unversioned") ){
     blob_init(&json, "[]", -1);

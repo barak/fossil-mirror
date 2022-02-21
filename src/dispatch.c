@@ -50,6 +50,8 @@ struct CmdOrPage {
 #define CMDFLAG_BLOCKTEXT   0x0080      /* Multi-line text setting */
 #define CMDFLAG_BOOLEAN     0x0100      /* A boolean setting */
 #define CMDFLAG_RAWCONTENT  0x0200      /* Do not interpret POST content */
+/* NOTE:                    0x0400 = CMDFLAG_SENSITIVE in mkindex.c! */
+#define CMDFLAG_HIDDEN      0x0800      /* Elide from most listings */
 /**************************************************************************/
 
 /* Values for the 2nd parameter to dispatch_name_search() */
@@ -553,6 +555,7 @@ static void display_all_help(int mask, int useHtml, int rawOut){
   }
   for(i=0; i<MX_COMMAND; i++){
     if( (aCommand[i].eCmdFlags & mask)==0 ) continue;
+    else if(aCommand[i].eCmdFlags & CMDFLAG_HIDDEN) continue;
     if( useHtml ){
       Blob html;
       blob_init(&html, 0, 0);
@@ -567,7 +570,9 @@ static void display_all_help(int mask, int useHtml, int rawOut){
       Blob txt;
       blob_init(&txt, 0, 0);
       help_to_text(aCommand[i].zHelp, &txt);
-      fossil_print("# %s\n", aCommand[i].zName);
+      fossil_print("# %s%s\n", aCommand[i].zName,
+        (aCommand[i].eCmdFlags & CMDFLAG_VERSIONABLE)!=0 ?
+        " (versionable)" : "");
       fossil_print("%s\n\n", blob_str(&txt));
       blob_reset(&txt);
     }
@@ -829,6 +834,7 @@ void help_page(void){
       const char *zBoldOff = aCommand[i].eCmdFlags&CMDFLAG_1ST_TIER?"</b>":"";
       if( '/'==*z || strncmp(z,"test",4)==0 ) continue;
       if( (aCommand[i].eCmdFlags & CMDFLAG_SETTING)!=0 ) continue;
+      else if( (aCommand[i].eCmdFlags & CMDFLAG_HIDDEN)!=0 ) continue;
       @ <li><a href="%R/help?cmd=%s(z)">%s(zBoldOn)%s(z)%s(zBoldOff)</a></li>
     }
     @ </ul></div>
@@ -840,6 +846,7 @@ void help_page(void){
     for(i=0; i<MX_COMMAND; i++){
       const char *z = aCommand[i].zName;
       if( '/'!=*z ) continue;
+      else if( (aCommand[i].eCmdFlags & CMDFLAG_HIDDEN)!=0 ) continue;
       if( aCommand[i].zHelp[0] ){
         @ <li><a href="%R/help?cmd=%s(z)">%s(z+1)</a></li>
       }else{
@@ -855,6 +862,7 @@ void help_page(void){
     for(i=0; i<MX_COMMAND; i++){
       const char *z = aCommand[i].zName;
       if( strncmp(z,"test",4)!=0 ) continue;
+      else if( (aCommand[i].eCmdFlags & CMDFLAG_HIDDEN)!=0 ) continue;
       if( aCommand[i].zHelp[0] ){
         @ <li><a href="%R/help?cmd=%s(z)">%s(z)</a></li>
       }else{
@@ -870,6 +878,7 @@ void help_page(void){
     for(i=0; i<MX_COMMAND; i++){
       const char *z = aCommand[i].zName;
       if( (aCommand[i].eCmdFlags & CMDFLAG_SETTING)==0 ) continue;
+      else if( (aCommand[i].eCmdFlags & CMDFLAG_HIDDEN)!=0 ) continue;
       if( aCommand[i].zHelp[0] ){
         @ <li><a href="%R/help?cmd=%s(z)">%s(z)</a></li>
       }else{
@@ -977,17 +986,19 @@ void cmd_test_webpage_list(void){
 /*
 ** List of commands starting with zPrefix, or all commands if zPrefix is NULL.
 */
-static void command_list(const char *zPrefix, int cmdMask){
-  int i, nCmd;
-  int nPrefix = zPrefix ? strlen(zPrefix) : 0;
-  const char *aCmd[MX_COMMAND];
-  for(i=nCmd=0; i<MX_COMMAND; i++){
-    const char *z = aCommand[i].zName;
-    if( (aCommand[i].eCmdFlags & cmdMask)==0 ) continue;
-    if( zPrefix && memcmp(zPrefix, z, nPrefix)!=0 ) continue;
-    aCmd[nCmd++] = aCommand[i].zName;
+static void command_list(int cmdMask, int verboseFlag, int useHtml){
+  if( verboseFlag ){
+    display_all_help(cmdMask, useHtml, 0);
+  }else{
+    int i, nCmd;
+    const char *aCmd[MX_COMMAND];
+    for(i=nCmd=0; i<MX_COMMAND; i++){
+      if( (aCommand[i].eCmdFlags & cmdMask)==0 ) continue;
+      else if(aCommand[i].eCmdFlags & CMDFLAG_HIDDEN) continue;
+      aCmd[nCmd++] = aCommand[i].zName;
+    }
+    multi_column_list(aCmd, nCmd);
   }
-  multi_column_list(aCmd, nCmd);
 }
 
 /*
@@ -1032,6 +1043,7 @@ static const char zOptions[] =
 **    -o|--options      List command-line options common to all commands
 **    -s|--setting      List setting names
 **    -t|--test         List unsupported "test" commands
+**    -v|--verbose      List both names and help text
 **    -x|--aux          List only auxiliary commands
 **    -w|--www          List all web pages
 **    -f|--full         List full set of commands (including auxiliary
@@ -1048,11 +1060,63 @@ void help_cmd(void){
   int rc;
   int mask = CMDFLAG_ANY;
   int isPage = 0;
+  int verboseFlag = 0;
+  int commandsFlag = 0;
   const char *z;
   const char *zCmdOrPage;
   const CmdOrPage *pCmd = 0;
   int useHtml = 0;
+  const char *zTopic;
   Blob txt;
+  verboseFlag = find_option("verbose","v",0)!=0;
+  commandsFlag = find_option("commands","c",0)!=0;
+  useHtml = find_option("html","h",0)!=0;
+  if( find_option("options","o",0) ){
+    fossil_print("%s", zOptions);
+    return;
+  }
+  else if( find_option("all","a",0) ){
+    command_list(CMDFLAG_1ST_TIER | CMDFLAG_2ND_TIER, verboseFlag, useHtml);
+    return;
+  }
+  else if( find_option("www","w",0) ){
+    command_list(CMDFLAG_WEBPAGE, verboseFlag, useHtml);
+    return;
+  }
+  else if( find_option("aux","x",0) ){
+    command_list(CMDFLAG_2ND_TIER, verboseFlag, useHtml);
+    return;
+  }
+  else if( find_option("test","t",0) ){
+    command_list(CMDFLAG_TEST, verboseFlag, useHtml);
+    return;
+  }
+  else if( find_option("setting","s",0) ){
+    command_list(CMDFLAG_SETTING, verboseFlag, useHtml);
+    return;
+  }
+  else if( find_option("full","f",0) ){
+    fossil_print("fossil commands:\n\n");
+    command_list(CMDFLAG_1ST_TIER, verboseFlag, useHtml);
+    fossil_print("\nfossil auxiliary commands:\n\n");
+    command_list(CMDFLAG_2ND_TIER, verboseFlag, useHtml);
+    fossil_print("\n%s", zOptions);
+    fossil_print("\nfossil settings:\n\n");
+    command_list(CMDFLAG_SETTING, verboseFlag, useHtml);
+    fossil_print("\nfossil web pages:\n\n");
+    command_list(CMDFLAG_WEBPAGE, verboseFlag, useHtml);
+    fossil_print("\nfossil test commands (unsupported):\n\n");
+    command_list(CMDFLAG_TEST, verboseFlag, useHtml);
+    fossil_print("\n");
+    version_cmd();
+    return;
+  }
+  else if( find_option("everything","e",0) ){
+    display_all_help(CMDFLAG_1ST_TIER | CMDFLAG_2ND_TIER | CMDFLAG_WEBPAGE |
+                     CMDFLAG_SETTING | CMDFLAG_TEST, useHtml, 0);
+    return;
+  }
+  verify_all_options();
   if( g.argc<3 ){
     z = g.argv[0];
     fossil_print(
@@ -1060,60 +1124,15 @@ void help_cmd(void){
       "Try \"%s help help\" or \"%s help -a\" for more options\n"
       "Frequently used commands:\n",
       z, z, z);
-    command_list(0, CMDFLAG_1ST_TIER);
-    version_cmd();
+    command_list(CMDFLAG_1ST_TIER,verboseFlag,useHtml);
+    if( !verboseFlag ) version_cmd();
     return;
   }
-  if( find_option("options","o",0) ){
-    fossil_print("%s", zOptions);
-    return;
-  }
-  else if( find_option("all","a",0) ){
-    command_list(0, CMDFLAG_1ST_TIER | CMDFLAG_2ND_TIER);
-    return;
-  }
-  else if( find_option("www","w",0) ){
-    command_list(0, CMDFLAG_WEBPAGE);
-    return;
-  }
-  else if( find_option("aux","x",0) ){
-    command_list(0, CMDFLAG_2ND_TIER);
-    return;
-  }
-  else if( find_option("test","t",0) ){
-    command_list(0, CMDFLAG_TEST);
-    return;
-  }
-  else if( find_option("setting","s",0) ){
-    command_list(0, CMDFLAG_SETTING);
-    return;
-  }
-  else if( find_option("full","f",0) ){
-    fossil_print("fossil commands:\n\n");
-    command_list(0, CMDFLAG_1ST_TIER);
-    fossil_print("\nfossil auxiliary commands:\n\n");
-    command_list(0, CMDFLAG_2ND_TIER);
-    fossil_print("\n%s", zOptions);
-    fossil_print("\nfossil settings:\n\n");
-    command_list(0, CMDFLAG_SETTING);
-    fossil_print("\nfossil web pages:\n\n");
-    command_list(0, CMDFLAG_WEBPAGE);
-    fossil_print("\nfossil test commands (unsupported):\n\n");
-    command_list(0, CMDFLAG_TEST);
-    fossil_print("\n");
-    version_cmd();
-    return;
-  }
-  else if( find_option("everything","e",0) ){
-    display_all_help(CMDFLAG_1ST_TIER | CMDFLAG_2ND_TIER | CMDFLAG_WEBPAGE |
-                     CMDFLAG_SETTING | CMDFLAG_TEST, 0, 0);
-    return;
-  }
-  useHtml = find_option("html","h",0)!=0;
-  isPage = ('/' == *g.argv[2]) ? 1 : 0;
+  zTopic = g.argv[2];
+  isPage = ('/' == zTopic[0]) ? 1 : 0;
   if(isPage){
     zCmdOrPage = "page";
-  }else if( find_option("commands","c",0)!=0 ){
+  }else if( commandsFlag ){
     mask = CMDFLAG_COMMAND;
     zCmdOrPage = "command";
   }else{

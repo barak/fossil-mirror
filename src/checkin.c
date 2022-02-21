@@ -1340,11 +1340,14 @@ static void prepare_commit_comment(
     );
   }
   if( p->verboseFlag ){
+    DiffConfig DCfg;
     blob_appendf(&prompt,
         "#\n%.78c\n"
         "# The following diff is excluded from the commit message:\n#\n",
         '#'
     );
+    diff_options(&DCfg, 0, 1);
+    DCfg.diffFlags |= DIFF_VERBOSE;
     if( g.aCommitFile ){
       FileDirList *diffFiles;
       int i;
@@ -1360,17 +1363,13 @@ static void prepare_commit_comment(
         diffFiles[i].nName = strlen(diffFiles[i].zName);
         diffFiles[i].nUsed = 0;
       }
-      diff_against_disk(0, 0, diff_get_binary_glob(),
-                        db_get_boolean("diff-binary", 1),
-                        DIFF_VERBOSE, diffFiles, &prompt);
+       diff_against_disk(0, &DCfg, diffFiles, &prompt);
       for( i=0; diffFiles[i].zName; ++i ){
         fossil_free(diffFiles[i].zName);
       }
       fossil_free(diffFiles);
     }else{
-      diff_against_disk(0, 0, diff_get_binary_glob(),
-                        db_get_boolean("diff-binary", 1),
-                        DIFF_VERBOSE, 0, &prompt);
+      diff_against_disk(0, &DCfg, 0, &prompt);
     }
   }
   prompt_for_user_comment(pComment, &prompt);
@@ -2129,6 +2128,8 @@ static int tagCmp(const void *a, const void *b){
 **    --bgcolor COLOR            apply COLOR to this one check-in only
 **    --branch NEW-BRANCH-NAME   check in to this new branch
 **    --branchcolor COLOR        apply given COLOR to the branch
+**                                 ("auto" lets Fossil choose it automatically,
+**                                  even for private branches)
 **    --close                    close the branch being committed
 **    --date-override DATETIME   DATE to use instead of 'now'
 **    --delta                    use a delta manifest in the commit process
@@ -2206,6 +2207,7 @@ void commit_cmd(void){
   Blob ans;              /* Answer to continuation prompts */
   char cReply;           /* First character of ans */
   int bRecheck = 0;      /* Repeat fork and closed-branch checks*/
+  int bAutoBrClr = 0;    /* Value of "--branchcolor" is "auto" */
 
   memset(&sCiInfo, 0, sizeof(sCiInfo));
   url_proxy_options();
@@ -2241,6 +2243,10 @@ void commit_cmd(void){
   sCiInfo.zBranch = find_option("branch","b",1);
   sCiInfo.zColor = find_option("bgcolor",0,1);
   sCiInfo.zBrClr = find_option("branchcolor",0,1);
+  if ( fossil_strncmp(sCiInfo.zBrClr, "auto", 4)==0 ) {
+    bAutoBrClr = 1;
+    sCiInfo.zBrClr = 0;
+  }
   sCiInfo.closeFlag = find_option("close",0,0)!=0;
   sCiInfo.integrateFlag = find_option("integrate",0,0)!=0;
   sCiInfo.zMimetype = find_option("mimetype",0,1);
@@ -2280,7 +2286,9 @@ void commit_cmd(void){
     ** specified otherwise on the command-line, and if the parent is not
     ** already private. */
     if( sCiInfo.zBranch==0 ) sCiInfo.zBranch = "private";
-    if( sCiInfo.zBrClr==0 && sCiInfo.zColor==0 ) sCiInfo.zBrClr = "#fec084";
+    if( sCiInfo.zBrClr==0 && sCiInfo.zColor==0 && !bAutoBrClr) {
+      sCiInfo.zBrClr = "#fec084";
+    }
   }
 
   /* Do not allow the creation of a new branch using an existing open
@@ -2566,7 +2574,7 @@ void commit_cmd(void){
   */
   db_prepare(&q,
     "SELECT id, %Q || pathname, mrid, %s, %s, %s FROM vfile "
-    "WHERE chnged IN (1, 7, 9) AND NOT deleted AND is_selected(id)",
+    "WHERE chnged<>0 AND NOT deleted AND is_selected(id)",
     g.zLocalRoot,
     glob_expr("pathname", db_get("crlf-glob",db_get("crnl-glob",""))),
     glob_expr("pathname", db_get("binary-glob","")),
@@ -2604,12 +2612,14 @@ void commit_cmd(void){
     }
     nrid = content_put(&content);
     blob_reset(&content);
-    if( rid>0 ){
-      content_deltify(rid, &nrid, 1, 0);
+    if( nrid!=rid ){
+      if( rid>0 ){
+        content_deltify(rid, &nrid, 1, 0);
+      }
+      db_multi_exec("UPDATE vfile SET mrid=%d, rid=%d, mhash=NULL WHERE id=%d",
+                    nrid,nrid,id);
+      db_multi_exec("INSERT OR IGNORE INTO unsent VALUES(%d)", nrid);
     }
-    db_multi_exec("UPDATE vfile SET mrid=%d, rid=%d, mhash=NULL WHERE id=%d",
-                  nrid,nrid,id);
-    db_multi_exec("INSERT OR IGNORE INTO unsent VALUES(%d)", nrid);
   }
   db_finalize(&q);
   if( nConflict && !allowConflict ){

@@ -127,7 +127,7 @@ void home_page(void){
     cgi_redirectf("%R/%s", zIndexPage);
   }
   if( !g.perm.RdWiki ){
-    cgi_redirectf("%R/login?g=%R/home");
+    cgi_redirectf("%R/login?g=home");
   }
   if( zPageName ){
     login_check_credentials();
@@ -547,7 +547,7 @@ void wiki_page(void){
   const char *zMimetype = 0;
   int isPopup = P("popup")!=0;
   char *zBody = mprintf("%s","<i>Empty Page</i>");
-  int noSubmenu = P("nsm")!=0;
+  int noSubmenu = P("nsm")!=0 || g.isHome;
 
   login_check_credentials();
   if( !g.perm.RdWiki ){ login_needed(g.anon.RdWiki); return; }
@@ -585,7 +585,7 @@ void wiki_page(void){
     }
   }
   zMimetype = wiki_filter_mimetypes(zMimetype);
-  if( !g.isHome && !noSubmenu ){
+  if( !noSubmenu ){
     if( ((rid && g.perm.WrWiki) || (!rid && g.perm.NewWiki))
      && wiki_special_permission(zPageName)
     ){
@@ -614,7 +614,11 @@ void wiki_page(void){
   }
   manifest_destroy(pWiki);
   if( !isPopup ){
-    attachment_list(zPageName, "<hr /><h2>Attachments:</h2><ul>");
+    char * zLabel = mprintf("<hr /><h2><a href='%R/attachlist?name=%T'>"
+                            "Attachments</a>:</h2><ul>",
+                            zPageName);
+    attachment_list(zPageName, zLabel);
+    fossil_free(zLabel);
     document_emit_js(/*for optional pikchr support*/);
     style_finish_page();
   }
@@ -762,6 +766,95 @@ static int wiki_ajax_can_write(const char *zPageName, int * pRid){
   return 0;  
 }
 
+
+/*
+** Emits an array of attachment info records for the given wiki page
+** artifact.
+**
+** Output format:
+**
+** [{
+**   "uuid": attachment artifact hash,
+**   "src": hash of the attachment blob,
+**   "target": wiki page name or ticket/event ID,
+**   "filename": filename of attachment,
+**   "mtime": ISO-8601 timestamp UTC,
+**   "isLatest": true this is the latest version of this file
+**               else false,
+** }, ...once per attachment]
+**
+** If there are no matching attachments then it will emit a JSON
+** null (if nullIfEmpty) or an empty JSON array.
+**
+** If latestOnly is true then only the most recent entry for a given
+** attachment is emitted, else all versions are emitted in descending
+** mtime order.
+*/
+static void wiki_ajax_emit_page_attachments(Manifest * pWiki,
+                                            int latestOnly,
+                                            int nullIfEmpty){
+  int i = 0;
+  Stmt q = empty_Stmt;
+  db_prepare(&q,
+     "SELECT datetime(mtime), src, target, filename, isLatest,"
+     "  (SELECT uuid FROM blob WHERE rid=attachid) uuid"
+     "  FROM attachment"
+     "  WHERE target=%Q"
+     "  AND (isLatest OR %d)"
+     "  ORDER BY target, isLatest DESC, mtime DESC",
+     pWiki->zWikiTitle, !latestOnly
+  );
+  while(SQLITE_ROW == db_step(&q)){
+    const char * zTime = db_column_text(&q, 0);
+    const char * zSrc = db_column_text(&q, 1);
+    const char * zTarget = db_column_text(&q, 2);
+    const char * zName = db_column_text(&q, 3);
+    const int isLatest = db_column_int(&q, 4);
+    const char * zUuid = db_column_text(&q, 5);
+    if(!i++){
+      CX("[");
+    }else{
+      CX(",");
+    }
+    CX("{");
+    CX("\"uuid\": %!j, \"src\": %!j, \"target\": %!j, "
+       "\"filename\": %!j, \"mtime\": %!j, \"isLatest\": %s}",
+       zUuid, zSrc, zTarget,
+       zName, zTime, isLatest ? "true" : "false");
+  }
+  db_finalize(&q);
+  if(!i){
+    if(nullIfEmpty){
+      CX("null");
+    }else{
+      CX("[]");
+    }
+  }else{
+    CX("]");
+  }
+}
+
+/*
+** Proxy for wiki_ajax_emit_page_attachments() which attempts to load
+** the given wiki page artifact. Returns true if it can load the given
+** page, else false. If it returns false then it queues up a 404 ajax
+** error response.
+*/
+static int wiki_ajax_emit_page_attachments2(const char *zPageName,
+                                            int latestOnly,
+                                            int nullIfEmpty){
+  Manifest * pWiki = 0;
+  if( !wiki_fetch_by_name(zPageName, 0, 0, &pWiki) ){
+    ajax_route_error(404, "Wiki page could not be loaded: %s",
+                     zPageName);
+    return 0;
+  }
+  wiki_ajax_emit_page_attachments(pWiki, latestOnly, nullIfEmpty);
+  manifest_destroy(pWiki);
+  return 1;
+}
+
+
 /*
 ** Loads the given wiki page, sets the response type to
 ** application/json, and emits it as a JSON object.  If zPageName is a
@@ -780,6 +873,7 @@ static int wiki_ajax_can_write(const char *zPageName, int * pRid){
 **   parent: "parent uuid" or null if no parent,
 **   isDeleted: true if the page has no content (is "deleted")
 **              else not set (making it "falsy" in JS),
+**   attachments: see wiki_ajax_emit_page_attachments(),
 **   content: "page content" (only if includeContent is true)
 ** }
 **
@@ -830,6 +924,8 @@ static int wiki_ajax_emit_page_object(const char *zPageName,
     if(includeContent){
       CX(", \"content\": %!j", pWiki->zWiki);
     }
+    CX(", \"attachments\": ");
+    wiki_ajax_emit_page_attachments(pWiki, 0, 1);
     CX("}");
     fossil_free(zUuid);
     manifest_destroy(pWiki);
@@ -923,6 +1019,35 @@ static void wiki_ajax_route_fetch(void){
 }
 
 /*
+** Ajax route handler for /wikiajax/attachments.
+**
+** URL params:
+**
+**  page = the wiki page name
+**  latestOnly = if set, only latest version of each attachment
+**               is emitted.
+**
+** Responds with JSON: see wiki_ajax_emit_page_attachments()
+**
+** If there are no attachments it emits an empty array instead of null
+** so that the output can be used as a top-level JSON response.
+**
+** On error, an object in the form documented by
+** ajax_route_error(). On success, an object in the form documented
+** for wiki_ajax_emit_page_attachments().
+*/
+static void wiki_ajax_route_attachments(void){
+  const char * zPageName = P("page");
+  const int fLatestOnly = P("latestOnly")!=0;
+  if( zPageName==0 || zPageName[0]==0 ){
+    ajax_route_error(400,"Missing page name.");
+    return;
+  }
+  cgi_set_content_type("application/json");
+  wiki_ajax_emit_page_attachments2(zPageName, fLatestOnly, 0);
+}
+
+/*
 ** Ajax route handler for /wikiajax/diff.
 **
 ** URL params:
@@ -939,6 +1064,7 @@ static void wiki_ajax_route_diff(void){
   Manifest * pParent = 0;
   const char * zContent = P("content");
   u64 diffFlags = DIFF_HTML | DIFF_NOTTOOBIG | DIFF_STRIP_EOLCR;
+  char * zParentUuid = 0;
 
   if( zPageName==0 || zPageName[0]==0 ){
     ajax_route_error(400,"Missing page name.");
@@ -956,6 +1082,9 @@ static void wiki_ajax_route_diff(void){
     default: break;
   }
   wiki_fetch_by_name( zPageName, 0, 0, &pParent );
+  if( pParent ){
+    zParentUuid = rid_to_uuid(pParent->rid);
+  }
   if( pParent && pParent->zWiki && *pParent->zWiki ){
     blob_init(&contentOrig, pParent->zWiki, -1);
   }else{
@@ -963,9 +1092,10 @@ static void wiki_ajax_route_diff(void){
   }
   blob_init(&contentNew, zContent ? zContent : "", -1);
   cgi_set_content_type("text/html");
-  ajax_render_diff(&contentOrig, &contentNew, diffFlags);
+  ajax_render_diff(&contentOrig, zParentUuid, &contentNew, diffFlags);
   blob_reset(&contentNew);
   blob_reset(&contentOrig);
+  fossil_free(zParentUuid);
   manifest_destroy(pParent);
 }
 
@@ -1066,7 +1196,7 @@ static void wiki_ajax_route_list(void){
 }
 
 /*
-** WEBPAGE: wikiajax
+** WEBPAGE: wikiajax hidden
 **
 ** An internal dispatcher for wiki AJAX operations. Not for direct
 ** client use. All routes defined by this interface are app-internal,
@@ -1078,6 +1208,7 @@ void wiki_ajax_page(void){
   const AjaxRoute * pRoute = 0;
   const AjaxRoute routes[] = {
   /* Keep these sorted by zName (for bsearch()) */
+  {"attachments", wiki_ajax_route_attachments, 0, 0},
   {"diff", wiki_ajax_route_diff, 1, 1},
   {"fetch", wiki_ajax_route_fetch, 0, 0},
   {"list", wiki_ajax_route_list, 0, 0},
@@ -1304,9 +1435,13 @@ void wikiedit_page(void){
   {
     CX("<div id='wikiedit-tab-misc' "
        "data-tab-parent='wikiedit-tabs' "
-       "data-tab-label='Help' "
+       "data-tab-label='Misc.' "
        "class='hidden'"
        ">");
+    CX("<fieldset id='attachment-wrapper'>");
+    CX("<legend>Attachments</legend>");
+    CX("<div>No attachments for the current page.</div>");
+    CX("</fieldset>");
     CX("<h2>Wiki formatting rules</h2>");
     CX("<ul>");
     CX("<li><a href='%R/wiki_rules'>Fossil wiki format</a></li>");
@@ -1326,7 +1461,7 @@ void wikiedit_page(void){
   builtin_fossil_js_bundle_or("fetch", "dom", "tabs", "confirmer",
                               "storage", "popupwidget", "copybutton",
                               "pikchr", NULL);
-  builtin_request_js("sbsdiff.js");
+  builtin_fossil_js_bundle_or("diff", NULL);
   builtin_request_js("fossil.page.wikiedit.js");
   builtin_fulfill_js_requests();
   /* Dynamically populate the editor... */
@@ -1687,7 +1822,7 @@ void wdiff_page(void){
   Manifest *pW1, *pW2 = 0;
   int rid1, rid2, nextRid;
   Blob w1, w2, d;
-  u64 diffFlags;
+  DiffConfig DCfg;
 
   login_check_credentials();
   if( !g.perm.RdWiki ){ login_needed(g.anon.RdWiki); return; }
@@ -1730,8 +1865,9 @@ void wdiff_page(void){
   style_set_current_feature("wiki");
   style_header("Changes To %s", pW1->zWikiTitle);
   blob_zero(&d);
-  diffFlags = construct_diff_flags(1);
-  text_diff(&w2, &w1, &d, 0, diffFlags | DIFF_HTML | DIFF_LINENO);
+  construct_diff_flags(1, &DCfg);
+  DCfg.diffFlags |= DIFF_HTML | DIFF_LINENO;
+  text_diff(&w2, &w1, &d, &DCfg);
   @ <pre class="udiff">
   @ %s(blob_str(&d))
   @ <pre>
@@ -1920,8 +2056,8 @@ int wiki_cmd_commit(const char *zPageName, int rid, Blob *pContent,
 }
 
 /*
-** Determine the rid for a tech note given either its id or its
-** timestamp. Returns 0 if there is no such item and -1 if the details
+** Determine the rid for a tech note given either its id, its timestamp,
+** or its tag. Returns 0 if there is no such item and -1 if the details
 ** are ambiguous and could refer to multiple items.
 */
 int wiki_technote_to_rid(const char *zETime) {
@@ -1956,6 +2092,27 @@ int wiki_technote_to_rid(const char *zETime) {
                    zETime);
     }
   }
+  if( !rid ) {
+      /*
+      ** At present, technote tags are prefixed with 'sym-', which shouldn't
+      ** be the case, so we check for both with and without the prefix until
+      ** such time as tags have the errant prefix dropped.
+      */
+      rid = db_int(0, "SELECT e.objid"
+		      "  FROM event e, tag t, tagxref tx"
+		      " WHERE e.type='e'"
+		      "   AND e.tagid IS NOT NULL"
+		      "   AND e.objid IN"
+                      "       (SELECT rid FROM tagxref"
+                      "         WHERE tagid=(SELECT tagid FROM tag"
+                      "                       WHERE tagname GLOB '%q'))"
+		      "    OR e.objid IN"
+                      "       (SELECT rid FROM tagxref"
+                      "         WHERE tagid=(SELECT tagid FROM tag"
+                      "                       WHERE tagname GLOB 'sym-%q'))"
+		      "   ORDER BY e.mtime DESC LIMIT 1",
+		   zETime, zETime);
+  }
   return rid;
 }
 
@@ -1967,7 +2124,7 @@ int wiki_technote_to_rid(const char *zETime) {
 ** Run various subcommands to work with wiki entries or tech notes.
 **
 ** > fossil wiki export ?OPTIONS? PAGENAME ?FILE?
-** > fossil wiki export ?OPTIONS? -t|--technote DATETIME|TECHNOTE-ID ?FILE?
+** > fossil wiki export ?OPTIONS? -t|--technote DATETIME|TECHNOTE-ID|TAG ?FILE?
 **
 **       Sends the latest version of either a wiki page or of a tech
 **       note to the given file or standard output.  A filename of "-"
@@ -1976,11 +2133,12 @@ int wiki_technote_to_rid(const char *zETime) {
 **       If PAGENAME is provided, the named wiki page will be output.
 **
 **       Options:
-**         -t|--technote DATETIME|TECHNOTE-ID
+**         -t|--technote DATETIME|TECHNOTE-ID|TAG
 **                    Specifies that a technote, rather than a wiki page,
 **                    will be exported. If DATETIME is used, the most
 **                    recently modified tech note with that DATETIME will
-**                    output.
+**                    output. If TAG is used, the most recently modified
+**                    tech note with that TAG will be output.
 **         -h|--html  The body (only) is rendered in HTML form, without
 **                    any page header/foot or HTML/BODY tag wrappers.
 **         -H|--HTML  Works like -h|-html but wraps the output in
@@ -2028,6 +2186,8 @@ int wiki_technote_to_rid(const char *zETime) {
 **       case-insensitively by name.
 **
 **       Options:
+**         --all                       Include "deleted" pages in output.
+**                                     By default deleted pages are elided.
 **         -t|--technote               Technotes will be listed instead of
 **                                     pages. The technotes will be in order
 **                                     of timestamp with the most recent
@@ -2051,6 +2211,7 @@ int wiki_technote_to_rid(const char *zETime) {
 void wiki_cmd(void){
   int n;
   int isSandbox = 0;     /* true if dealing with sandbox pseudo-page */
+  const int showAll = find_option("all", 0, 0)!=0;
 
   db_find_and_open_repository(0, 0);
   if( g.argc<3 ){
@@ -2266,13 +2427,10 @@ void wiki_cmd(void){
     const int showIds = find_option("show-technote-ids","s",0)!=0;
     verify_all_options();
     if (fTechnote==0){
-      db_prepare(&q,
-        "SELECT substr(tagname, 6) FROM tag WHERE tagname GLOB 'wiki-*'"
-        " ORDER BY lower(tagname) /*sort*/"
-      );
+      db_prepare(&q, listAllWikiPages/*works-like:""*/);
     }else{
       db_prepare(&q,
-        "SELECT datetime(e.mtime), substr(t.tagname,7)"
+        "SELECT datetime(e.mtime), substr(t.tagname,7), e.objid"
          " FROM event e, tag t"
         " WHERE e.type='e'"
           " AND e.tagid IS NOT NULL"
@@ -2282,6 +2440,10 @@ void wiki_cmd(void){
     }
     while( db_step(&q)==SQLITE_ROW ){
       const char *zName = db_column_text(&q, 0);
+      const int wrid = db_column_int(&q, 2);
+      if(!showAll && !wrid){
+        continue;
+      }
       if( showIds ){
         const char *zUuid = db_column_text(&q, 1);
         fossil_print("%s ",zUuid);

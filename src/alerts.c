@@ -130,7 +130,7 @@ void alert_schema(int bOnlyIfEnabled){
     return;
   }
   db_multi_exec(
-    "DROP TABLE IF EXISTS repository.alert_bounde;\n"
+    "DROP TABLE IF EXISTS repository.alert_bounce;\n"
     "ALTER TABLE repository.subscriber ADD COLUMN lastContact INT;\n"
     "UPDATE subscriber SET lastContact=mtime/86400;"
   );
@@ -1155,7 +1155,7 @@ void alert_cmd(void){
        || (pSetting = db_find_setting(zLabel, 1))==0 ){
         fossil_fatal("not a valid email setting: \"%s\"", zLabel);
       }
-      db_set(pSetting->name, g.argv[4], isGlobal);
+      db_set(pSetting->name/*works-like:""*/, g.argv[4], isGlobal);
       g.argc = 3;
     }
     pSetting = setting_info(&nSetting);

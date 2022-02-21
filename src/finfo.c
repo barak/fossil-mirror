@@ -321,7 +321,7 @@ void cat_cmd(void){
 **    name=FILENAME   (Required) name of file whose history to show
 **    brbg            Background color by branch name
 **    ubg             Background color by user name
-**    from=HASH       Ancestors only (not descendents) of the version of
+**    from=HASH       Ancestors only (not descendants) of the version of
 **                    the file in this particular check-in.
 **    to=HASH         If both from= and to= are supplied, only show those
 **                    changes on the direct path between the two given
@@ -903,7 +903,7 @@ void mlink_page(void){
        mid
     );
     @ <h1>MLINK table for check-in %h(zCI)</h1>
-    render_checkin_context(mid, 0, 1);
+    render_checkin_context(mid, 0, 1, 0);
     style_table_sorter();
     @ <hr />
     @ <div class='brlist'>

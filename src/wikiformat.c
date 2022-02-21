@@ -2362,7 +2362,7 @@ void test_html_tidy(void){
     blob_zero(&out);
     htmlTidy(blob_str(&in), &out);
     blob_reset(&in);
-    fossil_puts(blob_str(&out), 0);
+    fossil_puts(blob_buffer(&out), 0, blob_size(&out));
     blob_reset(&out);
   }
 }
@@ -2489,7 +2489,7 @@ void test_html_to_text(void){
     blob_zero(&out);
     html_to_plaintext(blob_str(&in), &out);
     blob_reset(&in);
-    fossil_puts(blob_str(&out), 0);
+    fossil_puts(blob_buffer(&out), 0, blob_size(&out));
     blob_reset(&out);
   }
 }
@@ -2769,7 +2769,7 @@ void safe_html_context(int eTrust){
 **        (ex: <script>, <form>, etc.)
 **
 **    2.  Remove any attributes that are not on the AllowedMarkup list.
-**        (ex: onload=, id=, etc.)
+**        (ex: onload=, etc.)
 **
 **    3.  Omit any surplus close-tags.  This prevents the script from
 **        terminating an <div> or similar in the outer context.
@@ -2780,7 +2780,7 @@ void safe_html_context(int eTrust){
 **        display of content that follows this script in the enclosing
 **        context.
 **
-** This modifications are intended to make the generated HTML safe
+** These modifications are intended to make the generated HTML safe
 ** to be embedded in a larger HTML document, such that the embedded
 ** HTML has no influence on the formatting and operation of the
 ** larger document.

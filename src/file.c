@@ -925,8 +925,10 @@ void file_rmdir_sql_function(
 **
 **   *  Only characters [-.a-zA-Z0-9].  No spaces or other punctuation
 **   *  Does not begin or end with -
+**   *  Name is two or more characters long (otherwise it might be
+**      confused with a drive-letter on Windows).
 **
-** The USER section, it it exists, must not contain the '@' character.
+** The USER section, if it exists, must not contain the '@' character.
 */
 const char *file_skip_userhost(const char *zIn){
   const char *zTail;
@@ -936,6 +938,7 @@ const char *file_skip_userhost(const char *zIn){
   if( zTail==0 ) return 0;
   if( zTail - zIn > 10000 ) return 0;
   n = (int)(zTail - zIn);
+  if( n<2 ) return 0;
   if( zIn[n-1]=='-' || zIn[n-1]=='.' ) return 0;
   for(i=n-1; i>0 && zIn[i-1]!='@'; i--){
     if( !fossil_isalnum(zIn[i]) && zIn[i]!='-' && zIn[i]!='.' ) return 0;
@@ -2156,6 +2159,22 @@ FILE *fossil_fopen(const char *zName, const char *zMode){
   fossil_unicode_free(uMode);
 #else
   FILE *f = fopen(zName, zMode);
+#endif
+  return f;
+}
+
+/*
+** Wrapper for freopen() that understands UTF8 arguments.
+*/
+FILE *fossil_freopen(const char *zName, const char *zMode, FILE *stream){
+#ifdef _WIN32
+  wchar_t *uMode = fossil_utf8_to_unicode(zMode);
+  wchar_t *uName = fossil_utf8_to_path(zName, 0);
+  FILE *f = _wfreopen(uName, uMode, stream);
+  fossil_path_free(uName);
+  fossil_unicode_free(uMode);
+#else
+  FILE *f = freopen(zName, zMode, stream);
 #endif
   return f;
 }

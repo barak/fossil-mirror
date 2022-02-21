@@ -267,6 +267,10 @@ void clone_cmd(void){
     db_open_repository(zRepo);
   }
   db_begin_transaction();
+  if( db_exists("SELECT 1 FROM delta WHERE srcId IN phantom") ){
+    fossil_fatal("there are unresolved deltas -"
+                 " the clone is probably incomplete and unusable.");
+  }
   fossil_print("Rebuilding repository meta-data...\n");
   rebuild_db(0, 1, 0);
   if( !noCompress ){
@@ -316,7 +320,6 @@ void remember_or_get_http_auth(
   int fRemember,          /* True to remember credentials for later reuse */
   const char *zUrl        /* URL for which these credentials apply */
 ){
-  char *zKey = mprintf("http-auth:%s", g.url.canonical);
   if( zHttpAuth && zHttpAuth[0] ){
     g.zHttpAuth = mprintf("%s", zHttpAuth);
   }
@@ -324,14 +327,13 @@ void remember_or_get_http_auth(
     if( g.zHttpAuth && g.zHttpAuth[0] ){
       set_httpauth(g.zHttpAuth);
     }else if( zUrl && zUrl[0] ){
-      db_unset(zKey, 0);
+      db_unset_mprintf(0, "http-auth:%s", g.url.canonical);
     }else{
       g.zHttpAuth = get_httpauth();
     }
   }else if( g.zHttpAuth==0 && zUrl==0 ){
     g.zHttpAuth = get_httpauth();
   }
-  free(zKey);
 }
 
 /*
@@ -348,9 +350,7 @@ char *get_httpauth(void){
 ** Set the HTTP Authorization preference in db.
 */
 void set_httpauth(const char *zHttpAuth){
-  char *zKey = mprintf("http-auth:%s", g.url.canonical);
-  db_set(zKey, obscure(zHttpAuth), 0);
-  free(zKey);
+  db_set_mprintf(obscure(zHttpAuth), 0, "http-auth:%s", g.url.canonical);
 }
 
 /*
@@ -371,7 +371,9 @@ void clone_ssh_find_options(void){
 */
 void clone_ssh_db_set_options(void){
   if( g.zSshCmd && g.zSshCmd[0] ){
+    db_unprotect(PROTECT_ALL);
     db_set("ssh-command", g.zSshCmd, 0);
+    db_protect_pop();
   }
 }
 

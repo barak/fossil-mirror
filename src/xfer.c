@@ -1063,25 +1063,23 @@ static void send_all(Xfer *pXfer){
 ** on this server.
 */
 static void send_unversioned_catalog(Xfer *pXfer){
+  int nUvIgot = 0;
+  Stmt uvq;
   unversioned_schema();
-  if( !blob_eq(&pXfer->aToken[2], unversioned_content_hash(0)) ){
-    int nUvIgot = 0;
-    Stmt uvq;
-    db_prepare(&uvq,
-       "SELECT name, mtime, hash, sz FROM unversioned"
-    );
-    while( db_step(&uvq)==SQLITE_ROW ){
-      const char *zName = db_column_text(&uvq,0);
-      sqlite3_int64 mtime = db_column_int64(&uvq,1);
-      const char *zHash = db_column_text(&uvq,2);
-      int sz = db_column_int(&uvq,3);
-      nUvIgot++;
-      if( zHash==0 ){ sz = 0; zHash = "-"; }
-      blob_appendf(pXfer->pOut, "uvigot %s %lld %s %d\n",
-                   zName, mtime, zHash, sz);
-    }
-    db_finalize(&uvq);
+  db_prepare(&uvq,
+     "SELECT name, mtime, hash, sz FROM unversioned"
+  );
+  while( db_step(&uvq)==SQLITE_ROW ){
+    const char *zName = db_column_text(&uvq,0);
+    sqlite3_int64 mtime = db_column_int64(&uvq,1);
+    const char *zHash = db_column_text(&uvq,2);
+    int sz = db_column_int(&uvq,3);
+    nUvIgot++;
+    if( zHash==0 ){ sz = 0; zHash = "-"; }
+    blob_appendf(pXfer->pOut, "uvigot %s %lld %s %d\n",
+                 zName, mtime, zHash, sz);
   }
+  db_finalize(&uvq);
 }
 
 /*
@@ -1618,14 +1616,16 @@ void page_xfer(void){
       if( blob_eq(&xfer.aToken[1], "uv-hash")
        && blob_is_hname(&xfer.aToken[2])
       ){
-        if( !uvCatalogSent ){
-          if( g.perm.Read && g.perm.WrUnver ){
+        if( !uvCatalogSent
+         && g.perm.Read
+         && !blob_eq_str(&xfer.aToken[2], unversioned_content_hash(0),-1)
+        ){
+          if( g.perm.WrUnver ){
             @ pragma uv-push-ok
-            send_unversioned_catalog(&xfer);
           }else if( g.perm.Read ){
             @ pragma uv-pull-only
-            send_unversioned_catalog(&xfer);
           }
+          send_unversioned_catalog(&xfer);
         }
         uvCatalogSent = 1;
       }
@@ -1815,13 +1815,14 @@ static const char zBriefFormat[] =
 #define SYNC_PRIVATE        0x0008    /* Also transfer private content */
 #define SYNC_VERBOSE        0x0010    /* Extra diagnostics */
 #define SYNC_RESYNC         0x0020    /* --verily */
-#define SYNC_UNVERSIONED    0x0040    /* Sync unversioned content */
-#define SYNC_UV_REVERT      0x0080    /* Copy server unversioned to client */
-#define SYNC_FROMPARENT     0x0100    /* Pull from the parent project */
-#define SYNC_UV_TRACE       0x0200    /* Describe UV activities */
-#define SYNC_UV_DRYRUN      0x0400    /* Do not actually exchange files */
-#define SYNC_IFABLE         0x0800    /* Inability to sync is not fatal */
-#define SYNC_CKIN_LOCK      0x1000    /* Lock the current check-in */
+#define SYNC_FROMPARENT     0x0040    /* Pull from the parent project */
+#define SYNC_UNVERSIONED    0x0100    /* Sync unversioned content */
+#define SYNC_UV_REVERT      0x0200    /* Copy server unversioned to client */
+#define SYNC_UV_TRACE       0x0400    /* Describe UV activities */
+#define SYNC_UV_DRYRUN      0x0800    /* Do not actually exchange files */
+#define SYNC_IFABLE         0x1000    /* Inability to sync is not fatal */
+#define SYNC_CKIN_LOCK      0x2000    /* Lock the current check-in */
+#define SYNC_NOHTTPCOMPRESS 0x4000    /* Do not compression HTTP messages */
 #endif
 
 /*
@@ -1854,6 +1855,7 @@ int client_sync(
   int nFileRecv;          /* Number of files received */
   int mxPhantomReq = 200; /* Max number of phantoms to request per comm */
   const char *zCookie;    /* Server cookie */
+  i64 nUncSent, nUncRcvd; /* Bytes sent and received (before compression) */
   i64 nSent, nRcvd;       /* Bytes sent and received (after compression) */
   int cloneSeqno = 1;     /* Sequence number for clones */
   Blob send;              /* Text we are sending to the server */
@@ -1868,10 +1870,12 @@ int client_sync(
   int nRoundtrip= 0;      /* Number of HTTP requests */
   int nArtifactSent = 0;  /* Total artifacts sent */
   int nArtifactRcvd = 0;  /* Total artifacts received */
+  int nPriorArtifact = 0; /* Artifacts received on prior round-trips */
   const char *zOpType = 0;/* Push, Pull, Sync, Clone */
   double rSkew = 0.0;     /* Maximum time skew */
   int uvHashSent = 0;     /* The "pragma uv-hash" message has been sent */
   int uvDoPush = 0;       /* Generate uvfile messages to send to server */
+  int uvPullOnly = 0;     /* 1: pull-only.  2: pull-only warning issued */
   int nUvGimmeSent = 0;   /* Number of uvgimme cards sent on this cycle */
   int nUvFileRcvd = 0;    /* Number of uvfile cards received on this cycle */
   sqlite3_int64 mtime;    /* Modification time on a UV file */
@@ -1914,6 +1918,7 @@ int client_sync(
   blob_zero(&xfer.err);
   blob_zero(&xfer.line);
   origConfigRcvMask = 0;
+  nUncSent = nUncRcvd = 0;
 
   /* Send the send-private pragma if we are trying to sync private data */
   if( syncFlags & SYNC_PRIVATE ){
@@ -2127,10 +2132,24 @@ int client_sync(
     }else{
       mHttpFlags = HTTP_USE_LOGIN;
     }
+    if( syncFlags & SYNC_NOHTTPCOMPRESS ){
+      mHttpFlags |= HTTP_NOCOMPRESS;
+    }
+
+    /* Do the round-trip to the server */
     if( http_exchange(&send, &recv, mHttpFlags, MAX_REDIRECTS, 0) ){
       nErr++;
       go = 2;
       break;
+    }
+
+    /* Remember the URL of the sync target in the config file on the
+    ** first successful round-trip */
+    if( nCycle==0 && db_is_writeable("repository") ){
+      db_unprotect(PROTECT_CONFIG);
+      db_multi_exec("REPLACE INTO config(name,value,mtime)"
+                    "VALUES('syncwith:%q',1,now())", g.url.canonical);
+      db_protect_pop();
     }
 
     /* Output current stats */
@@ -2153,6 +2172,7 @@ int client_sync(
     xfer.nPrivIGot = 0;
 
     lastPctDone = -1;
+    nUncSent += blob_size(&send);
     blob_reset(&send);
     blob_appendf(&send, "pragma client-version %d %d %d\n",
                  RELEASE_VERSION_NUMBER, MANIFEST_NUMERIC_DATE,
@@ -2179,6 +2199,7 @@ int client_sync(
     go = 0;
     nUvGimmeSent = 0;
     nUvFileRcvd = 0;
+    nPriorArtifact = nArtifactRcvd;
 
     /* Process the reply that came back from the server */
     while( blob_line(&recv, &xfer.line) ){
@@ -2358,7 +2379,15 @@ int client_sync(
           );
           db_unset("uv-hash", 0);
         }
-        if( iStatus<=3 ){
+        if( iStatus>=4 && uvPullOnly==1 ){
+          fossil_warning(
+            "Warning: uv-pull-only                                       \n"
+            "         Unable to push unversioned content because you lack\n"
+            "         sufficient permission on the server\n"
+          );
+          uvPullOnly = 2;
+        }          
+        if( iStatus<=3 || uvPullOnly ){
           db_multi_exec("DELETE FROM uv_tosend WHERE name=%Q", zName);
         }else if( iStatus==4 ){
           db_multi_exec("UPDATE uv_tosend SET mtimeOnly=1 WHERE name=%Q",zName);
@@ -2487,6 +2516,7 @@ int client_sync(
         }
 
         /*   pragma uv-pull-only
+        **   pragma uv-push-ok
         **
         ** If the server is unwill to accept new unversioned content (because
         ** this client lacks the necessary permissions) then it sends a
@@ -2494,15 +2524,13 @@ int client_sync(
         ** bandwidth trying to upload unversioned content.  If the server
         ** does accept new unversioned content, it sends "uv-push-ok".
         */
-        if( blob_eq(&xfer.aToken[1], "uv-pull-only") ){
-          fossil_print(
-            "Warning: uv-pull-only                                       \n"
-            "         Unable to push unversioned content because you lack\n"
-            "         sufficient permission on the server\n"
-          );
-          if( syncFlags & SYNC_UV_REVERT ) uvDoPush = 1;
-        }else if( blob_eq(&xfer.aToken[1], "uv-push-ok") ){
-          uvDoPush = 1;
+        if( syncFlags & SYNC_UNVERSIONED ){
+          if( blob_eq(&xfer.aToken[1], "uv-pull-only") ){
+            uvPullOnly = 1;
+            if( syncFlags & SYNC_UV_REVERT ) uvDoPush = 1;
+          }else if( blob_eq(&xfer.aToken[1], "uv-push-ok") ){
+            uvDoPush = 1;
+          }
         }
 
         /*    pragma ci-lock-fail  USER-HOLDING-LOCK  LOCK-TIME
@@ -2600,12 +2628,12 @@ int client_sync(
       fossil_print(zBriefFormat /*works-like:"%d%d%d"*/,
                    nRoundtrip, nArtifactSent, nArtifactRcvd);
     }
+    nUncRcvd += blob_size(&recv);
     blob_reset(&recv);
     nCycle++;
 
-    /* If we received one or more files on the previous exchange but
-    ** there are still phantoms, then go another round.
-    */
+    /* Set go to 1 if we need to continue the sync/push/pull/clone for
+    ** another round.  Set go to 0 if it is time to quit. */
     nFileRecv = xfer.nFileRcvd + xfer.nDeltaRcvd + xfer.nDanglingFile;
     if( (nFileRecv>0 || newPhantom) && db_exists("SELECT 1 FROM phantom") ){
       go = 1;
@@ -2613,34 +2641,29 @@ int client_sync(
       if( mxPhantomReq<200 ) mxPhantomReq = 200;
     }else if( (syncFlags & SYNC_CLONE)!=0 && nFileRecv>0 ){
       go = 1;
+    }else if( xfer.nFileSent+xfer.nDeltaSent>0 || uvDoPush ){
+      /* Go another round if files are queued to send */
+      go = 1;
+    }else if( xfer.nPrivIGot>0 && nCycle==1 ){
+      go = 1;
+    }else if( (syncFlags & SYNC_CLONE)!=0 ){
+      if( nCycle==1 ){
+        go = 1;   /* go at least two rounds on a clone */
+      }else if( cloneSeqno>0 && nArtifactRcvd>nPriorArtifact ){
+        /* Continue the clone until we see the clone_seqno 0" card or
+        ** until we stop receiving artifacts */
+        go = 1;
+      }
+    }else if( nUvGimmeSent>0 && (nUvFileRcvd>0 || nCycle<3) ){
+      /* Continue looping as long as new uvfile cards are being received
+      ** and uvgimme cards are being sent. */
+      go = 1;
     }
+
     nCardRcvd = 0;
     xfer.nFileRcvd = 0;
     xfer.nDeltaRcvd = 0;
     xfer.nDanglingFile = 0;
-
-    /* If we have one or more files queued to send, then go
-    ** another round
-    */
-    if( xfer.nFileSent+xfer.nDeltaSent>0 || uvDoPush ){
-      go = 1;
-    }
-    if( xfer.nPrivIGot>0 && nCycle==1 ) go = 1;
-
-    /* If this is a clone, the go at least two rounds */
-    if( (syncFlags & SYNC_CLONE)!=0 && nCycle==1 ) go = 1;
-
-    /* Stop the cycle if the server sends a "clone_seqno 0" card and
-    ** we have gone at least two rounds.  Always go at least two rounds
-    ** on a clone in order to be sure to retrieve the configuration
-    ** information which is only sent on the second round.
-    */
-    if( cloneSeqno<=0 && nCycle>1 ) go = 0;
-
-    /* Continue looping as long as new uvfile cards are being received
-    ** and uvgimme cards are being sent. */
-    if( nUvGimmeSent>0 && (nUvFileRcvd>0 || nCycle<3) ) go = 1;
-
     db_multi_exec("DROP TABLE onremote; DROP TABLE unk;");
     if( go ){
       manifest_crosslink_end(MC_PERMIT_HOOKS);
@@ -2663,8 +2686,12 @@ int client_sync(
 
   fossil_force_newline();
   fossil_print(
-     "%s done, sent: %lld  received: %lld  ip: %s\n",
+     "%s done, wire bytes sent: %lld  received: %lld  ip: %s\n",
      zOpType, nSent, nRcvd, g.zIpAddr);
+  if( syncFlags & SYNC_VERBOSE ){
+    fossil_print(
+      "Uncompressed payload sent: %lld  received: %lld\n", nUncSent, nUncRcvd);
+  }
   transport_close(&g.url);
   transport_global_shutdown(&g.url);
   if( nErr && go==2 ){
