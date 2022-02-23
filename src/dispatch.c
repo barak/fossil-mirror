@@ -596,11 +596,12 @@ static void display_all_help(int mask, int useHtml, int rawOut){
 **
 ** Options:
 **    -e|--everything   Show all commands and pages.
-**    -t|--test         Include test- commands
+**    -t|--test         Include test- commands.
 **    -w|--www          Show WWW pages.
 **    -s|--settings     Show settings.
 **    -h|--html         Transform output to HTML.
 **    -r|--raw          No output formatting.
+**    -o|--options      Show global options.
 */
 void test_all_help_cmd(void){
   int mask = CMDFLAG_1ST_TIER | CMDFLAG_2ND_TIER;
@@ -1009,13 +1010,16 @@ static const char zOptions[] =
 @ Command-line options common to all commands:
 @ 
 @   --args FILENAME         Read additional arguments and options from FILENAME
+@   --case-sensitive BOOL   Set case sensitivity for file names
 @   --cgitrace              Active CGI tracing
+@   --chdir PATH            Change to PATH before performing any operations 
 @   --comfmtflags VALUE     Set comment formatting flags to VALUE
 @   --comment-format VALUE  Alias for --comfmtflags
 @   --errorlog FILENAME     Log errors to FILENAME 
 @   --help                  Show help on the command rather than running it
 @   --httptrace             Trace outbound HTTP requests
 @   --localtime             Display times using the local timezone
+@   --nocgi                 Do not act as CGI
 @   --no-th-hook            Do not run TH1 hooks
 @   --quiet                 Reduce the amount of output
 @   --sqlstats              Show SQL usage statistics when done
@@ -1158,6 +1162,7 @@ void help_cmd(void){
     fossil_print("   fossil help -a        ;# show all commands\n");
     fossil_print("   fossil help -w        ;# show all web-pages\n");
     fossil_print("   fossil help -s        ;# show all settings\n");
+    fossil_print("   fossil help -o        ;# show global options\n");
     fossil_exit(1);
   }
   z = pCmd->zHelp;

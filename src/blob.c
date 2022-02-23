@@ -19,12 +19,7 @@
 ** or binary data.
 */
 #include "config.h"
-#if defined(FOSSIL_ENABLE_MINIZ)
-#  define MINIZ_HEADER_FILE_ONLY
-#  include "miniz.c"
-#else
-#  include <zlib.h>
-#endif
+#include <zlib.h>
 #include "blob.h"
 #if defined(_WIN32)
 #include <fcntl.h>
@@ -171,7 +166,7 @@ void blobReallocMalloc(Blob *pBlob, unsigned int newSize){
     pBlob->nUsed = 0;
     pBlob->iCursor = 0;
     pBlob->blobFlags = 0;
-  }else if( newSize>pBlob->nAlloc || newSize<pBlob->nAlloc-4000 ){
+  }else if( newSize>pBlob->nAlloc || newSize+4000<pBlob->nAlloc ){
     char *pNew = fossil_realloc(pBlob->aData, newSize);
     pBlob->aData = pNew;
     pBlob->nAlloc = newSize;
@@ -602,8 +597,8 @@ void blob_resize(Blob *pBlob, unsigned int newSize){
 void blob_reserve(Blob *pBlob, unsigned int newSize){
   if(newSize>=0x7fff0000 ){
     blob_panic();
-  }else if(newSize>pBlob->nUsed){
-    pBlob->xRealloc(pBlob, newSize);
+  }else if(newSize>pBlob->nAlloc){
+    pBlob->xRealloc(pBlob, newSize+1);
     pBlob->aData[newSize] = 0;
   }
 }
@@ -973,6 +968,30 @@ int blob_read_from_channel(Blob *pBlob, FILE *in, int nToRead){
   }else{
     blob_resize(pBlob, nToRead);
     n = fread(blob_buffer(pBlob), 1, nToRead, in);
+    blob_resize(pBlob, n);
+  }
+  return blob_size(pBlob);
+}
+
+/*
+** Initialize a blob to the data read from HTTP input.  Return
+** the number of bytes read into the blob.  Any prior content
+** of the blob is discarded, not freed.
+*/
+int blob_read_from_cgi(Blob *pBlob, int nToRead){
+  size_t n;
+  blob_zero(pBlob);
+  if( nToRead<0 ){
+    char zBuf[10000];
+    while( !cgi_feof() ){
+      n = cgi_fread(zBuf, sizeof(zBuf));
+      if( n>0 ){
+        blob_append(pBlob, zBuf, n);
+      }
+    }
+  }else{
+    blob_resize(pBlob, nToRead);
+    n = cgi_fread(blob_buffer(pBlob), nToRead);
     blob_resize(pBlob, n);
   }
   return blob_size(pBlob);

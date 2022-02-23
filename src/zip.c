@@ -19,12 +19,7 @@
 */
 #include "config.h"
 #include <assert.h>
-#if defined(FOSSIL_ENABLE_MINIZ)
-#  define MINIZ_HEADER_FILE_ONLY
-#  include "miniz.c"
-#else
-#  include <zlib.h>
-#endif
+#include <zlib.h>
 #include "zip.h"
 
 /*
@@ -243,7 +238,7 @@ void zip_set_timedate(double rDate){
   char *zDate = db_text(0, "SELECT datetime(%.17g)", rDate);
   zip_set_timedate_from_str(zDate);
   fossil_free(zDate);
-  unixTime = (rDate - 2440587.5)*86400.0;
+  unixTime = (int)((rDate - 2440587.5)*86400.0);
 }
 
 /*
@@ -684,7 +679,6 @@ static void zip_of_checkin(
         if( listFlag ) fossil_print("%s\n", zName);
         if( pZip ){
           zip_add_folders(&sArchive, zName);
-          sterilize_manifest(&mfile, CFTYPE_MANIFEST);
           zip_add_file(&sArchive, zName, &mfile, 0);
         }
       }

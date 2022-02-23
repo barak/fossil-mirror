@@ -19,12 +19,7 @@
 */
 #include "config.h"
 #include <assert.h>
-#if defined(FOSSIL_ENABLE_MINIZ)
-#  define MINIZ_HEADER_FILE_ONLY
-#  include "miniz.c"
-#else
-#  include <zlib.h>
-#endif
+#include <zlib.h>
 #include "tar.h"
 
 /*
@@ -503,7 +498,7 @@ void tarball_of_checkin(
   pManifest = manifest_get(rid, CFTYPE_MANIFEST, 0);
   if( pManifest ){
     int flg, eflg = 0;
-    mTime = (pManifest->rDate - 2440587.5)*86400.0;
+    mTime = (unsigned)((pManifest->rDate - 2440587.5)*86400.0);
     if( pTar ) tar_begin(mTime);
     flg = db_get_manifest_setting();
     if( flg ){
@@ -530,7 +525,6 @@ void tarball_of_checkin(
           zName = blob_str(&filename);
           if( listFlag ) fossil_print("%s\n", zName);
           if( pTar ){
-            sterilize_manifest(&mfile, CFTYPE_MANIFEST);
             tar_add_file(zName, &mfile, 0, mTime);
           }
         }

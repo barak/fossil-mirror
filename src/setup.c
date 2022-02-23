@@ -113,6 +113,8 @@ void setup_page(void){
   setup_menu_entry("Security-Audit", "secaudit0",
     "Analyze the current configuration for security problems");
   if( setup_user ){
+    setup_menu_entry("Robot-Defense", "setup_robot",
+      "Settings for configure defense against robots");
     setup_menu_entry("Settings", "setup_settings",
       "Web interface to the \"fossil settings\" command");
   }
@@ -210,7 +212,7 @@ void onoff_attribute(
     }
   }
   @ <label><input type="checkbox" name="%s(zQParm)" \
-  @ aria-label="%s(zLabel[0]?zLabel:zQParm)" \
+  @ aria-label="%h(zLabel[0]?zLabel:zQParm)" \
   if( iVal ){
     @ checked="checked" \
   }
@@ -324,6 +326,101 @@ void multiple_choice_attribute(
   @ </select> <b>%h(zLabel)</b>
 }
 
+/*
+** Insert code into the current page that allows the user to configure
+** auto-hyperlink related robot defense settings.
+*/
+static void addAutoHyperlinkSettings(void){
+  static const char *const azDefenseOpts[] = {
+    "0", "Off",
+    "2", "UserAgent only",
+    "1", "UserAgent and Javascript",
+  };
+  multiple_choice_attribute(
+     "Enable hyperlinks base on User-Agent and/or Javascript",
+     "auto-hyperlink", "autohyperlink", "1",
+     count(azDefenseOpts)/2, azDefenseOpts);
+  @ <p>Enable hyperlinks (the equivalent of the "h" permission) for all users,
+  @ including user "nobody", as long as the User-Agent string in the
+  @ HTTP header indicates that the request is coming from an actual human
+  @ being.  If this setting is "UserAgent only" (2) then the
+  @ UserAgent string is the only factor considered.  If the value of this
+  @ setting is "UserAgent And Javascript" (1) then Javascript is added that
+  @ runs after the page loads and fills in the href= values of &lt;a&gt;
+  @ elements.  In either case, &lt;a&gt; tags are only generated if the
+  @ UserAgent string indicates that the request is coming from a human and
+  @ not a robot.
+  @
+  @ <p>This setting is designed to give easy access to humans while
+  @ keeping out robots.
+  @ You do not normally want a robot to walk your entire repository because
+  @ if it does, your server will end up computing diffs and annotations for
+  @ every historical version of every file and creating ZIPs and tarballs of
+  @ every historical check-in, which can use a lot of CPU and bandwidth
+  @ even for relatively small projects.</p>
+  @
+  @ <p>The "UserAgent and Javascript" value for this setting provides
+  @ superior protection from robots.  However, that setting also prevents
+  @ the visited/unvisited colors on hyperlinks from displaying correctly
+  @ on Safara-derived browsers.  (Chrome and Firefox work fine.)  Since
+  @ Safari is the underlying rendering engine on all iPhones and iPads,
+  @ this means that hyperlink visited/unvisited colors will not operate
+  @ on those platforms when "UserAgent and Javascript" is selected.</p>
+  @
+  @ <p>Additional parameters that control the behavior of Javascript:</p>
+  @ <blockquote>
+  entry_attribute("Delay in milliseconds before enabling hyperlinks", 5,
+                  "auto-hyperlink-delay", "ah-delay", "50", 0);
+  @ <br />
+  onoff_attribute("Also require a mouse event before enabling hyperlinks",
+                  "auto-hyperlink-mouseover", "ahmo", 0, 0);
+  @ </blockquote>
+  @ <p>For maximum robot defense, "Delay" should be at least 50 milliseconds
+  @ and "require a mouse event" should be turned on.  These values only come
+  @ into play when the main auto-hyperlink settings is 2 ("UserAgent and
+  @ Javascript").</p>
+  @
+  @ <p>To see if Javascript-base hyperlink enabling mechanism is working,
+  @ visit the <a href="%R/test_env">/test_env</a> page (from a separate
+  @ web browser that is not logged in, even as "anonymous") and verify
+  @ that the "g.jsHref" value is "1".</p>
+  @ <p>(Properties: "auto-hyperlink", "auto-hyperlink-delay", and
+  @ "auto-hyperlink-mouseover"")</p>
+}
+
+/*
+** WEBPAGE: setup_robot
+**
+** Settings associated with defense against robots.  Requires setup privilege.
+*/
+void setup_robots(void){
+  login_check_credentials();
+  if( !g.perm.Setup ){
+    login_needed(0);
+    return;
+  }
+  style_set_current_feature("setup");
+  style_header("Robot Defense Settings");
+  db_begin_transaction();
+  @ <p>A Fossil website can have billions of pages in its tree, even for a
+  @ modest project.  Many of those pages (examples: diffs and tarballs)
+  @ might be expensive to compute. A robot that tries to walk the entire
+  @ website can present a crippling CPU and bandwidth load.
+  @
+  @ <p>The settings on this page are intended to help site administrators
+  @ defend the site against robots.
+  @
+  @ <form action="%R/setup_robot" method="post"><div>
+  login_insert_csrf_secret();
+  @ <input type="submit"  name="submit" value="Apply Changes" /></p>
+  @ <hr />
+  addAutoHyperlinkSettings();
+  @ <hr />
+  @ <p><input type="submit"  name="submit" value="Apply Changes" /></p>
+  @ </div></form>
+  db_end_transaction(0);
+  style_finish_page();
+}
 
 /*
 ** WEBPAGE: setup_access
@@ -449,6 +546,7 @@ void setup_access(void){
   @ to the download packet limit. 30s is a reasonable default.
   @ (Property: "max-download-time")</p>
 
+  @ <a id="slal"></a>
   @ <hr />
   entry_attribute("Server Load Average Limit", 11, "max-loadavg", "mxldavg",
                   "0.0", 0);
@@ -461,40 +559,11 @@ void setup_access(void){
   @ might not work inside a chroot() jail.
   @ (Property: "max-loadavg")</p>
 
+  /* Add the auto-hyperlink settings controls.  These same controls
+  ** are also accessible from the /setup_robot page.
+  */
   @ <hr />
-  onoff_attribute(
-      "Enable hyperlinks for \"nobody\" based on User-Agent and Javascript",
-      "auto-hyperlink", "autohyperlink", 1, 0);
-  @ <p>Enable hyperlinks (the equivalent of the "h" permission) for all users,
-  @ including user "nobody", as long as
-  @ <ol><li>the User-Agent string in the
-  @ HTTP header indicates that the request is coming from an actual human
-  @ being, and
-  @ <li>the user agent is able to
-  @ run Javascript in order to set the href= attribute of hyperlinks, and
-  @ <li>mouse movement is detected (optional - see the checkbox below), and
-  @ <li>a number of milliseconds have passed since the page loaded.</ol>
-  @
-  @ <p>This setting is designed to give easy access to humans while
-  @ keeping out robots and spiders.
-  @ You do not normally want a robot to walk your entire repository because
-  @ if it does, your server will end up computing diffs and annotations for
-  @ every historical version of every file and creating ZIPs and tarballs of
-  @ every historical check-in, which can use a lot of CPU and bandwidth
-  @ even for relatively small projects.</p>
-  @
-  @ <p>Additional parameters that control this behavior:</p>
-  @ <blockquote>
-  onoff_attribute("Require mouse movement before enabling hyperlinks",
-                  "auto-hyperlink-mouseover", "ahmo", 0, 0);
-  @ <br />
-  entry_attribute("Delay in milliseconds before enabling hyperlinks", 5,
-                  "auto-hyperlink-delay", "ah-delay", "50", 0);
-  @ </blockquote>
-  @ <p>For maximum robot defense, the "require mouse movement" should
-  @ be turned on and the "Delay" should be at least 50 milliseconds.</p>
-  @ (Properties: "auto-hyperlink",
-  @ "auto-hyperlink-mouseover", and "auto-hyperlink-delay")</p>
+  addAutoHyperlinkSettings();
 
   @ <hr />
   onoff_attribute("Require a CAPTCHA if not logged in",
@@ -1033,6 +1102,17 @@ void setup_config(void){
   @ engines as well as a short RSS description.
   @ (Property: "project-description")</p>
   @ <hr />
+  entry_attribute("Canonical Server URL", 40, "email-url",
+                   "eurl", "", 0);
+  @ <p>This is the URL used access this repository as a server.
+  @ Other repositories use this URL to clone or sync against this repository.
+  @ This is also the basename for hyperlinks included in email alert text.
+  @ Omit the trailing "/".
+  @ If this repo will not be set up as a persistent server and will not
+  @ be sending email alerts, then leave this entry blank.
+  @ Suggested value: "%h(g.zBaseURL)"
+  @ (Property: "email-url")</p>
+  @ <hr>
   entry_attribute("Tarball and ZIP-archive Prefix", 20, "short-project-name",
                   "spn", "", 0);
   @ <p>This is used as a prefix on the names of generated tarballs and
@@ -1720,9 +1800,7 @@ void sql_page(void){
             " WHERE sql IS NOT NULL ORDER BY name");
     go = 1;
   }else if( P("tablelist") ){
-    zQ = sqlite3_mprintf(
-            "SELECT name FROM repository.sqlite_schema WHERE type='table'"
-            " ORDER BY name");
+    zQ = sqlite3_mprintf("SELECT*FROM pragma_table_list ORDER BY schema, name");
     go = 1;
   }
   if( go ){
@@ -1735,6 +1813,7 @@ void sql_page(void){
     @ <hr />
     login_verify_csrf_secret();
     sqlite3_set_authorizer(g.db, raw_sql_query_authorizer, 0);
+    search_sql_setup(g.db);
     rc = sqlite3_prepare_v2(g.db, zQ, -1, &pStmt, &zTail);
     if( rc!=SQLITE_OK ){
       @ <div class="generalError">%h(sqlite3_errmsg(g.db))</div>
@@ -1748,7 +1827,7 @@ void sql_page(void){
         @ <div class="generalError">%h(sqlite3_errmsg(g.db))</div>
       }
     }else{
-      @ <table border=1>
+      @ <table border="1" cellpadding="4" cellspacing="0">
       while( sqlite3_step(pStmt)==SQLITE_ROW ){
         if( nRow==0 ){
           @ <tr>
