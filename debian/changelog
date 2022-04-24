@@ -1,3 +1,9 @@
+fossil (1:2.18-2) unstable; urgency=medium
+
+  * Use internal sqlite3 due to JSON1 issue (closes: #1008354)
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Sun, 24 Apr 2022 10:17:47 +0100
+
 fossil (1:2.18-1) unstable; urgency=medium
 
   * New upstream version

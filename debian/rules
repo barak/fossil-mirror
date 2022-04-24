@@ -9,8 +9,17 @@ include /usr/share/dpkg/architecture.mk
 
 ## If system (external) sqlite has high enough version, disable internal sqlite.
 
-SQLITE_MIN_VERSION=$(shell ./configure --print-minimum-sqlite-version | tail -1)
-FOSSIL_CONF_SQLITE_OPTIONS:=$(shell pkg-config sqlite3 --atleast-version=$(SQLITE_MIN_VERSION) && echo --disable-internal-sqlite)
+## Only use internal (vendored) sqlite for now.
+##
+##  Checking for sqlite3_open in sqlite3...-lsqlite3
+##  Error: system SQLite library omits required build option -DSQLITE_ENABLE_JSON1
+##
+## Also removed corresponding dependencies from debian/control:
+##               libsqlite3-dev (>= 3.38),
+##               sqlite3,
+
+# SQLITE_MIN_VERSION=$(shell ./configure --print-minimum-sqlite-version | tail -1)
+# FOSSIL_CONF_SQLITE_OPTIONS:=$(shell pkg-config sqlite3 --atleast-version=$(SQLITE_MIN_VERSION) && echo --disable-internal-sqlite)
 
 ## This is an alternative method for checking sqlite version. Seems
 ## less robust, as pkg-config is designed for this purpose.
