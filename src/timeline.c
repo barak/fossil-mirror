@@ -523,12 +523,13 @@ void www_print_timeline(
         }else if( zCom[0]=='+' ){
           @ Added wiki page "%z(href("%R/wiki?name=%t",zCom+1))%h(zCom+1)</a>"
         }else if( zCom[0]==':' ){
-          @ Changes to wiki page "%z(href("%R/wiki?name=%t",zCom+1))\
-          @ %h(zCom+1)</a>"
+          @ %z(href("%R/wdiff?id=%!S",zUuid))Changes</a> to wiki page
+          @ "%z(href("%R/wiki?name=%t",zCom+1))%h(zCom+1)</a>"
         }else{
-          /* Legacy EVENT table entry that needs to be rebuilt */
-          @ Changes to a wiki page &rarr; Obsolete EVENT table information.
-          @ Run "fossil rebuild" on the repository.
+          /* Assume this is an attachment message. It _might_ also
+          ** be a legacy-format wiki log entry, in which case it
+          ** will simply be rendered in the older format. */
+          wiki_convert(&comment, 0, WIKI_INLINE);
         }
         wiki_hyperlink_override(0);
       }else{
@@ -913,7 +914,7 @@ void timeline_output_graph_javascript(
     **        merge line, if this value exists.
     **    u:  Draw a thick child-line out of the top of this node and up to
     **        the node with an id equal to this value.  0 if it is straight to
-    **        the top of the page or just up a little wasy, -1 if there is
+    **        the top of the page or just up a little ways, -1 if there is
     **        no thick-line riser (if the node is a leaf).
     **   sb:  Draw a dotted child-line out of the top of this node up to the
     **        node with the id equal to the value.  This is like "u" except
@@ -927,10 +928,9 @@ void timeline_output_graph_javascript(
     **        are no risers, this array does not exist.
     **   mi:  "merge-in".  An array of integer rail positions from which
     **        merge arrows should be drawn into this node.  If the value is
-    **        negative, then the rail position is the absolute value of mi[]
-    **        and a thin merge-arrow descender is drawn to the bottom of
-    **        the screen. This array is omitted if there are no inbound
-    **        merges.
+    **        negative, then the rail position is -1-mi[] and a thin merge-arrow
+    **        descender is drawn to the bottom of the screen. This array is
+    **        omitted if there are no inbound merges.
     **   ci:  "cherrypick-in". Like "mi" except for cherrypick merges.
     **        omitted if there are no cherrypick merges.
     **    h:  The artifact hash of the object being graphed
@@ -983,7 +983,7 @@ void timeline_output_graph_javascript(
       for(i=k=0; i<GR_MAX_RAIL; i++){
         if( pRow->mergeIn[i]==1 ){
           int mi = aiMap[i];
-          if( (pRow->mergeDown >> i) & 1 ) mi = -mi;
+          if( (pRow->mergeDown >> i) & 1 ) mi = -1-mi;
           if( k==0 ){
             cgi_printf("\"mi\":");
             cSep = '[';
@@ -3110,6 +3110,8 @@ static int fossil_is_julianday(const char *zDate){
 **
 **
 ** Options:
+**   -b|--branch BRANCH   Show only items on the branch named BRANCH
+**   -c|--current-branch  Show only items on the current branch
 **   -F|--format          Entry format. Values "oneline", "medium", and "full"
 **                        get mapped to the full options below. Otherwise a 
 **                        string which can contain these placeholders:
@@ -3127,7 +3129,6 @@ static int fossil_is_julianday(const char *zDate){
 **   --oneline            Show only short hash and comment for each entry
 **   --medium             Medium-verbose entry formatting
 **   --full               Extra verbose entry formatting
-**
 **   -n|--limit N         If N is positive, output the first N entries.  If
 **                        N is negative, output the first -N lines.  If N is
 **                        zero, no limit.  Default is -20 meaning 20 lines.
@@ -3136,7 +3137,6 @@ static int fossil_is_julianday(const char *zDate){
 **                        PATH can be a file or a sub directory.
 **   -R REPO_FILE         Specifies the repository db to use. Default is
 **                        the current checkout's repository.
-
 **   --sql                Show the SQL used to generate the timeline
 **   -t|--type TYPE       Output items from the given types only, such as:
 **                            ci = file commits only
@@ -3148,7 +3148,7 @@ static int fossil_is_julianday(const char *zDate){
 **                        and the type of each change (edited, deleted,
 **                        etc.) after the check-in comment.
 **   -W|--width N         Width of lines (default is to auto-detect). N must be
-**                        either greater than 20 or it ust be zero 0 to
+**                        either greater than 20 or it must be zero 0 to
 **                        indicate no limit, resulting in a single line per
 **                        entry.
 */
@@ -3169,6 +3169,7 @@ void timeline_cmd(void){
   int iOffset;
   const char *zFilePattern = 0;
   const char *zFormat = 0;
+  const char *zBr = 0;
   Blob treeName;
   int showSql = 0;
 
@@ -3182,6 +3183,16 @@ void timeline_cmd(void){
   zType = find_option("type","t",1);
   zFilePattern = find_option("path","p",1);
   zFormat = find_option("format","F",1);
+  zBr = find_option("branch","b",1);
+  if( find_option("current-branch","c",0)!=0 ){
+    if( !g.localOpen ){
+      fossil_fatal("not within an open checkout");
+    }else{
+      int vid = db_lget_int("checkout", 0);
+      zBr = db_text(0, "SELECT value FROM tagxref WHERE rid=%d AND tagid=%d",
+                    vid, TAG_BRANCH);
+    }
+  }
   if( find_option("oneline",0,0)!= 0 || fossil_strcmp(zFormat,"oneline")==0 )
     zFormat = "%h %c";
   if( find_option("medium",0,0)!= 0 || fossil_strcmp(zFormat,"medium")==0 )
@@ -3326,6 +3337,27 @@ void timeline_cmd(void){
         blob_str(&treeName), blob_str(&treeName));
     }
     blob_append(&sql, ")", -1);
+  }
+  if( zBr ){
+    blob_append_sql(&sql,
+      "\n  AND blob.rid IN (\n"                          /* Commits */
+      "      SELECT rid FROM tagxref NATURAL JOIN tag\n"
+      "        WHERE tagtype>0 AND tagname='sym-%q'\n"
+      "      UNION\n"                                    /* Tags */
+      "      SELECT srcid FROM tagxref WHERE origid IN (\n"
+      "        SELECT rid FROM tagxref NATURAL JOIN tag\n"
+      "          WHERE tagname='sym-%q')\n"
+      "      UNION\n"                                    /* Branch wikis */
+      "      SELECT objid FROM event WHERE comment LIKE '_branch/%q'\n"
+      "      UNION\n"                                    /* Checkin wikis */
+      "      SELECT e.objid FROM event e\n"
+      "        INNER JOIN blob b ON b.uuid=substr(e.comment, 10)\n"
+      "                          AND e.comment LIKE '_checkin/%%'\n"
+      "        LEFT JOIN tagxref tx ON tx.rid=b.rid AND tx.tagid=%d\n"
+      "          WHERE tx.value='%q'\n"
+      ")\n"                                              /* No merge closures */
+      "  AND (tagxref.value IS NULL OR tagxref.value='%q')",
+      zBr, zBr, zBr, TAG_BRANCH, zBr, zBr);
   }
   blob_append_sql(&sql, "\nORDER BY event.mtime DESC");
   if( iOffset>0 ){

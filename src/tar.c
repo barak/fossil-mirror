@@ -607,7 +607,7 @@ void tarball_of_checkin(
 **
 ** If OUTPUTFILE is an empty string or "/dev/null" then no tarball is
 ** actually generated.  This feature can be used in combination with
-** the --list option to get a list of the filename that would be in the
+** the --list option to get a list of the filenames that would be in the
 ** tarball had it actually been generated.  Note that --list shows only
 ** filenames.  "tar tzf" shows both filesnames and subdirectory names.
 **
@@ -758,7 +758,7 @@ void tarball_page(void){
 
   login_check_credentials();
   if( !g.perm.Zip ){ login_needed(g.anon.Zip); return; }
-  load_control();
+  fossil_nice_default();
   zName = fossil_strdup(PD("name",""));
   z = P("r");
   if( z==0 ) z = P("uuid");

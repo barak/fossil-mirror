@@ -624,7 +624,7 @@ int ssl_open_client(UrlData *pUrlData){
 }
 
 /*
-** Remember that the cert with the given hash is a acceptable for
+** Remember that the cert with the given hash is acceptable for
 ** use with pUrlData->name.
 */
 LOCAL void ssl_remember_certificate_exception(
@@ -1179,4 +1179,18 @@ wellknown_notfound:
   fossil_free(zPath);
   webpage_notfound_error(0);
   return;
+}
+
+/*
+** Return the OpenSSL version number being used.  Space to hold
+** this name is obtained from fossil_malloc() and should be
+** freed by the caller.
+*/
+char *fossil_openssl_version(void){
+#if defined(FOSSIL_ENABLE_SSL) 
+  return mprintf("%s (0x%09x)\n",
+         SSLeay_version(SSLEAY_VERSION), OPENSSL_VERSION_NUMBER);
+#else
+  return mprintf("none");
+#endif
 }

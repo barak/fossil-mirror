@@ -83,6 +83,8 @@ static const struct {
                              "merges\n" },
   { "display",    "chart",   "Command to run after \"next\".  \"chart\", "
                              "\"log\", \"status\", or \"none\"" },
+  { "linear",     "off",     "Do a linear scan rather than a true bisect, "
+                             "stopping at the first \"bad\" result"},
 };
 
 /*
@@ -240,6 +242,7 @@ int bisect_create_bilog_table(int iCurrent, const char *zDesc, int bDetail){
       if( rid==0 ) break;
       blob_appendf(&log, "%d", rid);
       zDesc += i;
+      while( zDesc[0]=='-' ) zDesc++;
     }
   }else{
     zLog = db_lget("bisect-log","");
@@ -329,6 +332,7 @@ char *bisect_permalink(void){
       }
     }
     zUuid = db_text(0,"SELECT lower(uuid) FROM blob WHERE rid=%d", rid);
+    if( blob_size(&link)>0 ) blob_append(&link, "-", 1);
     blob_appendf(&link, "%c%.10s", cPrefix, zUuid);
   }
   zResult = mprintf("%s", blob_str(&link));
@@ -375,7 +379,8 @@ static void bisect_chart(int sortByCkinTime){
 void bisect_reset(void){
   db_multi_exec(
     "DELETE FROM vvar WHERE name IN "
-    " ('bisect-good', 'bisect-bad', 'bisect-log', 'bisect-complete')"
+    " ('bisect-good', 'bisect-bad', 'bisect-log', 'bisect-complete',"
+    "  'bisect-linear')"
   );
 }
 
@@ -630,7 +635,12 @@ void bisect_cmd(void){
     char *zDisplay = db_lget("bisect-display","chart");
     int m = (int)strlen(zDisplay);
     bisect_path();
-    pMid = path_midpoint();
+    if( db_lget_boolean("bisect-linear",0) ){
+      pMid = path_next();
+      if( pMid && pMid->rid==db_lget_int("checkout",0) ) pMid = 0;
+    }else{
+      pMid = path_midpoint();
+    }
     if( pMid==0 ){
       fossil_print("bisect complete\n");
       db_lset_int("bisect-complete",1);

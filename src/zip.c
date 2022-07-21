@@ -257,7 +257,7 @@ static void zip_add_file_to_zip(
   int nameLen;
   int toOut = 0;
   int iStart;
-  int iCRC = 0;
+  unsigned long iCRC = 0;
   int nByte = 0;
   int nByteCompr = 0;
   int nBlob;                 /* Size of the blob */
@@ -816,7 +816,7 @@ static void archive_cmd(int eType){
 **
 ** If OUTPUTFILE is an empty string or "/dev/null" then no ZIP archive is
 ** actually generated.  This feature can be used in combination with
-** the --list option to get a list of the filename that would be in the
+** the --list option to get a list of the filenames that would be in the
 ** ZIP archive had it actually been generated.
 **
 ** Options:
@@ -848,7 +848,7 @@ void zip_cmd(void){
 **
 ** If OUTPUTFILE is an empty string or "/dev/null" then no SQLAR archive is
 ** actually generated.  This feature can be used in combination with
-** the --list option to get a list of the filename that would be in the
+** the --list option to get a list of the filenames that would be in the
 ** SQLAR archive had it actually been generated.
 **
 ** Options:
@@ -923,7 +923,7 @@ void baseline_zip_page(void){
     eType = ARCHIVE_ZIP;
     zType = "ZIP";
   }
-  load_control();
+  fossil_nice_default();
   zName = fossil_strdup(PD("name",""));
   z = P("r");
   if( z==0 ) z = P("uuid");

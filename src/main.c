@@ -140,7 +140,8 @@ struct Global {
   int argc; char **argv;  /* Command-line arguments to the program */
   char *nameOfExe;        /* Full path of executable. */
   const char *zErrlog;    /* Log errors to this file, if not NULL */
-  const char *zPhase;     /* Phase of operation, for use by the error log */
+  const char *zPhase;     /* Phase of operation, for use by the error log
+                          ** and for deriving $canonical_page TH1 variable */
   int isConst;            /* True if the output is unchanging & cacheable */
   const char *zVfsName;   /* The VFS to use for database connections */
   sqlite3 *db;            /* The connection to the databases */
@@ -178,7 +179,7 @@ struct Global {
   const char *zHttpCmd;   /* External program to do HTTP requests */
   int fNoSync;            /* Do not do an autosync ever.  --nosync */
   int fIPv4;              /* Use only IPv4, not IPv6. --ipv4 */
-  char *zPath;            /* Name of webpage being served */
+  char *zPath;            /* Name of webpage being served (may be NULL) */
   char *zExtra;           /* Extra path information past the webpage name */
   char *zBaseURL;         /* Full text of the URL being served */
   char *zHttpsURL;        /* zBaseURL translated to https: */
@@ -326,6 +327,7 @@ struct Global {
     int timerId;               /* fetched from fossil_timer_start() */
   } json;
 #endif /* FOSSIL_ENABLE_JSON */
+  int ftntsIssues[4];     /* Counts for misref, strayed, joined, overnested */
   int diffCnt[3];         /* Counts for DIFF_NUMSTAT: files, ins, del */
 };
 
@@ -422,9 +424,6 @@ void expand_args_option(int argc, void *argv){
   char **newArgv;           /* New expanded g.argv under construction */
   const char *zFileName;    /* input file name */
   FILE *inFile;             /* input FILE */
-#if defined(_WIN32)
-  wchar_t buf[MAX_PATH];
-#endif
 
   g.argc = argc;
   g.argv = argv;
@@ -434,18 +433,17 @@ void expand_args_option(int argc, void *argv){
 #else
   for(i=0; i<g.argc; i++) g.argv[i] = fossil_path_to_utf8(g.argv[i]);
 #endif
-#if defined(_WIN32)
-  GetModuleFileNameW(NULL, buf, MAX_PATH);
-  g.nameOfExe = fossil_path_to_utf8(buf);
-#else
-  g.nameOfExe = g.argv[0];
-#endif
+  g.nameOfExe = file_fullexename(g.argv[0]);
   for(i=1; i<g.argc-1; i++){
     z = g.argv[i];
     if( z[0]!='-' ) continue;
     z++;
     if( z[0]=='-' ) z++;
-    if( z[0]==0 ) return;   /* Stop searching at "--" */
+    /* Maintenance reminder: we do not stop at a "--" flag here,
+    ** instead delegating that to find_option(). Doing it here
+    ** introduces some weird corner cases, as covered in forum thread
+    ** 4382bbc66757c39f. e.g. (fossil -U -- --args ...) is handled
+    ** differently when we stop at "--" here. */
     if( fossil_strcmp(z, "args")==0 ) break;
   }
   if( i>=g.argc-1 ) return;
@@ -921,7 +919,7 @@ int fossil_main(int argc, char **argv){
   }else if( rc==2 ){
     Blob couldbe;
     blob_init(&couldbe,0,0);
-    dispatch_matching_names(zCmdName, &couldbe);
+    dispatch_matching_names(zCmdName, CMDFLAG_COMMAND, &couldbe);
     fossil_print("%s: ambiguous command prefix: %s\n"
                  "%s: could be any of:%s\n"
                  "%s: use \"help\" for more information\n",
@@ -1883,7 +1881,6 @@ static void process_one_web_page(
   ** been opened.
   */
 
-
   /*
   ** Check to see if the first term of PATH_INFO specifies an
   ** alternative skin.  This will be the case if the first term of
@@ -2026,12 +2023,17 @@ static void process_one_web_page(
       @ the administrator to run <b>fossil rebuild</b>.</p>
     }
   }else{
+    if(0==(CMDFLAG_LDAVG_EXEMPT & pCmd->eCmdFlags)){
+      load_control();
+    }
 #ifdef FOSSIL_ENABLE_JSON
-    static int jsonOnce = 0;
-    if( jsonOnce==0 && g.json.isJsonMode!=0 ){
-      assert(json_is_bootstrapped_early());
-      json_bootstrap_late();
-      jsonOnce = 1;
+    {
+      static int jsonOnce = 0;
+      if( jsonOnce==0 && g.json.isJsonMode!=0 ){
+        assert(json_is_bootstrapped_early());
+        json_bootstrap_late();
+        jsonOnce = 1;
+      }
     }
 #endif
     if( (pCmd->eCmdFlags & CMDFLAG_RAWCONTENT)==0 ){
@@ -2261,6 +2263,11 @@ static void redirect_web_page(int nRedirect, char **azRedirect){
 **
 ** Most CGI files contain only a "repository:" line.  It is uncommon to
 ** use any other option.
+**
+** The lines are processed in the order they are read, which is most
+** significant for "errorlog:", which should be set before "repository:"
+** so that any warnings from the database when opening the repository
+** go to that log file.
 **
 ** See also: [[http]], [[server]], [[winsrv]]
 */

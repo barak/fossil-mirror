@@ -18,8 +18,8 @@ include /usr/share/dpkg/architecture.mk
 ##               libsqlite3-dev (>= 3.38),
 ##               sqlite3,
 
-# SQLITE_MIN_VERSION=$(shell ./configure --print-minimum-sqlite-version | tail -1)
-# FOSSIL_CONF_SQLITE_OPTIONS:=$(shell pkg-config sqlite3 --atleast-version=$(SQLITE_MIN_VERSION) && echo --disable-internal-sqlite)
+SQLITE_MIN_VERSION=$(shell ./configure --print-minimum-sqlite-version | tail -1)
+FOSSIL_CONF_SQLITE_OPTIONS:=$(shell pkg-config sqlite3 --atleast-version=$(SQLITE_MIN_VERSION) && echo --disable-internal-sqlite)
 
 ## This is an alternative method for checking sqlite version. Seems
 ## less robust, as pkg-config is designed for this purpose.

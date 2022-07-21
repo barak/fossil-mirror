@@ -49,6 +49,7 @@
 #define DIFF_RAW               0x00040000 /* Raw triples - for debugging */
 #define DIFF_TCL               0x00080000 /* For the --tk option */
 #define DIFF_INCBINARY         0x00100000 /* The --diff-binary option */
+#define DIFF_SHOW_VERS         0x00200000 /* Show compared versions */
 
 /*
 ** These error messages are shared in multiple locations.  They are defined
@@ -2213,7 +2214,6 @@ static void formatDiff(
   unsigned int r;        /* Index into R[] */
   unsigned int nr;       /* Number of COPY/DELETE/INSERT triples to process */
   unsigned int mxr;      /* Maximum value for r */
-  unsigned int na, nb;   /* Number of lines shown from A and B */
   unsigned int i, j;     /* Loop counters */
   unsigned int m, ma, mb;/* Number of lines to output */
   signed int skip = 0;   /* Number of lines to skip */
@@ -2259,28 +2259,10 @@ static void formatDiff(
     ** for this change block.
     */
     if( R[r]>nContext ){
-      na = nb = nContext;
       skip = R[r] - nContext;
     }else{
-      na = nb = R[r];
       skip = 0;
     }
-    for(i=0; i<nr; i++){
-      na += R[r+i*3+1];
-      nb += R[r+i*3+2];
-    }
-    if( R[r+nr*3]>nContext ){
-      na += nContext;
-      nb += nContext;
-    }else{
-      na += R[r+nr*3];
-      nb += R[r+nr*3];
-    }
-    for(i=1; i<nr; i++){
-      na += R[r+i*3];
-      nb += R[r+i*3];
-    }
-
     /* Show the initial common area */
     a += skip;
     b += skip;
@@ -3182,6 +3164,7 @@ void diff_options(DiffConfig *pCfg, int isGDiff, int bUnifiedTextOnly){
   if( find_option("linenum","n",0)!=0 ) diffFlags |= DIFF_LINENO;
   if( find_option("noopt",0,0)!=0 ) diffFlags |= DIFF_NOOPT;
   if( find_option("numstat",0,0)!=0 ) diffFlags |= DIFF_NUMSTAT;
+  if( find_option("versions","h",0)!=0 ) diffFlags |= DIFF_SHOW_VERS;
   if( find_option("invert",0,0)!=0 ) diffFlags |= DIFF_INVERT;
   if( find_option("brief",0,0)!=0 ) diffFlags |= DIFF_BRIEF;
   if( find_option("internal","i",0)==0
@@ -3596,7 +3579,7 @@ void annotation_page(void){
   login_check_credentials();
   if( !g.perm.Read ){ login_needed(g.anon.Read); return; }
   if( exclude_spiders() ) return;
-  load_control();
+  fossil_nice_default();
   zFilename = P("filename");
   zRevision = PD("checkin",0);
   zOrigin = P("origin");

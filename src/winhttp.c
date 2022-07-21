@@ -618,6 +618,10 @@ void win32_http_server(
     blob_appendf(&options, " --mainmenu ");
     blob_append_escaped_arg(&options, g.zMainMenuFile, 1);
   }
+  if( builtin_get_js_delivery_mode()!=0 /* JS_INLINE==0 may change? */ ){
+    blob_appendf(&options, " --jsmode ");
+    blob_append_escaped_arg(&options, builtin_get_js_delivery_mode_name(), 0);
+  }
 #if USE_SEE
   zSavedKey = db_get_saved_encryption_key();
   savedKeySize = db_get_saved_encryption_key_size();
@@ -929,7 +933,7 @@ static void win32_http_service_running(DualSocket *pS){
 
 /*
 ** Try to start the http server as a windows service. If we are running in
-** a interactive console session, this routine fails and returns a non zero
+** an interactive console session, this routine fails and returns a non zero
 ** integer value. When running as service, this routine does not return until
 ** the service is stopped. In this case, the return value is zero.
 */
