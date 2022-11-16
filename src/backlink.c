@@ -36,6 +36,7 @@ void render_backlink_graph(const char *zUuid, const char *zLabel){
   Blob sql;
   Stmt q;
   char *zGlob;
+  int needEndPanel = 0;
   zGlob = mprintf("%.5s*", zUuid);
   db_multi_exec(
      "CREATE TEMP TABLE IF NOT EXISTS ok(rid INTEGER PRIMARY KEY);\n"
@@ -51,7 +52,13 @@ void render_backlink_graph(const char *zUuid, const char *zLabel){
      zGlob, zUuid
   );
   if( !db_exists("SELECT 1 FROM ok") ) return;
-  if( zLabel ) cgi_printf("%s", zLabel);
+  if( zLabel ){
+    cgi_printf("%s", zLabel);
+    if( strstr(zLabel, "accordion")!=0 ){
+      cgi_printf("<div class=\"accordion_panel\">\n");
+      needEndPanel = 1;
+    }
+  }
   blob_zero(&sql);
   blob_append(&sql, timeline_query_for_www(), -1);
   blob_append_sql(&sql, " AND event.objid IN ok ORDER BY mtime DESC");
@@ -60,6 +67,9 @@ void render_backlink_graph(const char *zUuid, const char *zLabel){
       TIMELINE_DISJOINT|TIMELINE_GRAPH|TIMELINE_NOSCROLL|TIMELINE_REFS,
                      0, 0, 0, 0, 0, 0);
   db_finalize(&q);
+  if( needEndPanel ){
+    cgi_printf("</div>\n");
+  }
 }
 
 /*
@@ -124,7 +134,7 @@ void backlink_table_page(void){
   style_table_sorter();
   @ <table border="1" cellpadding="2" cellspacing="0" \
   @  class='sortable' data-column-types='ttt' data-init-sort='0'>
-  @ <thead><tr><th> Source <th> Target <th> mtime </tr></thead>
+  @ <thead><tr><th> Target <th> Source <th> mtime </tr></thead>
   @ <tbody>
   while( db_step(&q)==SQLITE_ROW ){
     const char *zTarget = db_column_text(&q, 0);

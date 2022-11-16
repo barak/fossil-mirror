@@ -682,7 +682,8 @@ void ci_page(void){
     zDate = db_column_text(&q1,1);
     zOrigDate = db_column_text(&q1, 4);
     if( zOrigDate==0 ) zOrigDate = zDate;
-    @ <div class="section">Overview</div>
+    @ <div class="section accordion">Overview</div>
+    @ <div class="accordion_panel">
     @ <table class="label-value">
     @ <tr><th>Comment:</th><td class="infoComment">\
     @ %!W(zEComment?zEComment:zComment)</td></tr>
@@ -870,13 +871,17 @@ void ci_page(void){
     login_anonymous_available();
   }
   db_finalize(&q1);
+  @ </div>
+  builtin_request_js("accordion.js");  
   if( !PB("nowiki") ){
     wiki_render_associated("checkin", zUuid, 0);
   }
-  render_backlink_graph(zUuid, "<div class=\"section\">References</div>\n");
-  @ <div class="section">Context</div>
+  render_backlink_graph(zUuid, 
+       "<div class=\"section accordion\">References</div>\n");
+  @ <div class="section accordion">Context</div><div class="accordion_panel">
   render_checkin_context(rid, 0, 0, 0);
-  @ <div class="section">Changes</div>
+  @ </div><div class="section accordion">Changes</div>
+  @ <div class="accordion_panel">
   @ <div class="sectionmenu">
   pCfg = construct_diff_flags(diffType, &DCfg);
   DCfg.pRe = pRe;  
@@ -909,7 +914,7 @@ void ci_page(void){
   if( g.perm.Admin ){
     @ %z(chref("button","%R/mlink?ci=%!S",zUuid))MLink Table</a>
   }
-  @</div>
+  @ </div>
   if( pRe ){
     @ <p><b>Only differences that match regular expression "%h(zRe)"
     @ are shown.</b></p>
@@ -937,6 +942,7 @@ void ci_page(void){
                             pCfg,mperm);
   }
   db_finalize(&q3);
+  @ </div>
   append_diff_javascript(diffType);
   style_finish_page();
 }
@@ -2449,7 +2455,7 @@ void artifact_page(void){
 
   if( zCI==0 && !isFile ){
     /* If there is no ci= query parameter, then prefer to interpret
-    ** name= as a hash for /artifact and /whatis.  But for not for /file.
+    ** name= as a hash for /artifact and /whatis.  But not for /file.
     ** For /file, a name= without a ci= will prefer to use the default
     ** "tip" value for ci=. */
     rid = name_to_rid(zName);
@@ -2750,7 +2756,7 @@ void tinfo_page(void){
   }
   pTktChng = manifest_get(rid, CFTYPE_TICKET, 0);
   if( pTktChng==0 ) fossil_redirect_home();
-  zDate = db_text(0, "SELECT datetime(%.12f)", pTktChng->rDate);
+  zDate = db_text(0, "SELECT datetime(%.12f,toLocal())", pTktChng->rDate);
   sqlite3_snprintf(sizeof(zTktName), zTktName, "%s", pTktChng->zTicketUuid);
   if( g.perm.ModTkt && (zModAction = P("modaction"))!=0 ){
     if( strcmp(zModAction,"delete")==0 ){
@@ -2779,7 +2785,7 @@ void tinfo_page(void){
   style_set_current_feature("tinfo");
   style_header("Ticket Change Details");
   style_submenu_element("Raw", "%R/artifact/%s", zUuid);
-  style_submenu_element("History", "%R/tkthistory/%s", zTktName);
+  style_submenu_element("History", "%R/tkthistory/%s#%S", zTktName,zUuid);
   style_submenu_element("Page", "%R/tktview/%t", zTktName);
   style_submenu_element("Timeline", "%R/tkttimeline/%t", zTktName);
   if( P("plaintext") ){
@@ -2824,7 +2830,7 @@ void tinfo_page(void){
 
   @ <div class="section">Changes</div>
   @ <p>
-  ticket_output_change_artifact(pTktChng, 0, 1);
+  ticket_output_change_artifact(pTktChng, 0, 1, 0);
   manifest_destroy(pTktChng);
   style_finish_page();
 }
@@ -3541,7 +3547,6 @@ void ci_amend_cmd(void){
   fClose = find_option("close",0,0)!=0;
   fHide = find_option("hide",0,0)!=0;
   fDryRun = find_option("dry-run","n",0)!=0;
-  if( fDryRun==0 ) fDryRun = find_option("dryrun","n",0)!=0;
   zChngTime = find_option("date-override",0,1);
   if( zChngTime==0 ) zChngTime = find_option("chngtime",0,1);
   zUserOvrd = find_option("user-override",0,1);
