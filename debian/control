@@ -2,8 +2,9 @@ Source: fossil
 Section: vcs
 Priority: optional
 Maintainer: Barak A. Pearlmutter <bap@debian.org>
-Standards-Version: 4.6.1
+Standards-Version: 4.6.2
 Build-Depends: debhelper-compat (= 13),
+               libsqlite3-dev (>= 3.38.0),
                bash-completion,
                libfuse-dev,
                libreadline-dev,

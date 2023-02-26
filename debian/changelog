@@ -2,6 +2,8 @@ fossil (1:2.21-1) unstable; urgency=medium
 
   * Add upstream/metadata
   * New upstream version
+  * Bump policy
+  * Use external sqlite3 and hope for the best regarding the JSON1 issue
 
  -- Barak A. Pearlmutter <bap@debian.org>  Sun, 26 Feb 2023 18:58:27 +0000
 
