@@ -1292,7 +1292,6 @@ void manifest_test_parse_cmd(void){
 ** implementation to confirm that the changes did not break anything.
 **
 ** Options:
-**
 **   --limit N            Parse no more than N artifacts before stopping
 **   --wellformed         Use all BLOB table entries as input, not just
 **                        those entries that are believed to be valid
@@ -1936,7 +1935,7 @@ static int manifest_add_checkin_linkages(
 }
 
 /*
-** There exists a "parent" tag against checkin rid that has value zValue.
+** There exists a "parent" tag against check-in rid that has value zValue.
 ** If value is well-formed (meaning that it is a list of hashes), then use
 ** zValue to reparent check-in rid.
 */

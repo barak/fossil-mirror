@@ -1,6 +1,32 @@
 <title>Change Log</title>
 
-<h2 id='v2_20'>Changes for version 2.20 (pending)</h2>
+<h2 id='v2_21'>Changes for version 2.21 (2023-02-25)</h2>
+  *  Users can request a password reset.  This feature is disabledby default.  Use
+     the new [/help?cmd=self-pw-reset|self-pw-reset property] to enable it.  
+     New web pages [/help?cmd=/resetpw|/resetpw] and
+     [/help?cmd=/reqpwreset|/reqpwreset] added.
+  *  Add the [/help?cmd=repack|fossil repack] command (together with
+     [/help?cmd=all|fossil all repack]) as a convenient way to optimize the
+     size of one or all of the repositories on a system.
+  *  Add the ability to put text descriptions on ticket report formats.
+  *  Upgrade the test-find-pivot command to the [/help/merge-base|merge-base command].
+  *  The [/help?cmd=/chat|/chat page] can now embed fossil-rendered
+     views of wiki/markdown/pikchr file attachments with the caveat that such
+     embedding happens in an iframe and thus does not inherit styles and such
+     from the containing browser window.
+  *  The [/help?cmd=all|fossil all remote] subcommand added to "fossil all".
+  *  Passwords for remembered remote repositories are now stored as irreversible
+     hashes rather than obscured clear-text, for improved security.
+  *  Add the "nossl" and "nocompress" options to CGI.
+  *  Update search infrastructure from FTS4 to FTS5.
+  *  Add the [/help?cmd=/deltachain|/deltachain] page for debugging purposes.
+  *  Writes to the database are disabled by default if the HTTP request
+     does not come from the same origin.  This enhancement is a defense in depth
+     measure only; it does not address any known vulnerabilities.
+  *  Improvements to automatic detection and mitigation of attacks from
+     malicious robots.
+
+<h2 id='v2_20'>Changes for version 2.20 (2022-11-16)</h2>
   *  Added the [/help?cmd=chat-timeline-user|chat-timeline-user setting].  If
      it is not an empty string, then any changes that would appear on the timeline
      are announced in [./chat.md|the chat room].
@@ -294,7 +320,7 @@
     and 2.14.2 on (2021-06-15)</h2>
   *  <b>Patch 2.14.2:</b> Fix the client-side TLS so that it verifies that the
      server hostname matches its certificate. <b>Upgrading to
-     the patch is recommended.</b><
+     the patch is recommended.</b>
   *  <b>Patch 2.14.1:</b> Fix a data exfiltration bug in the server.
      <b>Upgrading to the patch is recommended.</b>
   *  <b>Schema Update Notice #1:</b>

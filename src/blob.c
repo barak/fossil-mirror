@@ -126,6 +126,7 @@ int fossil_isspace(char c){
 int fossil_islower(char c){ return c>='a' && c<='z'; }
 int fossil_isupper(char c){ return c>='A' && c<='Z'; }
 int fossil_isdigit(char c){ return c>='0' && c<='9'; }
+int fossil_isxdigit(char c){ return (c>='0' && c<='9') || (c>='a' && c<='f'); }
 int fossil_tolower(char c){
   return fossil_isupper(c) ? c - 'A' + 'a' : c;
 }
@@ -679,7 +680,7 @@ void blob_rewind(Blob *p){
 ** Truncate a blob back to zero length
 */
 void blob_truncate(Blob *p, int sz){
-  if( sz>=0 && sz<p->nUsed ) p->nUsed = sz;
+  if( sz>=0 && sz<(int)(p->nUsed) ) p->nUsed = sz;
 }
 
 /*
@@ -1164,7 +1165,7 @@ int blob_write_to_file(Blob *pBlob, const char *zFilename){
     blob_is_init(pBlob);
     nWrote = fwrite(blob_buffer(pBlob), 1, blob_size(pBlob), out);
     fclose(out);
-    if( nWrote!=blob_size(pBlob) ){
+    if( nWrote!=(int)blob_size(pBlob) ){
       fossil_fatal_recursive("short write: %d of %d bytes to %s", nWrote,
          blob_size(pBlob), zFilename);
     }
@@ -1362,7 +1363,7 @@ void blob_add_cr(Blob *p){
     if( z[i]=='\n' ) n++;
   }
   j += n;
-  if( j>=p->nAlloc ){
+  if( j>=(int)(p->nAlloc) ){
     blob_resize(p, j);
     z = p->aData;
   }
@@ -1417,7 +1418,7 @@ void blob_cp1252_to_utf8(Blob *p){
     }
   }
   j += n;
-  if( j>=p->nAlloc ){
+  if( j>=(int)(p->nAlloc) ){
     blob_resize(p, j);
     z = (unsigned char *)p->aData;
   }

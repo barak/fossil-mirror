@@ -595,6 +595,7 @@ static int ticket_schema_auth(
       }
       break;
     }
+    case SQLITE_SELECT:
     case SQLITE_FUNCTION:
     case SQLITE_REINDEX:
     case SQLITE_TRANSACTION:
@@ -714,7 +715,7 @@ static void showAllFields(void){
 
 /*
 ** WEBPAGE: tktview
-** URL:  tktview?name=HASH
+** URL:  tktview/HASH
 **
 ** View a ticket identified by the name= query parameter.
 ** Other query parameters:
@@ -730,7 +731,7 @@ void tktview_page(void){
   login_check_credentials();
   if( !g.perm.RdTkt ){ login_needed(g.anon.RdTkt); return; }
   if( g.anon.WrTkt || g.anon.ApndTkt ){
-    style_submenu_element("Edit", "%R/tktedit?name=%T", PD("name",""));
+    style_submenu_element("Edit", "%R/tktedit/%T", PD("name",""));
   }
   if( g.perm.Hyperlink ){
     style_submenu_element("History", "%R/tkthistory/%T", zUuid);
@@ -927,7 +928,7 @@ static int submitTicketCmd(
       while( nValue>0 && fossil_isspace(zValue[nValue-1]) ){ nValue--; }
       if( ((aField[i].mUsed & USEDBY_TICKETCHNG)!=0 && nValue>0)
        || memcmp(zValue, aField[i].zValue, nValue)!=0
-       || strlen(aField[i].zValue)!=nValue
+       ||(int)strlen(aField[i].zValue)!=nValue
       ){
         if( memcmp(aField[i].zName, "private_", 8)==0 ){
           zValue = db_conceal(zValue, nValue);
@@ -996,7 +997,8 @@ static int submitTicketCmd(
 */
 void tktnew_page(void){
   const char *zScript;
-  char *zNewUuid = 0;
+  char *zEmail = 0, *zNewUuid = 0;
+  int uid;
 
   login_check_credentials();
   if( !g.perm.NewTkt ){ login_needed(g.anon.NewTkt); return; }
@@ -1018,6 +1020,16 @@ void tktnew_page(void){
     @ <input type="hidden" name="date_override" value="%h(P("date_override"))">
   }
   zScript = ticket_newpage_code();
+  if( g.zLogin && g.zLogin[0] ){
+    uid = db_int(0, "SELECT uid FROM user WHERE login=%Q", g.zLogin);
+    if( uid ){
+      zEmail = db_text(0, "SELECT find_emailaddr(info) FROM user WHERE uid=%d",
+          uid);
+      if( zEmail ){
+        Th_Store("private_contact", zEmail);
+      }
+    }
+  }
   Th_Store("login", login_name());
   Th_Store("date", db_text(0, "SELECT datetime('now')"));
   Th_CreateCommand(g.interp, "submit_ticket", submitTicketCmd,
@@ -1057,7 +1069,7 @@ void tktedit_page(void){
   }
   zName = P("name");
   if( P("cancel") ){
-    cgi_redirectf("tktview?name=%T", zName);
+    cgi_redirectf("tktview/%T", zName);
   }
   style_set_current_feature("tkt");
   style_header("Edit Ticket");
@@ -1214,9 +1226,9 @@ void tkttimeline_page(void){
   zUuid = PD("name","");
   zType = PD("y","a");
   if( zType[0]!='c' ){
-    style_submenu_element("Check-ins", "%R/tkttimeline?name=%T&y=ci", zUuid);
+    style_submenu_element("Check-ins", "%R/tkttimeline/%T?y=ci", zUuid);
   }else{
-    style_submenu_element("Timeline", "%R/tkttimeline?name=%T", zUuid);
+    style_submenu_element("Timeline", "%R/tkttimeline/%T", zUuid);
   }
   style_submenu_element("History", "%R/tkthistory/%s", zUuid);
   style_submenu_element("Status", "%R/info/%s", zUuid);
@@ -1242,7 +1254,7 @@ void tkttimeline_page(void){
 
 /*
 ** WEBPAGE: tkthistory
-** URL: /tkthistory?name=TICKETUUID
+** URL: /tkthistory/TICKETUUID
 **
 ** Show the complete change history for a single ticket.  Or (to put it
 ** another way) show a list of artifacts associated with a single ticket.
@@ -1272,8 +1284,8 @@ void tkthistory_page(void){
   zUuid = PD("name","");
   zTitle = mprintf("History Of Ticket %h", zUuid);
   style_submenu_element("Status", "%R/info/%s", zUuid);
-  style_submenu_element("Check-ins", "%R/tkttimeline?name=%s&y=ci", zUuid);
-  style_submenu_element("Timeline", "%R/tkttimeline?name=%s", zUuid);
+  style_submenu_element("Check-ins", "%R/tkttimeline/%s?y=ci", zUuid);
+  style_submenu_element("Timeline", "%R/tkttimeline/%s", zUuid);
   if( P("raw")!=0 ){
     style_submenu_element("Decoded", "%R/tkthistory/%s", zUuid);
   }else if( g.perm.Admin ){
@@ -1551,7 +1563,7 @@ void ticket_cmd(void){
   const char *zDate;
   const char *zTktUuid;
 
-  /* do some ints, we want to be inside a checkout */
+  /* do some ints, we want to be inside a check-out */
   db_find_and_open_repository(0, 0);
   user_select();
 

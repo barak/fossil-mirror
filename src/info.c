@@ -54,7 +54,7 @@ char *info_tags_of_checkin(int rid, int propagatingOnly){
 */
 void show_common_info(
   int rid,                   /* The rid for the check-in to display info for */
-  const char *zRecDesc,      /* Brief record description; e.g. "checkout:" */
+  const char *zRecDesc,      /* Brief record description; e.g. "check-out:" */
   int showComment,           /* True to show the check-in comment */
   int showFamily             /* True to show parents and children */
 ){
@@ -186,10 +186,9 @@ static void showParentProject(void){
 ** the argument is the name of an object within the repository.
 **
 ** Use the "finfo" command to get information about a specific
-** file in a checkout.
+** file in a check-out.
 **
 ** Options:
-**
 **    -R|--repository REPO       Extract info from repository REPO
 **    -v|--verbose               Show extra information about repositories
 **
@@ -367,7 +366,7 @@ static void append_diff(
 ** to a file between two check-ins.
 */
 static void append_file_change_line(
-  const char *zCkin,    /* The checkin on which the change occurs */
+  const char *zCkin,    /* The check-in on which the change occurs */
   const char *zName,    /* Name of the file that has changed */
   const char *zOld,     /* blob.uuid before change.  NULL for added files */
   const char *zNew,     /* blob.uuid after change.  NULL for deletes */
@@ -456,8 +455,8 @@ DiffConfig *construct_diff_flags(int diffType, DiffConfig *pCfg){
   if( diffType>0 ){
     int x;
     if( diffType==2 ) diffFlags = DIFF_SIDEBYSIDE;
-    if( P("w") )      diffFlags |= DIFF_IGNORE_ALLWS;
-    if( PD("noopt",0)!=0 ) diffFlags |= DIFF_NOOPT;
+    if( P_NoBot("w") )  diffFlags |= DIFF_IGNORE_ALLWS;
+    if( PD_NoBot("noopt",0)!=0 ) diffFlags |= DIFF_NOOPT;
     diffFlags |= DIFF_STRIP_EOLCR;
     diff_config_init(pCfg, diffFlags);
 
@@ -651,7 +650,7 @@ void ci_page(void){
      rid, rid
   );
   zBrName = branch_of_rid(rid);
-  
+
   diffType = preferred_diff_type();
   if( db_step(&q1)==SQLITE_ROW ){
     const char *zUuid = db_column_text(&q1, 0);
@@ -821,7 +820,7 @@ void ci_page(void){
       const char *zLinks = blob_str(&wiki_read_links);
       @ <tr><th>Edit&nbsp;Wiki:</th><td>\
       if( okWiki ){
-        @ %z(href("%R/wikiedit?name=checkin/%s",zUuid))this checkin</a>\
+        @ %z(href("%R/wikiedit?name=checkin/%s",zUuid))this check-in</a>\
       }else if( zLinks[0] ){
         zLinks += 3;
       }
@@ -839,7 +838,7 @@ void ci_page(void){
       const char *zLinks = blob_str(&wiki_add_links);
       @ <tr><th>Add&nbsp;Wiki:</th><td>\
       if( !okWiki ){
-        @ %z(href("%R/wikiedit?name=checkin/%s",zUuid))this checkin</a>\
+        @ %z(href("%R/wikiedit?name=checkin/%s",zUuid))this check-in</a>\
       }else if( zLinks[0] ){
         zLinks += 3;
       }
@@ -872,11 +871,11 @@ void ci_page(void){
   }
   db_finalize(&q1);
   @ </div>
-  builtin_request_js("accordion.js");  
+  builtin_request_js("accordion.js");
   if( !PB("nowiki") ){
     wiki_render_associated("checkin", zUuid, 0);
   }
-  render_backlink_graph(zUuid, 
+  render_backlink_graph(zUuid,
        "<div class=\"section accordion\">References</div>\n");
   @ <div class="section accordion">Context</div><div class="accordion_panel">
   render_checkin_context(rid, 0, 0, 0);
@@ -884,7 +883,7 @@ void ci_page(void){
   @ <div class="accordion_panel">
   @ <div class="sectionmenu">
   pCfg = construct_diff_flags(diffType, &DCfg);
-  DCfg.pRe = pRe;  
+  DCfg.pRe = pRe;
   zW = (DCfg.diffFlags&DIFF_IGNORE_ALLWS)?"&w":"";
   if( diffType!=0 ){
     @ %z(chref("button","%R/%s/%T?diff=0",zPageHide,zName))\
@@ -938,7 +937,7 @@ void ci_page(void){
     const char *zOld = db_column_text(&q3,2);
     const char *zNew = db_column_text(&q3,3);
     const char *zOldName = db_column_text(&q3, 4);
-    append_file_change_line(zUuid, zName, zOld, zNew, zOldName, 
+    append_file_change_line(zUuid, zName, zOld, zNew, zOldName,
                             pCfg,mperm);
   }
   db_finalize(&q3);
@@ -1214,8 +1213,8 @@ void vdiff_page(void){
   pFrom = vdiff_parse_manifest("from", &ridFrom);
   if( pFrom==0 ) return;
   zGlob = P("glob");
-  zFrom = P("from");
-  zTo = P("to");
+  zFrom = P_NoBot("from");
+  zTo = P_NoBot("to");
   if( bInvert ){
     Manifest *pTemp = pTo;
     const char *zTemp = zTo;
@@ -1689,7 +1688,7 @@ int preferred_diff_type(void){
   zDflt[0] = dflt + '0';
   zDflt[1] = 0;
   cookie_link_parameter("diff","diff", zDflt);
-  return atoi(PD("diff",zDflt));
+  return atoi(PD_NoBot("diff",zDflt));
 }
 
 
@@ -1725,13 +1724,13 @@ void diff_page(void){
   char *zV2;
   const char *zRe;
   ReCompiled *pRe = 0;
-  u64 diffFlags;
   u32 objdescFlags = 0;
   int verbose = PB("verbose");
   DiffConfig DCfg;
 
   login_check_credentials();
   if( !g.perm.Read ){ login_needed(g.anon.Read); return; }
+  diff_config_init(&DCfg, 0);
   diffType = preferred_diff_type();
   if( P("from") && P("to") ){
     v1 = artifact_from_ci_and_filename("from");
@@ -1778,10 +1777,9 @@ void diff_page(void){
     DiffConfig DCfg;
     pOut = cgi_output_blob();
     cgi_set_content_type("text/plain");
-    diffFlags = DIFF_VERBOSE;
+    DCfg.diffFlags = DIFF_VERBOSE;
     content_get(v1, &c1);
     content_get(v2, &c2);
-    diff_config_init(&DCfg, diffFlags);
     DCfg.pRe = pRe;
     text_diff(&c1, &c2, pOut, &DCfg);
     blob_reset(&c1);
@@ -2498,7 +2496,7 @@ void artifact_page(void){
         url_add_parameter(&url, "ci", zCI);
       }
       db_finalize(&q);
-      if( rid==0 ){     
+      if( rid==0 ){
         style_header("No such file");
         @ File '%h(zName)' does not exist in this repository.
       }
@@ -2700,7 +2698,7 @@ void artifact_page(void){
         if( zLn ){
           output_text_with_line_numbers(z, blob_size(&content),
                                         zFileName, zLn, 1);
-        }else if( zExt && zExt[1] ){
+        }else if( zExt && zExt[0] ){
           @ <pre>
           @ <code class="language-%s(zExt)">%h(z)</code>
           @ </pre>
@@ -3473,7 +3471,6 @@ static void prepare_amend_comment(
 ** Amend the tags on check-in HASH to change how it displays in the timeline.
 **
 ** Options:
-**
 **    --author USER           Make USER the author for check-in
 **    -m|--comment COMMENT    Make COMMENT the check-in comment
 **    -M|--message-file FILE  Read the amended comment from FILE
@@ -3690,7 +3687,7 @@ void test_symlink_list_cmd(void){
 }
 
 #if INTERFACE
-/* 
+/*
 ** Description of a check-in relative to an earlier, tagged check-in.
 */
 typedef struct CommitDescr {
@@ -3808,14 +3805,13 @@ int describe_commit(
 ** since that, and the short hash of VERSION.  Only tags applied to a single
 ** check-in are considered.
 **
-** If no VERSION is provided, describe the current checked-out version.
+** If no VERSION is provided, describe the currently checked-out version.
 **
 ** If VERSION and the found ancestor refer to the same commit, the last two
 ** components are omitted, unless --long is provided.  When no fitting tagged
 ** ancestor is found, show only the short hash of VERSION.
 **
 ** Options:
-**
 **    --digits           Display so many hex digits of the hash 
 **                       (default: the larger of 6 and the 'hash-digit' setting)
 **    -d|--dirty         Show whether there are changes to be committed
@@ -3850,7 +3846,7 @@ void describe_cmd(void){
   }
 
   if( bDirtyFlag ){
-    if ( g.argc>=3 ) fossil_fatal("cannot use --dirty with specific checkin");
+    if ( g.argc>=3 ) fossil_fatal("cannot use --dirty with specific check-in");
   }
 
   switch( describe_commit(zName, zMatchGlob, &descr) ){

@@ -792,7 +792,7 @@ static int parseMarkup(ParsedMarkup *p, char *z){
   }
   j = 0;
   while( fossil_isalnum(z[i]) ){
-    if( j<sizeof(zTag)-1 ) zTag[j++] = fossil_tolower(z[i]);
+    if( j<(int)sizeof(zTag)-1 ) zTag[j++] = fossil_tolower(z[i]);
     i++;
   }
   zTag[j] = 0;
@@ -815,7 +815,7 @@ static int parseMarkup(ParsedMarkup *p, char *z){
     int attrOk;    /* True to preserve attribute.  False to ignore it */
     j = 0;
     while( fossil_isalnum(z[i]) ){
-      if( j<sizeof(zTag)-1 ) zTag[j++] = fossil_tolower(z[i]);
+      if( j<(int)sizeof(zTag)-1 ) zTag[j++] = fossil_tolower(z[i]);
       i++;
     }
     zTag[j] = 0;
@@ -1107,7 +1107,7 @@ static int in_this_repo(const char *zUuid){
   );
   db_bind_text(&q, ":u", zUuid);
   n = (int)strlen(zUuid);
-  if( n>=sizeof(zU2) ) n = sizeof(zU2)-1;
+  if( n>=(int)sizeof(zU2) ) n = sizeof(zU2)-1;
   memcpy(zU2, zUuid, n);
   zU2[n-1]++;
   zU2[n] = 0;
@@ -1360,7 +1360,7 @@ void wiki_resolve_hyperlink(
     zTerm = "</span>";
   }
   if( zExtra ) fossil_free(zExtra);
-  assert( strlen(zTerm)<nClose );
+  assert( (int)strlen(zTerm)<nClose );
   sqlite3_snprintf(nClose, zClose, "%s", zTerm);
 }
 
@@ -1929,7 +1929,7 @@ void test_markdown_render(void){
     fossil_fatal("There were issues with footnotes:\n"
                   " %8d misreference%s\n"
                   " %8d unreferenced\n"
-                  " %8d splitted\n"
+                  " %8d split\n"
                   " %8d overnested",
                   g.ftntsIssues[0], g.ftntsIssues[0]==1?"":"s",
                   g.ftntsIssues[1], g.ftntsIssues[2], g.ftntsIssues[3]);

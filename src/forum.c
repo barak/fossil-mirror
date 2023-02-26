@@ -507,7 +507,7 @@ static void forum_display_post(
       @ .%0*d(fossil_num_digits(p->nEdit))(p->rev)) \
       if( fossil_strcmp(zPosterName, zEditorName)==0 ){
         @ By %s(zPosterName) on %h(zDate) edited from \
-        @ %z(href("%R/forumpost/%S?%s%s",p->pEditPrev->zUuid,zQuery,zHist))\
+        @ %z(href("%R/forumpost/%S%s%s",p->pEditPrev->zUuid,zQuery,zHist))\
         @ %d(p->sid).%0*d(fossil_num_digits(p->nEdit))(p->pEditPrev->rev)</a>
       }else{
         @ Originally by %s(zPosterName) \
@@ -706,8 +706,9 @@ static void forum_display_thread(
     zQuery[i++] = 's';
     zQuery[i++] = 't';
   }
-  assert( i<sizeof(zQuery) );
+  assert( i<(int)sizeof(zQuery) );
   zQuery[i] = 0;
+  assert( zQuery[0]==0 || zQuery[0]=='?' );
 
   /* Identify which post to display first.  If history is shown, start with the
   ** original, unedited post.  Otherwise advance to the post's latest edit.  */
@@ -1061,7 +1062,7 @@ static void forum_post_widget(
     @ maxlength="125"><br>
   }
   @ %z(href("%R/markup_help"))Markup style</a>:
-  mimetype_option_menu(zMimetype);
+  mimetype_option_menu(zMimetype, "mimetype");
   @ <br><textarea aria-label="Content:" name="content" class="wikiedit" \
   @ cols="80" rows="25" wrap="virtual">%h(zContent)</textarea><br>
 }
@@ -1207,6 +1208,8 @@ void forumedit_page(void){
   const char *zFpid = PD("fpid","");
   int isCsrfSafe;
   int isDelete = 0;
+  int bSameUser;        /* True if author is also the reader */
+  int bPrivate;         /* True if post is private (not yet moderated) */
 
   login_check_credentials();
   if( !g.perm.WrForum ){
@@ -1226,8 +1229,11 @@ void forumedit_page(void){
     return;
   }
   isCsrfSafe = cgi_csrf_safe(1);
-  if( g.perm.ModForum && isCsrfSafe ){
-    if( P("approve") ){
+  bPrivate = content_is_private(fpid);
+  bSameUser = login_is_individual()
+    && fossil_strcmp(pPost->zUser, g.zLogin)==0;
+  if( isCsrfSafe && (g.perm.ModForum || (bPrivate && bSameUser)) ){
+    if( g.perm.ModForum && P("approve") ){
       const char *zUserToTrust;
       moderation_approve('f', fpid);
       if( g.perm.AdminForum
@@ -1325,12 +1331,12 @@ void forumedit_page(void){
     zMimetype = PD("mimetype",DEFAULT_FORUM_MIMETYPE);
     zContent = PDT("content","");
     style_header("Reply");
-    if( pRootPost->zThreadTitle ){
-      @ <h1>Thread: %h(pRootPost->zThreadTitle)</h1>
-    }
-    @ <h2>Replying To:
+    @ <h2>Replying to
     @ <a href="%R/forumpost/%!S(zFpid)" target="_blank">%S(zFpid)</a>
-    @ <a href="%R/forumpost/%!S(zFpid)?raw" target="_blank">[source]</a>
+    if( pRootPost->zThreadTitle ){
+      @ in thread
+      @ <span class="forumPostReplyTitle">%h(pRootPost->zThreadTitle)</span>
+    }
     @ </h2>
     zDate = db_text(0, "SELECT datetime(%.17g,toLocal())", pPost->rDate);
     zDisplayName = display_name_from_login(pPost->zUser);

@@ -184,7 +184,7 @@ void www_print_timeline(
   Stmt fchngQuery;            /* Query for file changes on check-ins */
   static Stmt qbranch;
   int pendingEndTr = 0;       /* True if a </td></tr> is needed */
-  int vid = 0;                /* Current checkout version */
+  int vid = 0;                /* Current check-out version */
   int dateFormat = 0;         /* 0: HH:MM (default) */
   int bCommentGitStyle = 0;   /* Only show comments through first blank line */
   const char *zStyle;         /* Sub-name for classes for the style */
@@ -496,9 +496,9 @@ void www_print_timeline(
       if( tmFlags & TIMELINE_SHOWRID ){
         int srcId = delta_source_rid(rid);
         if( srcId ){
-          @ (%d(rid)&larr;%d(srcId))
+          @ (%z(href("%R/deltachain/%d",rid))%d(rid)&larr;%d(srcId)</a>)
         }else{
-          @ (%d(rid))
+          @ (%z(href("%R/deltachain/%d",rid))%d(rid)</a>)
         }
       }
     }
@@ -549,7 +549,7 @@ void www_print_timeline(
         }
         z[ii] = 0;
         cgi_printf("%W",z);
-      }else if( mxWikiLen>0 && blob_size(&comment)>mxWikiLen ){
+      }else if( mxWikiLen>0 && (int)blob_size(&comment)>mxWikiLen ){
         Blob truncated;
         blob_zero(&truncated);
         blob_append(&truncated, blob_buffer(&comment), mxWikiLen);
@@ -652,9 +652,11 @@ void www_print_timeline(
     if( tmFlags & TIMELINE_SHOWRID ){
       int srcId = delta_source_rid(rid);
       if( srcId ){
-        cgi_printf(" id:&nbsp;%d&larr;%d", rid, srcId);
+        cgi_printf(" id:&nbsp;%z%d&larr;%d</a>", 
+                   href("%R/deltachain/%d",rid), rid, srcId);
       }else{
-        cgi_printf(" id:&nbsp;%d", rid);
+        cgi_printf(" id:&nbsp;%z%d</a>",
+                   href("%R/deltachain/%d",rid), rid);
       }
     }
     tag_private_status(rid);
@@ -705,7 +707,7 @@ void www_print_timeline(
         const char *zNew = db_column_text(&fchngQuery, 3);
         const char *zUnpub = "";
         char *zA;
-        char zId[40];
+        char *zId;
         if( !inUl ){
           @ <ul class="filelist">
           inUl = 1;
@@ -713,12 +715,14 @@ void www_print_timeline(
         if( tmFlags & TIMELINE_SHOWRID ){
           int srcId = delta_source_rid(fid);
           if( srcId ){
-            sqlite3_snprintf(sizeof(zId), zId, " (%d&larr;%d) ", fid, srcId);
+            zId = mprintf(" (%z%d&larr;%d</a>) ",
+                          href("%R/deltachain/%d", fid), fid, srcId);
           }else{
-            sqlite3_snprintf(sizeof(zId), zId, " (%d) ", fid);
+            zId = mprintf(" (%z%d</a>) ",
+                          href("%R/deltachain/%d", fid), fid);
           }
         }else{
-          zId[0] = 0;
+          zId = fossil_strdup("");
         }
         if( (tmFlags & TIMELINE_FRENAMES)!=0 ){
           if( !isNew && !isDel && zOldName!=0 ){
@@ -752,6 +756,7 @@ void www_print_timeline(
           @ %z(href("%R/fdiff?v1=%!S&v2=%!S",zOld,zNew))[diff]</a></li>
         }
         fossil_free(zA);
+        fossil_free(zId);
       }
       db_reset(&fchngQuery);
       if( inUl ){
@@ -1695,6 +1700,9 @@ void page_timeline(void){
   url_initialize(&url, "timeline");
   cgi_query_parameters_to_url(&url);
 
+  (void)P_NoBot("ss")
+    /* "ss" is processed via the udc but at least one spider likes to
+    ** try to SQL inject via this argument, so let's catch that. */;
 
   /* Set number of rows to display */
   z = P("n");
@@ -1782,7 +1790,12 @@ void page_timeline(void){
     zType = g.perm.Read ? "ci" : "all";
     cgi_set_parameter("y", zType);
   }
-  if( zType[0]=='a' || zType[0]=='c' ){
+  if( zType[0]=='a' ||
+      ( g.perm.Read && zType[0]=='c' ) ||
+      ( g.perm.RdTkt && (zType[0]=='t' || zType[0]=='n') ) ||
+      ( g.perm.RdWiki && (zType[0]=='w' || zType[0]=='e') ) ||
+      ( g.perm.RdForum && zType[0]=='f' )
+    ){
     cookie_write_parameter("y","y",zType);
   }
 
@@ -2473,7 +2486,7 @@ void page_timeline(void){
       }else if( zType[0]=='t' ){
         zEType = "ticket change";
       }else if( zType[0]=='n' ){
-        zEType = "new tickets";
+        zEType = "new ticket";
       }else if( zType[0]=='e' ){
         zEType = "technical note";
       }else if( zType[0]=='g' ){
@@ -3136,11 +3149,11 @@ static int fossil_is_julianday(const char *zDate){
 **   -n|--limit N         If N is positive, output the first N entries.  If
 **                        N is negative, output the first -N lines.  If N is
 **                        zero, no limit.  Default is -20 meaning 20 lines.
-**   --offset P           skip P changes
+**   --offset P           Skip P changes
 **   -p|--path PATH       Output items affecting PATH only.
 **                        PATH can be a file or a sub directory.
 **   -R REPO_FILE         Specifies the repository db to use. Default is
-**                        the current checkout's repository.
+**                        the current check-out's repository.
 **   --sql                Show the SQL used to generate the timeline
 **   -t|--type TYPE       Output items from the given types only, such as:
 **                            ci = file commits only
@@ -3190,7 +3203,7 @@ void timeline_cmd(void){
   zBr = find_option("branch","b",1);
   if( find_option("current-branch","c",0)!=0 ){
     if( !g.localOpen ){
-      fossil_fatal("not within an open checkout");
+      fossil_fatal("not within an open check-out");
     }else{
       int vid = db_lget_int("checkout", 0);
       zBr = db_text(0, "SELECT value FROM tagxref WHERE rid=%d AND tagid=%d",
@@ -3266,7 +3279,7 @@ void timeline_cmd(void){
     zDate = mprintf("(SELECT datetime('now'))");
   }else if( strncmp(zOrigin, "current", k)==0 ){
     if( !g.localOpen ){
-      fossil_fatal("must be within a local checkout to use 'current'");
+      fossil_fatal("must be within a local check-out to use 'current'");
     }
     objid = db_lget_int("checkout",0);
     zDate = mprintf("(SELECT mtime FROM plink WHERE cid=%d)", objid);
@@ -3353,7 +3366,7 @@ void timeline_cmd(void){
       "          WHERE tagname='sym-%q')\n"
       "      UNION\n"                                    /* Branch wikis */
       "      SELECT objid FROM event WHERE comment LIKE '_branch/%q'\n"
-      "      UNION\n"                                    /* Checkin wikis */
+      "      UNION\n"                                    /* Check-in wikis */
       "      SELECT e.objid FROM event e\n"
       "        INNER JOIN blob b ON b.uuid=substr(e.comment, 10)\n"
       "                          AND e.comment LIKE '_checkin/%%'\n"
@@ -3421,7 +3434,7 @@ void thisdayinhistory_page(void){
   );
   timeline_temp_table();
   db_prepare(&q, "SELECT * FROM timeline ORDER BY sortby DESC /*scan*/");
-  for(i=0; i<sizeof(aYearsAgo)/sizeof(aYearsAgo[0]); i++){
+  for(i=0; i<(int)(sizeof(aYearsAgo)/sizeof(aYearsAgo[0])); i++){
     int iAgo = aYearsAgo[i];
     char *zThis = db_text(0, "SELECT date(%Q,'-%d years')", zToday, iAgo);
     Blob sql;

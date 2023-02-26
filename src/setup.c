@@ -128,6 +128,8 @@ void setup_page(void){
       "Configure the trouble-ticketing system for this repository");
     setup_menu_entry("Wiki", "setup_wiki",
       "Configure the wiki for this repository");
+    setup_menu_entry("Interwiki Map", "intermap",
+      "Mapping keywords for interwiki links");
     setup_menu_entry("Chat", "setup_chat",
       "Configure the chatroom");
   }
@@ -595,6 +597,15 @@ void setup_access(void){
   @ perhaps also in the SUBSCRIBER table if email notification is
   @ enabled.
   @ (Property: "self-register")</p>
+
+  @ <hr />
+  onoff_attribute("Allow users to reset their own passwords",
+                  "self-pw-reset", "selfpw", 0, 0);
+  @ <p>Allow users to request that an email contains a hyperlink to a
+  @ password reset page be sent to their email address of record.  This
+  @ enables forgetful users to recover their forgotten passwords without
+  @ administrator intervention.
+  @ (Property: "self-pw-reset")</p>
 
   @ <hr />
   onoff_attribute("Email verification required for self-registration",
@@ -1242,11 +1253,11 @@ void setup_wiki(void){
   @ <p>
   @ Associate wiki pages with branches, tags, or checkins, based on
   @ the wiki page name.  Wiki pages that begin with "branch/", "checkin/"
-  @ or "tag/" and which continue with the name of an existing branch, checkin
+  @ or "tag/" and which continue with the name of an existing branch, check-in
   @ or tag are treated specially when this feature is enabled.
   @ <ul>
   @ <li> <b>branch/</b><i>branch-name</i>
-  @ <li> <b>checkin/</b><i>full-checkin-hash</i>
+  @ <li> <b>checkin/</b><i>full-check-in-hash</i>
   @ <li> <b>tag/</b><i>tag-name</i>
   @ </ul>
   @ (Property: "wiki-about")</p>
@@ -1945,6 +1956,9 @@ void page_admin_log(){
   }
   style_set_current_feature("setup");
   style_header("Admin Log");
+  style_submenu_element("User-Log", "access_log");
+  style_submenu_element("Artifact-Log", "rcvfromlist");
+  style_submenu_element("Error-Log", "errorlog");
   create_admin_log_table();
   limit = atoi(PD("n","200"));
   ofst = atoi(PD("x","0"));
@@ -2057,14 +2071,15 @@ void page_srchsetup(){
     search_update_index(search_restrict(SRCH_ALL));
   }
   if( search_index_exists() ){
-    @ <p>Currently using an SQLite FTS4 search index. This makes search
-    @ run faster, especially on large repositories, but takes up space.</p>
+    @ <p>Currently using an SQLite FTS%d(search_index_type(0)) search index.
+    @ The index helps search run faster, especially on large repositories,
+    @ but takes up space.</p>
     onoff_attribute("Use Porter Stemmer","search-stemmer","ss",0,0);
     @ <p><input type="submit" name="fts0" value="Delete The Full-Text Index">
     @ <input type="submit" name="fts1" value="Rebuild The Full-Text Index">
     style_submenu_element("FTS Index Debugging","%R/test-ftsdocs");
   }else{
-    @ <p>The SQLite FTS4 search index is disabled.  All searching will be
+    @ <p>The SQLite search index is disabled.  All searching will be
     @ a full-text scan.  This usually works fine, but can be slow for
     @ larger repositories.</p>
     onoff_attribute("Use Porter Stemmer","search-stemmer","ss",0,0);
