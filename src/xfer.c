@@ -356,7 +356,10 @@ static void xfer_accept_unversioned_file(Xfer *pXfer, int isWriter){
   }
 
   /* The isWriter flag must be true in order to land the new file */
-  if( !isWriter ) goto end_accept_unversioned_file;
+  if( !isWriter ){
+    blob_appendf(&pXfer->err, "Write permissions for unversioned files missing");
+    goto end_accept_unversioned_file;
+  }
 
   /* Make sure we have a valid g.rcvid marker */
   content_rcvid_init(0);
@@ -1309,6 +1312,7 @@ void page_xfer(void){
       if( blob_size(&xfer.err) ){
         cgi_reset_content();
         @ error %T(blob_str(&xfer.err))
+        fossil_print("%%%%%%%% xfer.err: '%s'\n", blob_str(&xfer.err));
         nErr++;
         break;
       }
@@ -2855,9 +2859,19 @@ int client_sync(
 
   fossil_force_newline();
   if( g.zHttpCmd==0 ){
-    fossil_print(
-       "%s done, wire bytes sent: %lld  received: %lld  remote: %s\n",
-       zOpType, nSent, nRcvd, g.zIpAddr);
+    if( syncFlags & SYNC_VERBOSE ){
+      fossil_print(
+        "%s done, wire bytes sent: %lld  received: %lld  remote: %s%s\n",
+        zOpType, nSent, nRcvd,
+        (g.url.name && g.url.name[0]!='\0') ? g.url.name : "",
+        (g.zIpAddr && g.zIpAddr[0]!='\0'
+          && fossil_strcmp(g.zIpAddr, g.url.name))
+          ? mprintf(" (%s)", g.zIpAddr) : "");
+    }else{
+      fossil_print(
+        "%s done, wire bytes sent: %lld  received: %lld  remote: %s\n",
+          zOpType, nSent, nRcvd, g.zIpAddr);
+    }
   }
   if( syncFlags & SYNC_VERBOSE ){
     fossil_print(
