@@ -1,5 +1,5 @@
-C update\sdebian/changelog\n\n
-D 2023-06-01T07:26:40.358
+C update\sdebian/README.Debian
+D 2023-06-01T07:51:52.319
 F .editorconfig 132c5a213aa3ce13dcc9c19f8a7ea306e3640bec4ae693378116cee339c34a1a
 F .fossil-settings/binary-glob 679cf0b793f345a23e6dab55174511758d5fa28dd7724f61bab41d2b75c288c2
 F .fossil-settings/clean-glob 3efaf2f54ed450047dea396ef7197ab4a7596654d844ce25c419cc442e2f493f
@@ -263,8 +263,8 @@ F compat/zlib/zlib2ansi 8b1985f183ae89601428986f869379a774a288e76289c2c3492b3ede
 F compat/zlib/zutil.c 3ce011b3a333719f4356ab84e3149f8e1538e9ec2a511315124774fe61b078f6
 F compat/zlib/zutil.h a8f1bae8015e110eaf27177b58f3efac8c89731329568458012e420de48766be
 F configure 05e4b3ca2e1ff283d82e0c4ced9215edc47157c4b4ba6839fb7f895bf224dcd2 x
-F debian/README.Debian e678b3c6de3ce5f7020ead24f62751317dd5ba2d7cca03511cfe8f53f1b0e648
-F debian/changelog e1e5c403dec42627683c850205c8a36791d952e7fc166f0713e4a36a41e003b9
+F debian/README.Debian 0d3da26cd6ae6108b1e1c51d174cf63f2bb0f9cb231a81b369058367debd7bc3
+F debian/changelog fad835f43ca70e150152fed47ff0ddd01fd1ed0fd76e6168c428d431542bc192
 F debian/clean 65cc2108142dc3df843e4f30c0fcebd3c7a5cfd3e3209eadd8a26a7e00c1e833
 F debian/control d14b4b06fc66710324e586e67594ea0a58e50dbf8942c55b84f9122d9340fb57
 F debian/copyright 36d6e9fe8999e44f411afa88ff9c7a3a79682c40438bad1787131f02cb8ca21f
@@ -963,8 +963,8 @@ F www/whyusefossil.wiki b91ab7f82ace6a54daad625af1d227a3274b04250a467c60eb33e6fb
 F www/wikitheory.wiki db69ec24453087f8dc738fda7718deb44388df30982d12c47752033063442039
 F www/wsl_caveats.wiki dc4a8388b29d05641ad4d9769c18cbe49963d000dbdc3a9dd6f616ccbcf12dea
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P 728247a6bceee4d6cd1cdd6859ce8c099b91e2021406b14c76477be5faba0282
-R 162a7dfe93c13bb8514522d8aa80721d
+P 6c283810f544607c7216cbbb0ea6626d81c23e15df0c7e2b944b7f03c6abf5c2
+R 1ef567de768ee4dc79130a3916661e55
 U barak
-Z 6003635dd8b8b94bec8db2e0aa6949bc
+Z 618aa3007362e52d6408412e70ce6294
 # Remove this line to create a well-formed Fossil manifest.

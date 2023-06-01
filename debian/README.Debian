@@ -22,18 +22,21 @@ Brief “cheat sheet” of relevant fossil commands.
  debchange --distribution unstable --newversion=${EPOCH}:${VER}-${DEBVER} New upstream version
  fossil commit -m 'update debian/changelog'
 
- # build debian release
+ # BUILDING
  dpkg-checkbuildeps
- fakeroot debian/rules binary
+ # Build binary package:
+ env DEB_RULES_REQUIRES_ROOT=no debian/rules binary
  lintian ../fossil*.d??
- # traditional, source + binaries to upload
+ # Build source + binary upload:
  dpkg-buildpackage -i.fslckout -i_FOSSIL_
  lintian
- # but its better to use a chroot
+ # Build source + binary upload using a chroot:
  pdebuild --pbuilder cowbuilder --debbuildopts "-i.fslckout -i_FOSSIL_"
  sudo mv --no-clobber /var/cache/pbuilder/result/fossil* ../
- # and to generate a source-only upload
+ lintian ../fossil*.d??
+ # Build source-only upload:
  dpkg-buildpackage -i.fslckout -i_FOSSIL_ --build=source --no-check-builddeps
+ lintian ../fossil*.d??
 
  # tag debian release
  fossil tag add debian_${EPOCH}:${VER}-${DEBVER} debian
@@ -67,4 +70,4 @@ Brief “cheat sheet” of relevant fossil commands.
  fossil co trunk
  tar --exclude .fslckout --exclude _FOSSIL_ -C .. -zcf fossil_${VER}.orig.tar.gz fossil
 
- -- Barak A. Pearlmutter <bap@debian.org>, Thu,  8 Apr 2021 11:02:49 +0100
+ -- Barak A. Pearlmutter <bap@debian.org>, Thu,  1 Jun 2023 08:44:48 +0100
