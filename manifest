@@ -1,5 +1,5 @@
-C merge\sversion-2.22
-D 2023-06-01T07:22:50.411
+C update\sdebian/changelog\n\n
+D 2023-06-01T07:26:40.358
 F .editorconfig 132c5a213aa3ce13dcc9c19f8a7ea306e3640bec4ae693378116cee339c34a1a
 F .fossil-settings/binary-glob 679cf0b793f345a23e6dab55174511758d5fa28dd7724f61bab41d2b75c288c2
 F .fossil-settings/clean-glob 3efaf2f54ed450047dea396ef7197ab4a7596654d844ce25c419cc442e2f493f
@@ -264,7 +264,7 @@ F compat/zlib/zutil.c 3ce011b3a333719f4356ab84e3149f8e1538e9ec2a511315124774fe61
 F compat/zlib/zutil.h a8f1bae8015e110eaf27177b58f3efac8c89731329568458012e420de48766be
 F configure 05e4b3ca2e1ff283d82e0c4ced9215edc47157c4b4ba6839fb7f895bf224dcd2 x
 F debian/README.Debian e678b3c6de3ce5f7020ead24f62751317dd5ba2d7cca03511cfe8f53f1b0e648
-F debian/changelog 58e05d85dd55a2996ca7d77fa5efc3253e6fae9f244fdd046f10e245140db7d9
+F debian/changelog e1e5c403dec42627683c850205c8a36791d952e7fc166f0713e4a36a41e003b9
 F debian/clean 65cc2108142dc3df843e4f30c0fcebd3c7a5cfd3e3209eadd8a26a7e00c1e833
 F debian/control d14b4b06fc66710324e586e67594ea0a58e50dbf8942c55b84f9122d9340fb57
 F debian/copyright 36d6e9fe8999e44f411afa88ff9c7a3a79682c40438bad1787131f02cb8ca21f
@@ -963,8 +963,8 @@ F www/whyusefossil.wiki b91ab7f82ace6a54daad625af1d227a3274b04250a467c60eb33e6fb
 F www/wikitheory.wiki db69ec24453087f8dc738fda7718deb44388df30982d12c47752033063442039
 F www/wsl_caveats.wiki dc4a8388b29d05641ad4d9769c18cbe49963d000dbdc3a9dd6f616ccbcf12dea
 F www/xkcd-git.gif 1f9bc44ed41cad3f5ac18f21e3463e3390b53b29
-P 3c53b6364e7e0e6331a84b34d28d62fa9a68c8b8429460f09c2bc31ae8bfc403 66ee0beb9b47d827bde533fe6a1fb2ead4ceb1936468881b4fb621bd6bdfd862
-R 2a46b311c489a3fc663748befc6e09a3
+P 728247a6bceee4d6cd1cdd6859ce8c099b91e2021406b14c76477be5faba0282
+R 162a7dfe93c13bb8514522d8aa80721d
 U barak
-Z 53ed413f7bf97b42c61666ecfd3849d3
+Z 6003635dd8b8b94bec8db2e0aa6949bc
 # Remove this line to create a well-formed Fossil manifest.
